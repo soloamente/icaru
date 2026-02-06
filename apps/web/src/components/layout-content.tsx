@@ -1,33 +1,45 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-
+import { useAuthOptional } from "@/lib/auth/auth-context";
 import Sidebar from "./sidebar";
 
-/** Paths where sidebar is shown (main app routes). */
-const SIDEBAR_PATHS = ["/", "/dashboard"];
-
-function shouldShowSidebar(pathname: string): boolean {
-	return SIDEBAR_PATHS.some(
-		(path) => pathname === path || pathname.startsWith(`${path}/`)
-	);
-}
-
 /**
- * Layout wrapper: sidebar + main content. Sidebar is shown on main app routes.
+ * LayoutContent Component (Client Component)
+ *
+ * Handles pathname-based conditional rendering of sidebar and preferences.
+ * Uses auth context for user data (loaded on mount and after login).
  */
 export default function LayoutContent({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	const pathname = usePathname();
-	const showSidebar = shouldShowSidebar(pathname);
+	const auth = useAuthOptional();
+	const user = auth?.user ?? null;
+
+	// List of paths where the sidebar should be hidden
+	const hideSidebarPaths: string[] = [];
+
+	// List of paths where the sidebar should be visible
+	const visibleSidebarPaths = ["/dashboard", "/trattative", "/clienti"];
+
+	// Check if current pathname matches any hide patterns
+	const shouldHideSidebar = hideSidebarPaths.some((path) =>
+		pathname.startsWith(path)
+	);
+
+	// Check if current pathname matches any visible patterns
+	const matchesVisiblePath = visibleSidebarPaths.some(
+		(path) => pathname === path || pathname.startsWith(`${path}/`)
+	);
+
+	// Show sidebar if it matches visible paths AND is not in the hide list
+	const shouldShowSidebar = matchesVisiblePath && !shouldHideSidebar;
 
 	return (
-		<div className="flex h-svh overflow-hidden">
-			{showSidebar && <Sidebar />}
-			<main className="flex min-w-0 flex-1 flex-col overflow-auto">
-				{children}
-			</main>
+		<div className="flex h-screen overflow-hidden">
+			{shouldShowSidebar && <Sidebar user={user} />}
+			{children}
 		</div>
 	);
 }

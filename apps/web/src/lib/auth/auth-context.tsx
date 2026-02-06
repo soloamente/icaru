@@ -77,16 +77,19 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 			role: storedUser ? roleFromApi(storedUser.role) : null,
 			isLoaded: true,
 		});
-		// Optionally validate with backend (could set user to undefined if 401)
+		// Validate with backend; only clear session on real auth failure (401), not on network errors
 		getMe(token).then((result) => {
 			if ("error" in result) {
-				clearStoredAuth();
-				setState({
-					user: undefined,
-					token: null,
-					role: null,
-					isLoaded: true,
-				});
+				// Don't logout on "Failed to fetch" / network errors — only on 401 Unauthorized
+				if (result.authFailure === true) {
+					clearStoredAuth();
+					setState({
+						user: undefined,
+						token: null,
+						role: null,
+						isLoaded: true,
+					});
+				}
 				return;
 			}
 			setStoredAuth(token, result.data);

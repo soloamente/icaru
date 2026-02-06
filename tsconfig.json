@@ -25,17 +25,17 @@
       }
     ],
     "incremental": true,
-    /* Path Aliases */
+    /* Path Aliases - resolved from apps/web/src (monorepo) */
     "baseUrl": ".",
     "paths": {
-      "@lib/*": ["./src/lib/*"],
-      "@components/*": ["./src/components/*"],
-      "@hooks/*": ["./src/hooks/*"],
-      "@pages/*": ["./src/app/*"],
-      "@styles/*": ["./src/styles/*"],
-      "@types/*": ["./src/types/*"],
-      "@db/*": ["./src/db/*"],
-      "@/*": ["./src/*"]
+      "@lib/*": ["./apps/web/src/lib/*"],
+      "@components/*": ["./apps/web/src/components/*"],
+      "@hooks/*": ["./apps/web/src/hooks/*"],
+      "@pages/*": ["./apps/web/src/app/*"],
+      "@styles/*": ["./apps/web/src/styles/*"],
+      "@types/*": ["./apps/web/src/types/*"],
+      "@db/*": ["./apps/web/src/db/*"],
+      "@/*": ["./apps/web/src/*"]
     }
   },
   "include": [
