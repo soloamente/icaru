@@ -28,6 +28,7 @@
   "dependencies": {
     "@compravendita/env": "workspace:*",
     "dotenv": "catalog:",
+    "motion": "^12.31.0",
     "zod": "catalog:"
   },
   "devDependencies": {
