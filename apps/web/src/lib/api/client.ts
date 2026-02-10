@@ -113,13 +113,13 @@ export async function logout(accessToken: string): Promise<void> {
 }
 
 // --- Clients API ---
+// Doc: Venditore/Direttore (propri) → GET /api/clients/me; Direttore (azienda) → GET /api/clients/company
 
 /**
- * GET /clients — List clients.
- * Query: ?search=name_or_vat
- * Sellers see only own clients; Directors see all company clients.
+ * GET /clients/me — List clients assigned to the logged-in user (Venditore/Direttore Vendite).
+ * Ordered by ragione_sociale. Query: ?search= for name or P.IVA if backend supports it.
  */
-export async function listClients(
+export async function listClientsMe(
 	accessToken: string,
 	params?: { search?: string }
 ): Promise<{ data: ApiClient[] } | { error: string }> {
@@ -129,7 +129,7 @@ export async function listClients(
 			searchParams.set("search", params.search.trim());
 		}
 		const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-		const res = await fetch(`${BASE_URL}/clients${query}`, {
+		const res = await fetch(`${BASE_URL}/clients/me${query}`, {
 			method: "GET",
 			headers: getAuthHeaders(accessToken),
 		});
@@ -148,20 +148,73 @@ export async function listClients(
 	}
 }
 
-// --- Negotiations API ---
+/**
+ * GET /clients/company — List all company clients (solo Direttore Vendite).
+ */
+export async function listClientsCompany(
+	accessToken: string,
+	params?: { search?: string }
+): Promise<{ data: ApiClient[] } | { error: string }> {
+	try {
+		const searchParams = new URLSearchParams();
+		if (params?.search?.trim()) {
+			searchParams.set("search", params.search.trim());
+		}
+		const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
+		const res = await fetch(`${BASE_URL}/clients/company${query}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiClient[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento dei clienti";
+			return { error: msg };
+		}
+		return { data: json as ApiClient[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
 
 /**
- * GET /negotiations — List negotiations (latest first).
- * Optional ?client_id=123 to filter by client.
+ * List clients: defaults to "me" (Venditore/Direttore propri).
+ * Use listClientsMe or listClientsCompany for explicit scope.
  */
-export async function listNegotiations(
+export async function listClients(
 	accessToken: string,
-	params?: { client_id?: number }
+	params?: { search?: string }
+): Promise<{ data: ApiClient[] } | { error: string }> {
+	return listClientsMe(accessToken, params);
+}
+
+// --- Negotiations API ---
+// Doc: Venditore/Direttore (proprie) → /me, /me/open, /me/abandoned, /me/concluded; Direttore (azienda) → /company
+
+type NegotiationsListParams = { client_id?: number };
+
+function buildNegotiationsQuery(params?: NegotiationsListParams): string {
+	const searchParams = new URLSearchParams();
+	if (params?.client_id != null) {
+		searchParams.set("client_id", String(params.client_id));
+	}
+	const q = searchParams.toString();
+	return q ? `?${q}` : "";
+}
+
+/**
+ * GET /negotiations/me — All negotiations assigned to the logged-in user.
+ */
+export async function listNegotiationsMe(
+	accessToken: string,
+	params?: NegotiationsListParams
 ): Promise<{ data: ApiNegotiation[] } | { error: string }> {
 	try {
-		const search =
-			params?.client_id != null ? `?client_id=${params.client_id}` : "";
-		const res = await fetch(`${BASE_URL}/negotiations${search}`, {
+		const query = buildNegotiationsQuery(params);
+		const res = await fetch(`${BASE_URL}/negotiations/me${query}`, {
 			method: "GET",
 			headers: getAuthHeaders(accessToken),
 		});
@@ -178,6 +231,130 @@ export async function listNegotiations(
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
 	}
+}
+
+/**
+ * GET /negotiations/me/open — Open negotiations (Spanco != 'O', % < 100, not abandoned).
+ */
+export async function listNegotiationsMeOpen(
+	accessToken: string,
+	params?: NegotiationsListParams
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const query = buildNegotiationsQuery(params);
+		const res = await fetch(`${BASE_URL}/negotiations/me/open${query}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /negotiations/me/abandoned — Abandoned negotiations (abbandonata = true).
+ */
+export async function listNegotiationsMeAbandoned(
+	accessToken: string,
+	params?: NegotiationsListParams
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const query = buildNegotiationsQuery(params);
+		const res = await fetch(`${BASE_URL}/negotiations/me/abandoned${query}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /negotiations/me/concluded — Concluded negotiations (Spanco = 'O' OR % = 100).
+ */
+export async function listNegotiationsMeConcluded(
+	accessToken: string,
+	params?: NegotiationsListParams
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const query = buildNegotiationsQuery(params);
+		const res = await fetch(`${BASE_URL}/negotiations/me/concluded${query}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /negotiations/company — All company negotiations (solo Direttore Vendite).
+ */
+export async function listNegotiationsCompany(
+	accessToken: string,
+	params?: NegotiationsListParams
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const query = buildNegotiationsQuery(params);
+		const res = await fetch(`${BASE_URL}/negotiations/company${query}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * List negotiations: uses /me by default (all of current user).
+ * Prefer listNegotiationsMe, listNegotiationsMeOpen, listNegotiationsMeAbandoned,
+ * listNegotiationsMeConcluded, or listNegotiationsCompany for explicit scope/filter.
+ */
+export async function listNegotiations(
+	accessToken: string,
+	params?: NegotiationsListParams
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	return listNegotiationsMe(accessToken, params);
 }
 
 /**

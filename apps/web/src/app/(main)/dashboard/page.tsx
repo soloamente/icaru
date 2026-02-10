@@ -21,9 +21,15 @@ function RoleDashboard({ role }: { role: "admin" | "director" | "seller" }) {
 		return (
 			<section className="rounded-lg border border-border p-4">
 				<h2 className="mb-2 font-medium">Pannello Admin</h2>
-				<p className="text-muted-foreground text-sm">
+				<p className="mb-3 text-muted-foreground text-sm">
 					Gestione aziende, utenti e configurazione. (Funzionalità in arrivo.)
 				</p>
+				<Link
+					className="inline-block text-primary text-sm underline underline-offset-2 hover:no-underline"
+					href="/trattative/tutte"
+				>
+					Vai a Trattative
+				</Link>
 			</section>
 		);
 	}
@@ -38,14 +44,10 @@ function RoleDashboard({ role }: { role: "admin" | "director" | "seller" }) {
 			</section>
 		);
 	}
-	return (
-		<section className="rounded-lg border border-border p-4">
-			<h2 className="mb-2 font-medium">Pannello Venditore</h2>
-			<p className="text-muted-foreground text-sm">
-				I tuoi clienti e negoziazioni. (Funzionalità in arrivo.)
-			</p>
-		</section>
-	);
+
+	// For the "seller" role we currently hide the dedicated dashboard panel
+	// so that the main dashboard layout stays cleaner and focused on summary cards.
+	return null;
 }
 
 export default function DashboardPage() {

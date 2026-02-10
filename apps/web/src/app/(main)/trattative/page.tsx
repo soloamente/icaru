@@ -5,12 +5,12 @@ import { useEffect } from "react";
 import Loader from "@/components/loader";
 
 /**
- * Trattative index - redirects to Trattative aperte as default view.
+ * Trattative index - redirects to "Tutte" (all) as default view.
  */
 export default function TrattativePage() {
 	const router = useRouter();
 	useEffect(() => {
-		router.replace("/trattative/aperte");
+		router.replace("/trattative/tutte");
 	}, [router]);
 	return <Loader />;
 }

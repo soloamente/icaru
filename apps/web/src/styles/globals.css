@@ -23,6 +23,7 @@
 	--color-foreground: var(--foreground);
 	--color-search-placeholder: var(--search-placeholder);
 	--color-card: var(--card);
+	--color-table-container-background: var(--table-container-background);
 	--color-card-foreground: var(--card-foreground);
 	--color-button-secondary: var(--button-secondary);
 	--color-button-inactive: var(--button-inactive);
@@ -45,6 +46,7 @@
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
+	--color-table-buttons: var(--table-buttons);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -83,6 +85,8 @@
 	--color-status-suspended-icon: var(--status-suspended-icon);
 	--color-avatar-placeholder-icon: var(--avatar-placeholder-icon);
 	--color-avatar-placeholder-bg: var(--avatar-placeholder-bg);
+	/* Table hover background token */
+	--color-table-hover: var(--table-hover);
 }
 
 :root {
@@ -90,7 +94,9 @@
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
 	--card: oklch(0.9581 0 0);
+	--table-container-background: oklch(1 0 0);
 	--card-foreground: oklch(0.145 0 0);
+	--table-buttons: oklch(1 0 0);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.145 0 0);
 	--primary: oklch(0.205 0 0);
@@ -165,6 +171,8 @@
 	--background: oklch(0.2645 0 0);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.2264 0 0);
+	--table-container-background: oklch(0.2645 0 0);
+	--table-buttons: oklch(0.2645 0 0);
 	--card-foreground: oklch(0.985 0 0);
 	--button-secondary: oklch(0.66 0 0);
 	--button-inactive: oklch(0.2478 0 0);
@@ -234,6 +242,98 @@
 	--status-suspended-accent: oklch(0.6656 0.2213 25.57);
 	--status-suspended-background: oklch(0.2807 0.0388 17.23);
 	--status-suspended-icon: oklch(0.6656 0.2213 25.57);
+}
+
+/* Accent color overrides (preferences dialog). Applied via data-accent on <html>. */
+:root[data-accent="blue"] {
+	--primary: oklch(0.45 0.2 250);
+	--ring: oklch(0.55 0.2 250);
+}
+:root[data-accent="green"] {
+	--primary: oklch(0.5 0.18 145);
+	--ring: oklch(0.55 0.18 145);
+}
+:root[data-accent="purple"] {
+	--primary: oklch(0.5 0.22 300);
+	--ring: oklch(0.55 0.22 300);
+}
+:root[data-accent="orange"] {
+	--primary: oklch(0.65 0.18 55);
+	--ring: oklch(0.7 0.18 55);
+}
+:root[data-accent="pink"] {
+	--primary: oklch(0.6 0.22 340);
+	--ring: oklch(0.65 0.22 340);
+}
+:root[data-accent="red"] {
+	--primary: oklch(0.55 0.22 25);
+	--ring: oklch(0.6 0.22 25);
+}
+:root[data-accent="yellow"] {
+	--primary: oklch(0.75 0.18 95);
+	--ring: oklch(0.8 0.18 95);
+}
+
+.dark[data-accent="blue"] {
+	--primary: oklch(0.7 0.18 250);
+	--ring: oklch(0.65 0.18 250);
+}
+.dark[data-accent="green"] {
+	--primary: oklch(0.72 0.18 145);
+	--ring: oklch(0.67 0.18 145);
+}
+.dark[data-accent="purple"] {
+	--primary: oklch(0.72 0.2 300);
+	--ring: oklch(0.67 0.2 300);
+}
+.dark[data-accent="orange"] {
+	--primary: oklch(0.8 0.16 55);
+	--ring: oklch(0.75 0.16 55);
+}
+.dark[data-accent="pink"] {
+	--primary: oklch(0.75 0.2 340);
+	--ring: oklch(0.7 0.2 340);
+}
+.dark[data-accent="red"] {
+	--primary: oklch(0.75 0.2 25);
+	--ring: oklch(0.7 0.2 25);
+}
+.dark[data-accent="yellow"] {
+	--primary: oklch(0.88 0.14 95);
+	--ring: oklch(0.82 0.14 95);
+}
+
+/* Rich colors (LIGHT MODE): sfondo, sidebar e accent vivaci; testo resta neutro. */
+:root[data-color-scheme="rich"] {
+	/* Background principale e card leggermente azzurrate */
+	--background: oklch(0.4394 0.1458 255.5);
+	--card: oklch(0.99 0.015 250);
+	--table-header: oklch(0.96 0.025 250);
+	--table-container-background: oklch(1 0 0);
+	--table-buttons: oklch(0.96 0.025 250);
+	--table-hover: oklch(0.96 0.025 250);
+
+	/* Sidebar / navbar: colori forniti (light mode) */
+	--sidebar: oklch(0.4371 0.1471 255.88);
+	--sidebar-accent: oklch(0.5591 0.1086 257.13);
+	--sidebar-border: oklch(0.5 0.08 260);
+	--sidebar-ring: oklch(0.65 0.1 260);
+
+	/* Testo neutro (bianco / grigio, senza tinta di colore) */
+	--sidebar-foreground: oklch(0.98 0 0);
+	--sidebar-primary: oklch(1 0 0);
+	--sidebar-primary-foreground: oklch(0.98 0 0);
+	/* Non-active nav items color in rich theme */
+	--sidebar-secondary: oklch(0.8544 0.0376 254.58);
+	--sidebar-accent-foreground: oklch(0.98 0 0);
+}
+
+/* Font style: default = Inter, rounded = SF Pro Rounded (via class on html from layout). */
+html[data-font="default"] {
+	font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+html[data-font="rounded"] {
+	font-family: var(--font-sf-pro-rounded), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -308,6 +408,18 @@
 
 	*::-webkit-scrollbar-corner {
 		background: var(--scrollbar-track);
+	}
+}
+
+@layer components {
+	/* Table shell helpers: use the dedicated table container background token */
+	.table-container-bg {
+		background-color: var(--table-container-background);
+	}
+
+	/* Table header uses the specific table header color token */
+	.table-header-bg {
+		background-color: var(--table-header);
 	}
 }
 

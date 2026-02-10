@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
 	createNegotiation,
-	listNegotiations,
+	listNegotiationsCompany,
+	listNegotiationsMe,
+	listNegotiationsMeAbandoned,
+	listNegotiationsMeConcluded,
 	updateNegotiation,
 } from "@/lib/api/client";
 import type {
@@ -383,7 +386,7 @@ function UpdateNegotiationDialog({
 							}
 							type="checkbox"
 						/>
-						<Label htmlFor="update-abbandonata">Abbandonata (persa)</Label>
+						<Label htmlFor="update-abbandonata">Abbandonata</Label>
 					</div>
 					{error && (
 						<p className="text-destructive text-sm" role="alert">
@@ -409,18 +412,18 @@ function UpdateNegotiationDialog({
 	);
 }
 
-/** Filter for which negotiations to show: all, only open, or only abandoned. */
-export type TrattativeFilter = "all" | "aperte" | "abbandonate";
+/** Filter for which negotiations to show: all, only completed (spanco C), or only abandoned. */
+export type TrattativeFilter = "all" | "concluse" | "abbandonate";
 
 interface TrattativeTableProps {
-	/** When set, filter displayed negotiations by status (aperte = !abbandonata, abbandonate = abbandonata). */
+	/** When set, filter displayed negotiations by status (concluse = spanco C, abbandonate = abbandonata). */
 	filter?: TrattativeFilter;
 }
 
 export default function TrattativeTable({
 	filter = "all",
 }: TrattativeTableProps) {
-	const { token } = useAuth();
+	const { token, role } = useAuth();
 	const [negotiations, setNegotiations] = useState<ApiNegotiation[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -430,6 +433,8 @@ export default function TrattativeTable({
 	const [updateTarget, setUpdateTarget] = useState<ApiNegotiation | null>(null);
 	const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
 
+	// Direttore Vendite: /company (tutta l'azienda). Venditore: /me, /me/abandoned, /me/concluded.
+	// Per il direttore usiamo /company e filtriamo lato client per concluse/abbandonate (l'API non espone /company/open ecc.).
 	const fetchNegotiations = useCallback(async () => {
 		if (!token) {
 			return;
@@ -440,7 +445,15 @@ export default function TrattativeTable({
 			clientIdFilter && CLIENT_ID_REGEX.test(clientIdFilter)
 				? { client_id: Number.parseInt(clientIdFilter, 10) }
 				: undefined;
-		const result = await listNegotiations(token, params);
+		const isDirector = role === "director";
+		const fetcher = isDirector
+			? listNegotiationsCompany
+			: filter === "concluse"
+				? listNegotiationsMeConcluded
+				: filter === "abbandonate"
+					? listNegotiationsMeAbandoned
+					: listNegotiationsMe;
+		const result = await fetcher(token, params);
 		setLoading(false);
 		if ("error" in result) {
 			setError(result.error);
@@ -448,22 +461,23 @@ export default function TrattativeTable({
 			return;
 		}
 		setNegotiations(result.data);
-	}, [token, clientIdFilter]);
+	}, [token, clientIdFilter, filter, role]);
 
 	useEffect(() => {
 		fetchNegotiations();
 	}, [fetchNegotiations]);
 
-	// Filter negotiations by search (client name, referente, note) and by status (aperte/abbandonate)
+	// Per il direttore: /company restituisce tutto, filtriamo lato client per concluse/abbandonate.
+	// Per il venditore: l'API già filtra (/me, /me/abandoned, /me/concluded). In entrambi i casi applichiamo la ricerca lato client.
 	const filteredNegotiations = negotiations.filter((n) => {
-		// Apply status filter (aperte = !abbandonata, abbandonate = abbandonata)
-		if (filter === "aperte" && n.abbandonata) {
-			return false;
+		if (role === "director") {
+			if (filter === "concluse" && n.spanco !== "O" && n.percentuale !== 100) {
+				return false;
+			}
+			if (filter === "abbandonate" && !n.abbandonata) {
+				return false;
+			}
 		}
-		if (filter === "abbandonate" && !n.abbandonata) {
-			return false;
-		}
-
 		const normalized = searchTerm.trim().toLowerCase();
 		if (!normalized) {
 			return true;
@@ -483,9 +497,9 @@ export default function TrattativeTable({
 		(n) => n.abbandonata
 	).length;
 
-	// mettere l'api giusta
+	// Concluded = Spanco 'O' OR % = 100 (per doc)
 	const completedCount = filteredNegotiations.filter(
-		(n) => n.spanco === "C"
+		(n) => n.spanco === "O" || n.percentuale === 100
 	).length;
 	const handleOpenUpdate = (n: ApiNegotiation) => {
 		setUpdateTarget(n);
@@ -500,14 +514,15 @@ export default function TrattativeTable({
 					<h1 className="flex items-center justify-center gap-3.5">
 						<SignatureIcon aria-hidden size={24} />
 						<span>
-							{filter === "aperte" && "Trattative aperte"}
-							{filter === "abbandonate" && "Trattative abbandonate"}
 							{filter === "all" && "Tutte le trattative"}
+							{filter === "concluse" && "Trattative concluse"}
+							{filter === "abbandonate" && "Trattative abbandonate"}
 						</span>
 					</h1>
 					<div className="flex items-center justify-center gap-2.5">
 						<button
-							className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-background py-1.75 pr-2.5 pl-3.75 text-sm"
+							/* Use table buttons token for primary table actions */
+							className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons py-1.75 pr-2.5 pl-3.75 text-sm"
 							onClick={() => setIsCreateDialogOpen(true)}
 							type="button"
 						>
@@ -518,9 +533,9 @@ export default function TrattativeTable({
 				</div>
 				<div className="flex items-center justify-between gap-2">
 					<div className="flex w-full items-center justify-start gap-2">
-						{/* Client ID filter */}
+						{/* Client ID filter: aligned with table buttons color */}
 						<input
-							className="h-9 w-24 rounded-full border border-input bg-background px-3.75 py-1.75 text-sm"
+							className="h-9 w-24 rounded-full border border-input bg-table-buttons px-3.75 py-1.75 text-sm"
 							onChange={(e) => setClientIdFilter(e.target.value)}
 							placeholder="ID Cliente"
 							type="text"
@@ -528,7 +543,8 @@ export default function TrattativeTable({
 						/>
 					</div>
 					<label
-						className="flex w-60 items-center justify-between rounded-full bg-background px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
+						/* Search bar background follows table buttons color for consistency */
+						className="flex w-60 items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
 						htmlFor="trattative-search"
 					>
 						<input
@@ -543,45 +559,52 @@ export default function TrattativeTable({
 				</div>
 			</div>
 
-			{/* Body */}
-			<div className="flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl bg-background px-5.5 pt-6.25">
-				{/* Stats */}
+			{/* Body: use table container background token for the shell */}
+			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
+				{/* Stats: show only the relevant stat per page; all three on tutte */}
 				<div className="flex items-start gap-3.75">
-					<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Trattative aperte
-						</h3>
-						<div className="flex items-center justify-start">
-							<span className="text-xl tabular-nums leading-none">
-								{activeCount}
-							</span>
+					{filter === "all" && (
+						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+							<h3 className="font-medium text-sm text-stats-title leading-none">
+								Trattative aperte
+							</h3>
+							<div className="flex items-center justify-start">
+								<span className="text-xl tabular-nums leading-none">
+									{activeCount}
+								</span>
+							</div>
 						</div>
-					</div>
-					<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Trattative concluse
-						</h3>
-						<div className="flex items-center justify-start">
-							<span className="text-xl tabular-nums leading-none">
-								{completedCount}
-							</span>
+					)}
+					{(filter === "all" || filter === "concluse") && (
+						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+							<h3 className="font-medium text-sm text-stats-title leading-none">
+								Trattative concluse
+							</h3>
+							<div className="flex items-center justify-start">
+								<span className="text-xl tabular-nums leading-none">
+									{completedCount}
+								</span>
+							</div>
 						</div>
-					</div>
-					<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Trattative abbandonate
-						</h3>
-						<div className="flex items-center justify-start">
-							<span className="text-xl tabular-nums leading-none">
-								{abandonedCount}
-							</span>
+					)}
+					{(filter === "all" || filter === "abbandonate") && (
+						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+							<h3 className="font-medium text-sm text-stats-title leading-none">
+								Trattative abbandonate
+							</h3>
+							<div className="flex items-center justify-start">
+								<span className="text-xl tabular-nums leading-none">
+									{abandonedCount}
+								</span>
+							</div>
 						</div>
-					</div>
+					)}
 				</div>
 
 				{/* Table */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="shrink-0 rounded-xl bg-table-header px-3 py-2.25">
+					{/* Header: align background with table container using the same CSS variable */}
+					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
 						<div className="grid grid-cols-[minmax(80px,0.6fr)_minmax(120px,1fr)_minmax(60px,0.5fr)_minmax(100px,0.8fr)_minmax(80px,0.6fr)_minmax(140px,1fr)_minmax(100px,0.8fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
 							<div>Cliente</div>
 							<div>Referente</div>
@@ -615,7 +638,8 @@ export default function TrattativeTable({
 							filteredNegotiations.map((n) => (
 								<button
 									aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
-									className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium transition-colors last:border-b-0 hover:bg-muted"
+									/* Row hover uses dedicated table hover token */
+									className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium transition-colors last:border-b-0 hover:bg-table-hover"
 									key={n.id}
 									onClick={() => handleOpenUpdate(n)}
 									type="button"
@@ -659,7 +683,7 @@ export default function TrattativeTable({
 												{n.abbandonata ? (
 													<>
 														<X aria-hidden size={16} />
-														Persa
+														Abbandonata
 													</>
 												) : (
 													<>
