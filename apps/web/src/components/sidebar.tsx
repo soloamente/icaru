@@ -201,12 +201,13 @@ export default function Sidebar({
 					{/* User block (compact) + bottone Esci (OpenRectArrowOutIcon) */}
 					<div
 						className={cn(
-							"flex items-center gap-2 rounded-full py-1.5 pr-2",
+							"flex items-center gap-2 rounded-xl px-2 py-1.5 pl-1.5",
 							isRichColors ? "bg-sidebar-accent/80" : "bg-muted/50"
 						)}
 					>
-						<Avatar className="size-8 shrink-0">
+						<Avatar className="size-8 shrink-0 rounded-md!">
 							<AvatarFallback
+								className="rounded-md!"
 								placeholderSeed={mounted ? (user?.email ?? "User") : undefined}
 							/>
 						</Avatar>
@@ -237,7 +238,7 @@ export default function Sidebar({
 							className={cn(
 								"flex shrink-0 items-center justify-center rounded-lg p-1.5 focus:outline-none focus-visible:ring-2",
 								isRichColors
-									? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
+									? "text-red-500 hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
 									: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
 							)}
 							onClick={() => void auth?.logout?.()}
@@ -358,9 +359,10 @@ export default function Sidebar({
 				{/* Navigation */}
 
 				<div className="flex flex-col gap-6 pt-2">
-					<div className="flex items-center gap-3.5 rounded-full bg-background">
-						<Avatar className="size-9">
+					<div className="flex items-center gap-3.5 rounded-xl bg-sidebar-accent/80 px-2 py-1.5 pl-1.5">
+						<Avatar className="size-9 rounded-md! bg-background text-sidebar-primary">
 							<AvatarFallback
+								className="rounded-md! bg-background text-sidebar-primary"
 								placeholderSeed={mounted ? (user?.email ?? "User") : undefined}
 							/>
 						</Avatar>
@@ -373,7 +375,10 @@ export default function Sidebar({
 								if (user) {
 									return (
 										<>
-											<span className="truncate leading-none">
+											{/* Nome/email dell'utente: usiamo il colore primario della sidebar
+											   per evidenziarlo rispetto al resto del testo mantenendo il contrasto
+											   sia in tema chiaro che scuro. */}
+											<span className="truncate text-sidebar-primary leading-none">
 												{user.email}
 											</span>
 											<span className="truncate text-sidebar-secondary text-xs leading-none">
@@ -387,7 +392,10 @@ export default function Sidebar({
 						</div>
 						<button
 							aria-label="Esci"
-							className="flex shrink-0 items-center justify-center rounded-lg p-1.5 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+							className={cn(
+								"flex shrink-0 items-center justify-center rounded-lg p-1.5 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+								isRichColors ? "text-red-500" : "text-muted-foreground"
+							)}
 							onClick={() => void auth?.logout?.()}
 							type="button"
 						>
@@ -486,7 +494,7 @@ export default function Sidebar({
 				</div>
 
 				{/* Footer: Support, Logout, User */}
-				<div className="flex flex-col gap-6 pb-2">
+				<div className="flex flex-col gap-2.5 pb-2">
 					{navFooter.map((item) => (
 						<button
 							className="flex cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"

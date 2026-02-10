@@ -16,7 +16,7 @@ const STORAGE_KEY_COLOR_SCHEME = "ui-color-scheme";
 
 export const COLOR_SCHEME_OPTIONS = [
 	{ id: "default", label: "Predefinito" },
-	{ id: "rich", label: "Rich colors" },
+	{ id: "rich", label: "Dataweb" },
 ] as const;
 
 export const NAVIGATION_POSITION_OPTIONS = [

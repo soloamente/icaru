@@ -114,7 +114,7 @@ export function PreferencesContent() {
 					className="mb-1 font-medium text-base text-foreground"
 					id="color-scheme-heading"
 				>
-					Palette
+					Tema
 				</h3>
 				<div className="flex gap-3">
 					{COLOR_SCHEME_OPTIONS.map(

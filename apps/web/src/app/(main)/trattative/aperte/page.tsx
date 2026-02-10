@@ -1,18 +1,37 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Loader from "@/components/loader";
+import TrattativeTable from "@/components/trattative-table";
+import { useAuthOptional } from "@/lib/auth/auth-context";
 
 /**
- * Legacy route: "Trattative aperte" is replaced by "Tutte".
- * Redirects to /trattative/tutte for backward compatibility.
+ * Trattative concluse - shows only completed negotiations (spanco = C).
+ * Requires authentication; redirects to login if not logged in.
  */
-export default function TrattativeApertePage() {
+export default function TrattativeConclusePage() {
+	const auth = useAuthOptional();
 	const router = useRouter();
+	const [mounted, setMounted] = useState(false);
 	useEffect(() => {
-		// Typed routes may not include new segments until next build; redirect is valid.
-		router.replace("/trattative/tutte" as Parameters<typeof router.replace>[0]);
-	}, [router]);
-	return <Loader />;
+		setMounted(true);
+	}, []);
+
+	useEffect(() => {
+		if (auth?.isLoaded && !auth?.user) {
+			router.replace("/login");
+		}
+	}, [auth?.isLoaded, auth?.user, router]);
+
+	if (!mounted) {
+		return <Loader />;
+	}
+	if (!auth?.isLoaded) {
+		return <Loader />;
+	}
+	if (!auth?.user) {
+		return null;
+	}
+	return <TrattativeTable filter="aperte" />;
 }

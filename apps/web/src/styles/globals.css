@@ -1,3 +1,32 @@
+/* Rich colors (DARK MODE / Dataweb): variante scura specifica per Dataweb.
+   Selettore più specifico (html.dark[...]) in coda al file così i valori dark vincono
+   rispetto alla variante light quando la classe .dark è presente sul root. */
+html.dark[data-color-scheme="rich"] {
+	/* Background principale leggermente più scuro per migliorare il contrasto con le card. */
+	--background: oklch(0.21 0.07 250);
+	/* Card e superfici: un gradino sopra il background per staccare i pannelli. */
+	--card: oklch(0.25 0.07 252);
+
+	/* Tabelle: header, contenitore, pulsanti e hover con gerarchia chiara. */
+	--table-container-background: oklch(0.215 0.065 250);
+	--table-header: oklch(0.28 0.075 252);
+	--table-buttons: oklch(0.29 0.08 252);
+	--table-hover: oklch(0.255 0.07 252);
+
+	/* Sidebar / navbar: blu più profondo dello sfondo per enfatizzare la navigazione. */
+	--sidebar: oklch(0.18 0.08 250);
+	--sidebar-accent: oklch(0.3 0.1 255);
+	--sidebar-border: oklch(0.33 0.06 258);
+	--sidebar-ring: oklch(0.54 0.09 260);
+
+	/* Testo neutro chiaro (senza tinta) per massima leggibilità sul blu. */
+	--sidebar-foreground: oklch(0.97 0 0);
+	--sidebar-primary: oklch(1 0 0);
+	--sidebar-primary-foreground: oklch(0.97 0 0);
+	/* Voci di navigazione non attive leggermente desaturate ma ancora leggibili. */
+	--sidebar-secondary: oklch(0.82 0.025 255);
+	--sidebar-accent-foreground: oklch(0.97 0 0);
+}
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./table.css";
@@ -168,6 +197,7 @@
 }
 
 .dark {
+	/* Palette dark predefinita (neutra), usata quando lo schema colore non è Dataweb. */
 	--background: oklch(0.2645 0 0);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.2264 0 0);
@@ -303,8 +333,36 @@
 	--ring: oklch(0.82 0.14 95);
 }
 
+/* Rich colors (DARK MODE / Dataweb): blu notte più profondi, maggiore contrasto tra contenuto e sidebar. */
+.dark[data-color-scheme="rich"] {
+	/* Background principale leggermente più scuro per migliorare il contrasto con le card. */
+	--background: oklch(0.21 0.07 250);
+	/* Card e superfici: un gradino sopra il background per staccare i pannelli. */
+	--card: oklch(0.25 0.07 252);
+
+	/* Tabelle: header, contenitore, pulsanti e hover con gerarchia chiara. */
+	--table-container-background: oklch(0.215 0.065 250);
+	--table-header: oklch(0.28 0.075 252);
+	--table-buttons: oklch(0.29 0.08 252);
+	--table-hover: oklch(0.255 0.07 252);
+
+	/* Sidebar / navbar: blu più profondo dello sfondo per enfatizzare la navigazione. */
+	--sidebar: oklch(0.18 0.08 250);
+	--sidebar-accent: oklch(0.3 0.1 255);
+	--sidebar-border: oklch(0.33 0.06 258);
+	--sidebar-ring: oklch(0.54 0.09 260);
+
+	/* Testo neutro chiaro (senza tinta) per massima leggibilità sul blu. */
+	--sidebar-foreground: oklch(0.97 0 0);
+	--sidebar-primary: oklch(1 0 0);
+	--sidebar-primary-foreground: oklch(0.97 0 0);
+	/* Voci di navigazione non attive leggermente desaturate ma ancora leggibili. */
+	--sidebar-secondary: oklch(0.82 0.025 255);
+	--sidebar-accent-foreground: oklch(0.97 0 0);
+}
+
 /* Rich colors (LIGHT MODE): sfondo, sidebar e accent vivaci; testo resta neutro. */
-:root[data-color-scheme="rich"] {
+[data-color-scheme="rich"] {
 	/* Background principale e card leggermente azzurrate */
 	--background: oklch(0.4394 0.1458 255.5);
 	--card: oklch(0.99 0.015 250);

@@ -413,7 +413,7 @@ function UpdateNegotiationDialog({
 }
 
 /** Filter for which negotiations to show: all, only completed (spanco C), or only abandoned. */
-export type TrattativeFilter = "all" | "concluse" | "abbandonate";
+export type TrattativeFilter = "all" | "concluse" | "abbandonate" | "aperte";
 
 interface TrattativeTableProps {
 	/** When set, filter displayed negotiations by status (concluse = spanco C, abbandonate = abbandonata). */
@@ -515,11 +515,26 @@ export default function TrattativeTable({
 						<SignatureIcon aria-hidden size={24} />
 						<span>
 							{filter === "all" && "Tutte le trattative"}
+							{filter === "aperte" && "Trattative aperte"}
 							{filter === "concluse" && "Trattative concluse"}
 							{filter === "abbandonate" && "Trattative abbandonate"}
 						</span>
 					</h1>
 					<div className="flex items-center justify-center gap-2.5">
+						<label
+							/* Search bar background follows table buttons color for consistency */
+							className="flex w-60 items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
+							htmlFor="trattative-search"
+						>
+							<input
+								className="w-full truncate placeholder:text-search-placeholder focus:outline-none"
+								id="trattative-search"
+								onChange={(e) => setSearchTerm(e.target.value)}
+								placeholder="Cerca cliente, referente..."
+								value={searchTerm}
+							/>
+							<Search className="size-4 text-search-placeholder" />
+						</label>
 						<button
 							/* Use table buttons token for primary table actions */
 							className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons py-1.75 pr-2.5 pl-3.75 text-sm"
@@ -530,32 +545,6 @@ export default function TrattativeTable({
 							<Plus className="size-4 text-button-secondary" />
 						</button>
 					</div>
-				</div>
-				<div className="flex items-center justify-between gap-2">
-					<div className="flex w-full items-center justify-start gap-2">
-						{/* Client ID filter: aligned with table buttons color */}
-						<input
-							className="h-9 w-24 rounded-full border border-input bg-table-buttons px-3.75 py-1.75 text-sm"
-							onChange={(e) => setClientIdFilter(e.target.value)}
-							placeholder="ID Cliente"
-							type="text"
-							value={clientIdFilter}
-						/>
-					</div>
-					<label
-						/* Search bar background follows table buttons color for consistency */
-						className="flex w-60 items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
-						htmlFor="trattative-search"
-					>
-						<input
-							className="w-full truncate placeholder:text-search-placeholder focus:outline-none"
-							id="trattative-search"
-							onChange={(e) => setSearchTerm(e.target.value)}
-							placeholder="Cerca cliente, referente..."
-							value={searchTerm}
-						/>
-						<Search className="size-4 text-search-placeholder" />
-					</label>
 				</div>
 			</div>
 
