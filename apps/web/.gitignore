@@ -22,6 +22,10 @@
 .tanstack/
 .nitro/
 
+/.packages
+/.packages/*
+!.packages/.env
+.packages/
 # Deployment
 .vercel
 .netlify
