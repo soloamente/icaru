@@ -137,6 +137,9 @@ html.dark[data-color-scheme="rich"] {
 	--green: oklch(0.5579 0.183 141.5);
 	--dark-green: oklch(0.9678 0.0263 138.29);
 	--table-header: oklch(0.9761 0 0);
+	/* Hover background for table rows in the default light theme.
+	   Slightly darker than the card/background to be visible but subtle. */
+	--table-hover: oklch(0.968 0 0);
 	--table-header-foreground: oklch(0.5452 0 0);
 	--muted: oklch(0.97 0 0);
 	--muted-foreground: oklch(0.556 0 0);
@@ -215,6 +218,9 @@ html.dark[data-color-scheme="rich"] {
 	--search-placeholder: oklch(0.5863 0 0);
 	--dark-green: oklch(0.3199 0.05 139.48);
 	--table-header: oklch(0.2972 0 0);
+	/* Hover background for table rows in the default dark theme.
+	   A touch lighter than the container to give a clear but soft highlight. */
+	--table-hover: oklch(0.285 0 0);
 	--table-header-foreground: oklch(0.7187 0 0);
 	--checkbox-border: oklch(0.4712 0 0);
 	--primary: oklch(0.922 0 0);

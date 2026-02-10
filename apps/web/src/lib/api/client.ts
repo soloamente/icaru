@@ -9,6 +9,7 @@ import type {
 	ApiNegotiation,
 	CreateNegotiationBody,
 	LoginResponse,
+	SpancoStatistics,
 	UpdateNegotiationBody,
 } from "./types";
 
@@ -411,6 +412,154 @@ export async function updateNegotiation(
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
+	}
+}
+/**
+ * GET /statistics/negotiations/spanco — Statistiche SPANCO per l'utente corrente.
+ *
+ * Restituisce un oggetto JSON dove le chiavi sono le lettere SPANCO presenti
+ * (S, P, A, N, C, O) e i valori sono i conteggi di trattative attive per stato.
+ */
+export async function getNegotiationsSpancoStatistics(
+	accessToken: string
+): Promise<{ data: SpancoStatistics } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/statistics/negotiations/spanco`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as SpancoStatistics | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche SPANCO";
+			return { error: msg };
+		}
+		return { data: json as SpancoStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * Request body for resetting the password via POST /reset-password.
+ * The `passwordConfirmation` field is mapped to the backend key `password_confirmation`.
+ */
+export interface ResetPasswordBody {
+	token: string;
+	email: string;
+	password: string;
+	passwordConfirmation: string;
+}
+
+/**
+ * POST /forgot-password — Invio link di reset password.
+ *
+ * Usa direttamente il backend Laravel (`${BASE_URL}/forgot-password`) e gestisce in modo
+ * esplicito il rate limiting (429) così che il frontend possa mostrare un messaggio
+ * chiaro all'utente e impedirgli di inviare richieste in loop.
+ */
+export async function requestPasswordReset(
+	email: string
+): Promise<
+	| { ok: true; message: string }
+	| { ok: false; error: string; rateLimited?: boolean }
+> {
+	try {
+		const res = await fetch(`${BASE_URL}/forgot-password`, {
+			method: "POST",
+			headers: DEFAULT_HEADERS,
+			body: JSON.stringify({ email }),
+		});
+
+		const json = (await res.json()) as { message?: string };
+
+		if (!res.ok) {
+			const message =
+				typeof json.message === "string"
+					? json.message
+					: "Impossibile inviare il link di reset della password.";
+
+			// 429 = Too Many Requests (rate limit superato)
+			const rateLimited = res.status === 429;
+			return { ok: false, error: message, rateLimited };
+		}
+
+		const message =
+			typeof json.message === "string"
+				? json.message
+				: "Ti abbiamo inviato il link per resettare la password, se l'email è presente nei nostri sistemi.";
+
+		return { ok: true, message };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { ok: false, error: message };
+	}
+}
+
+/**
+ * POST /reset-password — Imposta una nuova password usando token ed email dal link.
+ *
+ * Restituisce:
+ * - { ok: true, message } in caso di successo
+ * - { ok: false, error, validationErrors? } in caso di token invalido (400) o errori di validazione (422)
+ */
+export async function resetPassword(body: ResetPasswordBody): Promise<
+	| { ok: true; message: string }
+	| {
+			ok: false;
+			error: string;
+			validationErrors?: Record<string, string[]>;
+	  }
+> {
+	try {
+		const res = await fetch(`${BASE_URL}/reset-password`, {
+			method: "POST",
+			headers: DEFAULT_HEADERS,
+			// Mappiamo il campo passwordConfirmation nel nome atteso da Laravel
+			body: JSON.stringify({
+				token: body.token,
+				email: body.email,
+				password: body.password,
+				password_confirmation: body.passwordConfirmation,
+			}),
+		});
+
+		const json = (await res.json()) as {
+			message?: string;
+			errors?: Record<string, string[]>;
+		};
+
+		if (!res.ok) {
+			const message =
+				typeof json.message === "string"
+					? json.message
+					: "Impossibile reimpostare la password.";
+
+			// 422 → errori di validazione (es. password troppo corta o non coincidente)
+			if (res.status === 422 && json.errors) {
+				return {
+					ok: false,
+					error: message,
+					validationErrors: json.errors,
+				};
+			}
+
+			// 400 → token non valido / scaduto (secondo la specifica)
+			return { ok: false, error: message };
+		}
+
+		const message =
+			typeof json.message === "string"
+				? json.message
+				: "La tua password è stata reimpostata con successo.";
+
+		return { ok: true, message };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { ok: false, error: message };
 	}
 }
 

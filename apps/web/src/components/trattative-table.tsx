@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { AnimateNumber } from "motion-plus/react";
 import { useCallback, useEffect, useState } from "react";
 import { CheckIcon } from "@/components/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,6 +24,7 @@ import type {
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
+import CircleXmarkFilled from "./icons/circle-xmark-filled";
 import { SignatureIcon } from "./icons/signature-icon";
 
 /** Spanco stage display labels */
@@ -467,16 +469,30 @@ export default function TrattativeTable({
 		fetchNegotiations();
 	}, [fetchNegotiations]);
 
-	// Per il direttore: /company restituisce tutto, filtriamo lato client per concluse/abbandonate.
-	// Per il venditore: l'API già filtra (/me, /me/abandoned, /me/concluded). In entrambi i casi applichiamo la ricerca lato client.
+	// Per il direttore: /company restituisce tutto; per il venditore ci sono endpoint dedicati
+	// (/me, /me/abandoned, /me/concluded). Applichiamo comunque i filtri di stato lato client
+	// per avere una semantica coerente fra ruoli:
+	// - aperte: non concluse e non abbandonate
+	// - concluse: spanco 'O' oppure percentuale 100
+	// - abbandonate: flag `abbandonata` true.
+	const isCompleted = (n: ApiNegotiation): boolean =>
+		n.spanco === "O" || n.percentuale === 100;
+	const isAbandoned = (n: ApiNegotiation): boolean => n.abbandonata;
+	// Apertura = non abbandonata e non conclusa; centralizziamo qui la regola per riusarla
+	// sia nei filtri sia nelle statistiche.
+	const isOpen = (n: ApiNegotiation): boolean =>
+		!(isAbandoned(n) || isCompleted(n));
+
 	const filteredNegotiations = negotiations.filter((n) => {
-		if (role === "director") {
-			if (filter === "concluse" && n.spanco !== "O" && n.percentuale !== 100) {
-				return false;
-			}
-			if (filter === "abbandonate" && !n.abbandonata) {
-				return false;
-			}
+		// Filtro di stato per pagina dedicata
+		if (filter === "concluse" && !isCompleted(n)) {
+			return false;
+		}
+		if (filter === "abbandonate" && !isAbandoned(n)) {
+			return false;
+		}
+		if (filter === "aperte" && !isOpen(n)) {
+			return false;
 		}
 		const normalized = searchTerm.trim().toLowerCase();
 		if (!normalized) {
@@ -492,14 +508,15 @@ export default function TrattativeTable({
 		);
 	});
 
-	const activeCount = filteredNegotiations.filter((n) => !n.abbandonata).length;
-	const abandonedCount = filteredNegotiations.filter(
-		(n) => n.abbandonata
+	// Statistiche di riepilogo: aperte, concluse, abbandonate in base alle regole sopra.
+	const openCount = filteredNegotiations.filter((n) => isOpen(n)).length;
+	const abandonedCount = filteredNegotiations.filter((n) =>
+		isAbandoned(n)
 	).length;
 
 	// Concluded = Spanco 'O' OR % = 100 (per doc)
-	const completedCount = filteredNegotiations.filter(
-		(n) => n.spanco === "O" || n.percentuale === 100
+	const completedCount = filteredNegotiations.filter((n) =>
+		isCompleted(n)
 	).length;
 	const handleOpenUpdate = (n: ApiNegotiation) => {
 		setUpdateTarget(n);
@@ -552,14 +569,14 @@ export default function TrattativeTable({
 			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
 				{/* Stats: show only the relevant stat per page; all three on tutte */}
 				<div className="flex items-start gap-3.75">
-					{filter === "all" && (
+					{(filter === "all" || filter === "aperte") && (
 						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative aperte
 							</h3>
 							<div className="flex items-center justify-start">
 								<span className="text-xl tabular-nums leading-none">
-									{activeCount}
+									{openCount}
 								</span>
 							</div>
 						</div>
@@ -582,9 +599,9 @@ export default function TrattativeTable({
 								Trattative abbandonate
 							</h3>
 							<div className="flex items-center justify-start">
-								<span className="text-xl tabular-nums leading-none">
+								<AnimateNumber className="text-xl tabular-nums leading-none">
 									{abandonedCount}
-								</span>
+								</AnimateNumber>
 							</div>
 						</div>
 					)}
@@ -665,19 +682,21 @@ export default function TrattativeTable({
 												className={cn(
 													"inline-flex items-center justify-center gap-2 rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
 													n.abbandonata
-														? "bg-muted text-muted-foreground"
-														: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+														? // Use a clear, semantic danger color for abandoned status
+															"bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+														: // Keep a success color for open status for quick visual scanning
+															"bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
 												)}
 											>
 												{n.abbandonata ? (
 													<>
-														<X aria-hidden size={16} />
+														<CircleXmarkFilled aria-hidden size={16} />
 														Abbandonata
 													</>
 												) : (
 													<>
 														<CheckIcon aria-hidden size={16} />
-														Attiva
+														Aperta
 													</>
 												)}
 											</span>

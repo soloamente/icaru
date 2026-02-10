@@ -1,0 +1,229 @@
+"use client";
+
+import { type ReactNode, useMemo } from "react";
+import {
+	Cell,
+	Pie,
+	PieChart,
+	ResponsiveContainer,
+	Tooltip,
+	type TooltipProps,
+} from "recharts";
+import { Spinner } from "@/components/ui/spinner";
+import type { SpancoStage, SpancoStatistics } from "@/lib/api/types";
+
+interface SpancoDonutChartProps {
+	/** Statistiche SPANCO restituite dall'API, una entry per lettera. */
+	stats: SpancoStatistics | null;
+	/** Flag di caricamento per mostrare uno stato di loading chiaro all'utente. */
+	isLoading: boolean;
+	/** Eventuale errore restituito dall'API o dalla rete. */
+	error: string | null;
+}
+
+interface SpancoChartDatum {
+	stage: SpancoStage;
+	label: string;
+	value: number;
+	color: string;
+}
+
+/**
+ * Configurazione statica per ogni lettera SPANCO:
+ * - label descrittiva (utile per la legenda)
+ * - colore associato (usa i token chart-* definiti in globals.css).
+ */
+const STAGE_CONFIG: { stage: SpancoStage; label: string; color: string }[] = [
+	{ stage: "S", label: "Suspect", color: "var(--chart-1)" },
+	{ stage: "P", label: "Prospect", color: "var(--chart-4)" },
+	{ stage: "A", label: "Approach", color: "var(--chart-5)" },
+	{ stage: "N", label: "Negotiation", color: "var(--chart-2)" },
+	{ stage: "C", label: "Closing", color: "var(--chart-3)" },
+	// Per lo stato "O" usiamo un colore più neutro per richiamare la chiusura.
+	{ stage: "O", label: "Order", color: "var(--muted-foreground)" },
+];
+
+function buildChartData(stats: SpancoStatistics | null): SpancoChartDatum[] {
+	if (!stats) {
+		return [];
+	}
+
+	// Normalizziamo l'oggetto in un array ordinato secondo STAGE_CONFIG.
+	return STAGE_CONFIG.map((config) => ({
+		stage: config.stage,
+		label: config.label,
+		value: stats[config.stage] ?? 0,
+		color: config.color,
+	})).filter((item) => item.value > 0);
+}
+
+function computeTotal(stats: SpancoStatistics | null): number {
+	if (!stats) {
+		return 0;
+	}
+	return Object.values(stats).reduce(
+		(accumulator: number, value: number | undefined) =>
+			accumulator + (value ?? 0),
+		0
+	);
+}
+
+/**
+ * Tooltip personalizzato per il grafico SPANCO.
+ *
+ * Mostra:
+ * - lettera e label descrittiva (es. "S · Suspect")
+ * - numero di trattative per quello stato.
+ */
+function SpancoTooltip({
+	active,
+	payload,
+}: TooltipProps<number, string>): ReactNode | null {
+	if (!(active && payload && payload.length > 0)) {
+		return null;
+	}
+
+	// Il payload[0] contiene i dati del segmento attualmente hoverato.
+	const entry = payload[0];
+	const datum = entry.payload as SpancoChartDatum;
+	const value = (entry.value as number | undefined) ?? datum.value;
+
+	return (
+		<div className="rounded-md bg-card px-3 py-2 text-xs shadow-lg ring-1 ring-border">
+			<div className="flex items-center gap-2">
+				<span
+					aria-hidden="true"
+					className="inline-block size-2.5 rounded-full"
+					style={{ backgroundColor: datum.color }}
+				/>
+				<span className="font-medium text-foreground">
+					{datum.stage} · {datum.label}
+				</span>
+			</div>
+			<p className="mt-1 text-muted-foreground">
+				{value} trattativa{value === 1 ? "" : "e"}
+			</p>
+		</div>
+	);
+}
+
+/** Grafico SPANCO ad anello grande, simile all'esempio fornito nella richiesta. */
+export function SpancoDonutChart({
+	stats,
+	isLoading,
+	error,
+}: SpancoDonutChartProps): ReactNode {
+	const chartData = useMemo(() => buildChartData(stats), [stats]);
+	const total = useMemo(() => computeTotal(stats), [stats]);
+
+	if (isLoading) {
+		return (
+			<section className="flex w-full flex-col items-center justify-center py-8">
+				<div className="flex flex-col items-center gap-3 text-center">
+					<Spinner className="text-muted-foreground" size="lg" />
+					<p className="text-muted-foreground text-sm">
+						Carico le statistiche SPANCO…
+					</p>
+				</div>
+			</section>
+		);
+	}
+
+	if (error) {
+		return (
+			<section className="flex w-full flex-col items-center justify-center py-8">
+				<p className="max-w-md text-center text-destructive text-sm">
+					Impossibile caricare le statistiche SPANCO: {error}
+				</p>
+			</section>
+		);
+	}
+
+	if (!stats || total === 0 || chartData.length === 0) {
+		return (
+			<section className="flex w-full flex-col items-center justify-center py-8">
+				<p className="text-muted-foreground text-sm">
+					Nessuna trattativa attiva da mostrare nel grafico SPANCO.
+				</p>
+			</section>
+		);
+	}
+
+	return (
+		<section
+			aria-label="Distribuzione delle trattative per stato SPANCO"
+			className="flex w-full flex-col items-center justify-center py-6"
+		>
+			{/* Wrapper senza card/container, così il grafico rimane protagonista e molto grande. */}
+			<div className="relative h-[260px] w-full max-w-[420px] sm:h-[320px] md:h-[380px]">
+				<ResponsiveContainer height="100%" width="100%">
+					<PieChart>
+						{/* Tooltip flottante che segue il puntatore quando si passa sopra ai segmenti. */}
+						<Tooltip
+							// Cursor trasparente: evitiamo l'overlay grigio di default e lasciamo
+							// solo il tooltip personalizzato.
+							content={<SpancoTooltip />}
+							cursor={{ fill: "transparent" }}
+						/>
+						<Pie
+							cornerRadius={999}
+							data={chartData}
+							dataKey="value"
+							innerRadius="75%"
+							isAnimationActive
+							nameKey="stage"
+							outerRadius="95%"
+							paddingAngle={10}
+							stroke="var(--background)"
+							strokeWidth={6}
+						>
+							{chartData.map((entry) => (
+								<Cell
+									// Usiamo stage come chiave stabile per evitare warning React.
+									fill={entry.color}
+									key={entry.stage}
+								/>
+							))}
+						</Pie>
+					</PieChart>
+				</ResponsiveContainer>
+
+				{/* Testo centrale che mostra il totale, simile allo screenshot di riferimento. */}
+				<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+					<span className="font-semibold text-4xl text-foreground sm:text-5xl">
+						{total}
+					</span>
+					<span className="mt-1 text-muted-foreground text-xs sm:text-sm">
+						Trattative attive
+					</span>
+				</div>
+			</div>
+
+			{/* Legenda compatta sotto al grafico, mostra solo gli stati presenti. */}
+			<div className="mt-4 flex flex-wrap justify-center gap-3 text-xs sm:text-sm">
+				{STAGE_CONFIG.map((config) => {
+					const value = stats?.[config.stage] ?? 0;
+					if (value === 0) {
+						return null;
+					}
+
+					return (
+						<div className="flex items-center gap-1.5" key={config.stage}>
+							<span
+								aria-hidden="true"
+								className="inline-block size-2.5 rounded-full"
+								style={{ backgroundColor: config.color }}
+							/>
+							<span className="text-muted-foreground">
+								<span className="font-medium text-foreground">
+									{config.stage}
+								</span>{" "}
+								{config.label} · {value}
+							</span>
+						</div>
+					);
+				})}
+			</div>
+		</section>
+	);
+}

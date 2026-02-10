@@ -42,6 +42,7 @@ type AppRoute =
 	| "/login"
 	| "/trattative"
 	| "/trattative/tutte"
+	| "/trattative/aperte"
 	| "/trattative/concluse"
 	| "/trattative/abbandonate"
 	| "/clienti";
@@ -109,7 +110,7 @@ export default function Sidebar({
 		},
 	];
 
-	// Trattative group with expandable sub-pages (tutte, concluse, abbandonate)
+	// Trattative group with expandable sub-pages (tutte, aperte, concluse, abbandonate)
 	const trattativeGroup: NavigationGroup = {
 		icon: SignatureIcon as IconComponent,
 		label: "Trattative",
@@ -118,6 +119,13 @@ export default function Sidebar({
 				icon: FolderOpen,
 				label: "Tutte",
 				href: "/trattative/tutte",
+			},
+			{
+				// Per le trattative aperte riutilizziamo l'icona cartella aperta
+				// per coerenza visiva con "Tutte".
+				icon: FolderOpen,
+				label: "Aperte",
+				href: "/trattative/aperte",
 			},
 			{
 				icon: AwardCertificate,

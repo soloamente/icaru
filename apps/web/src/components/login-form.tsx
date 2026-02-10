@@ -9,6 +9,7 @@ import { z } from "zod";
 import { login as apiLogin } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth/auth-context";
 
+import { ForgotPasswordDialog } from "./forgot-password-dialog";
 import { Spinner } from "./ui/spinner";
 
 /** Login form: email + password, submits to Laravel POST /login, then redirects and stores auth. */
@@ -16,6 +17,7 @@ export default function LoginForm() {
 	const router = useRouter();
 	const { login: setAuth } = useAuth();
 	const [serverError, setServerError] = useState<string | null>(null);
+	const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
 	const form = useForm({
 		defaultValues: {
@@ -214,50 +216,70 @@ export default function LoginForm() {
 							state.isSubmitting || isEmailEmpty || isPasswordEmpty;
 
 						return (
-							<motion.button
-								className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-primary px-4 py-2.75 font-medium text-primary-foreground transition-opacity duration-300 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={isDisabled}
-								style={{ willChange: "transform" }}
-								transition={{ duration: 0.2 }}
-								type="submit"
-								whileHover={isDisabled ? undefined : { scale: 1.01 }}
-								whileTap={isDisabled ? undefined : { scale: 0.98 }}
-							>
-								<div className="flex h-5 items-center justify-center">
-									<AnimatePresence initial={false} mode="wait">
-										{state.isSubmitting ? (
-											<motion.div
-												animate={{ opacity: 1, scale: 1 }}
-												className="flex items-center justify-center"
-												exit={{ opacity: 0, scale: 0.8 }}
-												initial={{ opacity: 0, scale: 0.8 }}
-												key="spinner"
-												transition={{ duration: 0.2 }}
-											>
-												<Spinner
-													className="text-primary-foreground"
-													size="sm"
-												/>
-											</motion.div>
-										) : (
-											<motion.span
-												animate={{ opacity: 1, scale: 1 }}
-												className="leading-none"
-												exit={{ opacity: 0, scale: 0.8 }}
-												initial={{ opacity: 0, scale: 0.8 }}
-												key="text"
-												transition={{ duration: 0.2 }}
-											>
-												Accedi
-											</motion.span>
-										)}
-									</AnimatePresence>
+							<>
+								<motion.button
+									className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-primary px-4 py-2.75 font-medium text-primary-foreground transition-opacity duration-300 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+									disabled={isDisabled}
+									style={{ willChange: "transform" }}
+									transition={{ duration: 0.2 }}
+									type="submit"
+									whileHover={isDisabled ? undefined : { scale: 1.01 }}
+									whileTap={isDisabled ? undefined : { scale: 0.98 }}
+								>
+									<div className="flex h-5 items-center justify-center">
+										<AnimatePresence initial={false} mode="wait">
+											{state.isSubmitting ? (
+												<motion.div
+													animate={{ opacity: 1, scale: 1 }}
+													className="flex items-center justify-center"
+													exit={{ opacity: 0, scale: 0.8 }}
+													initial={{ opacity: 0, scale: 0.8 }}
+													key="spinner"
+													transition={{ duration: 0.2 }}
+												>
+													<Spinner
+														className="text-primary-foreground"
+														size="sm"
+													/>
+												</motion.div>
+											) : (
+												<motion.span
+													animate={{ opacity: 1, scale: 1 }}
+													className="leading-none"
+													exit={{ opacity: 0, scale: 0.8 }}
+													initial={{ opacity: 0, scale: 0.8 }}
+													key="text"
+													transition={{ duration: 0.2 }}
+												>
+													Accedi
+												</motion.span>
+											)}
+										</AnimatePresence>
+									</div>
+								</motion.button>
+
+								{/* Link per aprire il flusso di "Password dimenticata?" */}
+								<div className="flex justify-end pt-2">
+									<button
+										className="text-muted-foreground text-xs underline-offset-2 hover:text-foreground hover:underline"
+										onClick={() => setIsForgotPasswordOpen(true)}
+										type="button"
+									>
+										Password dimenticata?
+									</button>
 								</div>
-							</motion.button>
+							</>
 						);
 					}}
 				</form.Subscribe>
 			</form>
+
+			{/* Dialog per la richiesta di reset password (forgot password). */}
+			<ForgotPasswordDialog
+				initialEmail={form.state.values.email}
+				onOpenChange={setIsForgotPasswordOpen}
+				open={isForgotPasswordOpen}
+			/>
 		</motion.div>
 	);
 }

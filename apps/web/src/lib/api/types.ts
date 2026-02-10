@@ -64,6 +64,15 @@ export interface ApiClient {
 /** Spanco stage enum: S, P, A, N, C, O */
 export type SpancoStage = "S" | "P" | "A" | "N" | "C" | "O";
 
+/**
+ * Statistiche SPANCO restituite dall'endpoint
+ * `/api/statistics/negotiations/spanco`.
+ *
+ * Le chiavi sono le lettere presenti nella risposta e i valori
+ * sono i conteggi di trattative attive per quello stato.
+ */
+export type SpancoStatistics = Partial<Record<SpancoStage, number>>;
+
 /** Percentuale avanzamento: 0–100 in 20% increments */
 export type PercentualeAvanzamento = 0 | 20 | 40 | 60 | 80 | 100;
 

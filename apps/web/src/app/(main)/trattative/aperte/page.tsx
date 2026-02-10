@@ -7,10 +7,11 @@ import TrattativeTable from "@/components/trattative-table";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 
 /**
- * Trattative concluse - shows only completed negotiations (spanco = C).
+ * Trattative aperte - shows only active negotiations
+ * (non concluse e non abbandonate).
  * Requires authentication; redirects to login if not logged in.
  */
-export default function TrattativeConclusePage() {
+export default function TrattativeApertePage() {
 	const auth = useAuthOptional();
 	const router = useRouter();
 	const [mounted, setMounted] = useState(false);
