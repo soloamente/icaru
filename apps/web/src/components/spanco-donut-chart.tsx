@@ -68,6 +68,16 @@ function computeTotal(stats: SpancoStatistics | null): number {
 	);
 }
 
+// Estendiamo esplicitamente i props del Tooltip di Recharts per includere `payload`.
+// In alcune versioni di `recharts` il tipo generato non dichiara `payload`,
+// ma a runtime viene comunque passato dal grafico: modelliamo quindi la forma reale.
+type SpancoTooltipProps = TooltipProps<number, string> & {
+	payload?: {
+		payload: SpancoChartDatum;
+		value?: number | string;
+	}[];
+};
+
 /**
  * Tooltip personalizzato per il grafico SPANCO.
  *
@@ -78,7 +88,7 @@ function computeTotal(stats: SpancoStatistics | null): number {
 function SpancoTooltip({
 	active,
 	payload,
-}: TooltipProps<number, string>): ReactNode | null {
+}: SpancoTooltipProps): ReactNode | null {
 	if (!(active && payload && payload.length > 0)) {
 		return null;
 	}
