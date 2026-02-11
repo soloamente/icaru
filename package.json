@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@compravendita/env": "workspace:*",
+    "agentation": "^2.2.0",
+    "dialkit": "^0.2.0",
     "dotenv": "catalog:",
     "motion": "^12.31.0",
     "motion-plus": "^1.5.1",

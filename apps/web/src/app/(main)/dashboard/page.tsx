@@ -1,20 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useState } from "react";
-import { CheckIcon, DashboardIcon, FileTextIcon } from "@/components/icons";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+	CheckIcon,
+	DashboardIcon,
+	FileTextIcon,
+	OpenRectArrowOutIcon,
+	UserGroupIcon,
+} from "@/components/icons";
 import { SpancoDonutChart } from "@/components/spanco-donut-chart";
-import { getNegotiationsSpancoStatistics } from "@/lib/api/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+	getNegotiationsSpancoStatistics,
+	listClients,
+	listNegotiationsMeConcluded,
+} from "@/lib/api/client";
 import type { SpancoStatistics } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
+
+/** Valid routes for dashboard card drill-down links (typed for Next.js Link). */
+type DashboardCardHref =
+	| "/trattative/aperte"
+	| "/trattative/concluse"
+	| "/clienti";
 
 interface DashboardCard {
 	id: string;
 	title: string;
-	value: string;
+	value: ReactNode;
 	description: string;
 	icon: ReactNode;
 	iconClassName: string;
+	/** Optional href to make the card a drill-down link (e.g. to filtered view). */
+	href?: DashboardCardHref;
 }
 
 /** Role-specific dashboard content (Admin / Director / Seller). */
@@ -88,7 +107,7 @@ export default function DashboardPage() {
 		setIsSpancoLoading(true);
 		setSpancoError(null);
 
-		void getNegotiationsSpancoStatistics(auth.token).then((result) => {
+		getNegotiationsSpancoStatistics(auth.token).then((result) => {
 			if (isCancelled) {
 				return;
 			}
@@ -108,38 +127,115 @@ export default function DashboardPage() {
 		};
 	}, [auth?.token]);
 
-	// Placeholder cards - replace with real data when API is available
+	// Dashboard card stats: concluded count and clients count (active comes from spanco).
+	const [concludedCount, setConcludedCount] = useState<number | null>(null);
+	const [clientsCount, setClientsCount] = useState<number | null>(null);
+	const [isCardsLoading, setIsCardsLoading] = useState(false);
+
+	useEffect(() => {
+		if (!(auth?.token && isLoggedIn)) {
+			setConcludedCount(null);
+			setClientsCount(null);
+			setIsCardsLoading(false);
+			return;
+		}
+
+		let isCancelled = false;
+		setIsCardsLoading(true);
+
+		Promise.all([
+			listNegotiationsMeConcluded(auth.token),
+			listClients(auth.token),
+		])
+			.then(([concludedRes, clientsRes]) => {
+				if (isCancelled) {
+					return;
+				}
+				setConcludedCount(
+					"data" in concludedRes ? concludedRes.data.length : null
+				);
+				setClientsCount("data" in clientsRes ? clientsRes.data.length : null);
+			})
+			.catch(() => {
+				if (!isCancelled) {
+					setConcludedCount(null);
+					setClientsCount(null);
+				}
+			})
+			.finally(() => {
+				if (!isCancelled) {
+					setIsCardsLoading(false);
+				}
+			});
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [auth?.token, isLoggedIn]);
+
+	// Derive active count from spanco stats; total = active + concluded.
+	const activeCount = useMemo(() => {
+		if (!spancoStats) {
+			return null;
+		}
+		return Object.values(spancoStats).reduce((a, v) => a + (v ?? 0), 0);
+	}, [spancoStats]);
+
+	const totalCount =
+		activeCount !== null && concludedCount !== null
+			? activeCount + concludedCount
+			: null;
+
+	// Format value for display: loading → skeleton, null/error → "Nessun dato", 0 → "0", else number.
+	function formatCardValue(
+		value: number | null,
+		isLoading: boolean
+	): ReactNode {
+		if (isLoading) {
+			return <Skeleton className="h-9 w-16" />;
+		}
+		if (value === null) {
+			return "Nessun dato";
+		}
+		return String(value);
+	}
+
+	// Build cards with differentiated icons, explicit empty states, and drill-down links.
+	// Loading: negotiations/total depend on spanco; concluded/clients depend on cards fetch.
 	const dashboardCards: DashboardCard[] = [
 		{
 			id: "negotiations",
 			title: "Negoziazioni attive",
-			value: "—",
+			value: formatCardValue(activeCount, isSpancoLoading),
 			description: "In corso",
 			icon: <FileTextIcon aria-hidden="true" size={18} />,
 			iconClassName: "text-chart-1",
+			href: "/trattative/aperte",
 		},
 		{
 			id: "completed",
 			title: "Concluse",
-			value: "—",
+			value: formatCardValue(concludedCount, isCardsLoading),
 			description: "Totale",
 			icon: <CheckIcon aria-hidden="true" size={18} />,
 			iconClassName: "text-green-600 dark:text-green-500",
+			href: "/trattative/concluse",
 		},
 		{
 			id: "clients",
 			title: "Clienti",
-			value: "—",
+			value: formatCardValue(clientsCount, isCardsLoading),
 			description: "Totale",
-			icon: <FileTextIcon aria-hidden="true" size={18} />,
+			icon: <UserGroupIcon aria-hidden="true" size={18} />,
 			iconClassName: "text-foreground",
+			href: "/clienti",
 		},
 		{
 			id: "total",
-			title: "Totale",
-			value: "—",
-			description: "Riepilogo",
-			icon: <FileTextIcon aria-hidden="true" size={18} />,
+			title: "Totale trattative",
+			value: formatCardValue(totalCount, isSpancoLoading || isCardsLoading),
+			description: "Attive + concluse",
+			icon: <DashboardIcon aria-hidden="true" size={18} />,
 			iconClassName: "text-muted-foreground",
 		},
 	];
@@ -196,7 +292,20 @@ export default function DashboardPage() {
 				</section>
 			)}
 
-			{/* Summary cards - same layout as reference dashboard */}
+			{/* Primary CTA: clear next step for the user */}
+			{isLoaded && isLoggedIn && (
+				<section aria-label="Azioni principali">
+					<Link
+						className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+						href="/trattative/tutte"
+					>
+						<OpenRectArrowOutIcon aria-hidden="true" size={18} />
+						<span>Vedi tutte le trattative</span>
+					</Link>
+				</section>
+			)}
+
+			{/* Summary cards - explicit states (skeleton/0/Nessun dato), drill-down links */}
 			<section
 				aria-labelledby="practices-overview"
 				className="flex flex-col gap-3"
@@ -205,30 +314,46 @@ export default function DashboardPage() {
 					Riepilogo
 				</h2>
 				<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2">
-					{dashboardCards.map((card) => (
-						<div
-							className="flex flex-col gap-3 rounded-4xl bg-background p-5"
-							key={card.id}
-						>
-							<div className="flex items-center justify-between gap-3">
-								<span className="font-medium text-muted-foreground text-sm">
-									{card.title}
-								</span>
-								<span
-									aria-hidden="true"
-									className={`flex size-9 items-center justify-center rounded-full bg-muted ${card.iconClassName}`}
-								>
-									{card.icon}
-								</span>
+					{dashboardCards.map((card) => {
+						const CardContent = (
+							<>
+								<div className="flex items-center justify-between gap-3">
+									<span className="font-medium text-muted-foreground text-sm">
+										{card.title}
+									</span>
+									<span
+										aria-hidden="true"
+										className={`flex size-9 items-center justify-center rounded-full bg-muted ${card.iconClassName}`}
+									>
+										{card.icon}
+									</span>
+								</div>
+								<div className="flex items-baseline gap-2">
+									<span className="font-semibold text-4xl tabular-nums">
+										{card.value}
+									</span>
+								</div>
+								<p className="text-muted-foreground text-sm">
+									{card.description}
+								</p>
+							</>
+						);
+						const baseClasses =
+							"flex flex-col gap-3 rounded-4xl bg-background p-5 transition-opacity hover:opacity-90";
+						return card.href ? (
+							<Link
+								className={`${baseClasses} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+								href={card.href}
+								key={card.id}
+							>
+								{CardContent}
+							</Link>
+						) : (
+							<div className={baseClasses} key={card.id}>
+								{CardContent}
 							</div>
-							<div className="flex items-baseline gap-2">
-								<span className="font-semibold text-4xl">{card.value}</span>
-							</div>
-							<p className="text-muted-foreground text-sm">
-								{card.description}
-							</p>
-						</div>
-					))}
+						);
+					})}
 				</div>
 			</section>
 		</main>

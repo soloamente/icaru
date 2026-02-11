@@ -8,6 +8,7 @@ export default function FileXmark({ size = 18, ...props }: FileXmarkProps) {
 	return (
 		<svg
 			height={size}
+			role="img"
 			viewBox="0 0 18 18"
 			width={size}
 			x="0px"
@@ -15,6 +16,7 @@ export default function FileXmark({ size = 18, ...props }: FileXmarkProps) {
 			y="0px"
 			{...props}
 		>
+			<title>File removed</title>
 			<path
 				d="M16.311,15.25l1.47-1.47c.293-.293,.293-.768,0-1.061s-.768-.293-1.061,0l-1.47,1.47-1.47-1.47c-.293-.293-.768-.293-1.061,0s-.293,.768,0,1.061l1.47,1.47-1.47,1.47c-.293,.293-.293,.768,0,1.061,.146,.146,.338,.22,.53,.22s.384-.073,.53-.22l1.47-1.47,1.47,1.47c.146,.146,.338,.22,.53,.22s.384-.073,.53-.22c.293-.293,.293-.768,0-1.061l-1.47-1.47Z"
 				data-color="color-2"

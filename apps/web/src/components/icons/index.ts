@@ -9,3 +9,4 @@ export { GearIcon } from "./gear-icon";
 export { HelpIcon } from "./help-icon";
 export { OpenRectArrowOutIcon } from "./open-rect-arrow-out";
 export { UserCircleIcon } from "./user-circle-icon";
+export { UserGroupIcon } from "./user-group";

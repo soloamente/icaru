@@ -12,5 +12,11 @@ export default function TrattativePage() {
 	useEffect(() => {
 		router.replace("/trattative/tutte");
 	}, [router]);
-	return <Loader />;
+	// While we redirect to the default "Tutte" view, center the loader in the
+	// available viewport area so the UI feels stable and balanced.
+	return (
+		<main className="flex min-h-screen items-center justify-center">
+			<Loader />
+		</main>
+	);
 }
