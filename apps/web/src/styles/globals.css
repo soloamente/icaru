@@ -485,6 +485,71 @@ html[data-font="rounded"] {
 	.table-header-bg {
 		background-color: var(--table-header);
 	}
+
+	/* Range inputs used for "Percentuale avanzamento" in Create/Update negotiation dialogs.
+	   Keep the native slider fully interactive (track + thumb) but hide its visuals so that
+	   only the custom track and decorative handle are visible. */
+	#create-percentuale,
+	#update-percentuale {
+		@apply appearance-none bg-transparent outline-none ring-0;
+	}
+
+	/* WebKit (Chrome, Safari, Edge) */
+	#create-percentuale::-webkit-slider-thumb,
+	#update-percentuale::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: transparent;
+		border: none;
+		opacity: 0; /* Keep hit area, hide visual thumb */
+	}
+
+	#create-percentuale::-webkit-slider-runnable-track,
+	#update-percentuale::-webkit-slider-runnable-track {
+		height: 100%;
+		background: transparent;
+		border: none;
+	}
+
+	/* Firefox */
+	#create-percentuale::-moz-range-thumb,
+	#update-percentuale::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: transparent;
+		border: none;
+		opacity: 0;
+	}
+
+	#create-percentuale::-moz-range-track,
+	#update-percentuale::-moz-range-track {
+		height: 100%;
+		background: transparent;
+		border: none;
+	}
+
+	/* Legacy Edge / IE */
+	#create-percentuale::-ms-thumb,
+	#update-percentuale::-ms-thumb {
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: transparent;
+		border: none;
+		opacity: 0;
+	}
+
+	#create-percentuale::-ms-track,
+	#update-percentuale::-ms-track {
+		height: 100%;
+		background: transparent;
+		border: none;
+		color: transparent;
+	}
 }
 
 .clip-path-container {

@@ -8,6 +8,8 @@ import type {
 	ApiClient,
 	ApiNegotiation,
 	CreateNegotiationBody,
+	ImportCheckResponse,
+	ImportConfirmResponse,
 	LoginResponse,
 	SpancoStatistics,
 	UpdateNegotiationBody,
@@ -560,6 +562,85 @@ export async function resetPassword(body: ResetPasswordBody): Promise<
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { ok: false, error: message };
+	}
+}
+
+// --- Import API (Excel/CSV clients) ---
+// Workflow: 1) POST /import/check with file → get file_token + mapping suggestions.
+//           2) POST /import/confirm with file_token + final mapping → execute import.
+
+/**
+ * POST /import/check — Upload Excel/CSV and get column mapping suggestions.
+ * Content-Type: multipart/form-data, body: { file: File }.
+ * Returns file_token, file_extension, matched_columns, unmatched_excel_columns,
+ * missing_db_columns, all_db_columns for the mapping UI.
+ */
+export async function importCheck(
+	accessToken: string,
+	file: File
+): Promise<{ data: ImportCheckResponse } | { error: string }> {
+	try {
+		const formData = new FormData();
+		formData.set("file", file);
+		const res = await fetch(`${BASE_URL}/import/check`, {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				Authorization: `Bearer ${accessToken}`,
+				// Do not set Content-Type: browser sets multipart boundary
+			},
+			body: formData,
+		});
+		const json = (await res.json()) as
+			| ImportCheckResponse
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nell'analisi del file";
+			return { error: msg };
+		}
+		return { data: json as ImportCheckResponse };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * POST /import/confirm — Execute import with file_token and final column mapping.
+ * Body: { file_token, file_extension, mapping: { "Excel Header": "db_field" } }.
+ * Returns imported_count and optional errors list (e.g. row-level validation).
+ */
+export async function importConfirm(
+	accessToken: string,
+	payload: {
+		file_token: string;
+		file_extension: string;
+		mapping: Record<string, string>;
+	}
+): Promise<{ data: ImportConfirmResponse } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/import/confirm`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(payload),
+		});
+		const json = (await res.json()) as
+			| ImportConfirmResponse
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore durante l'importazione";
+			return { error: msg };
+		}
+		return { data: json as ImportConfirmResponse };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
 	}
 }
 

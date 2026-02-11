@@ -114,3 +114,27 @@ export interface UpdateNegotiationBody {
 	importo?: number;
 	abbandonata?: boolean;
 }
+
+// --- Import API (Excel/CSV clients) ---
+
+/** One suggested mapping from analysis: Excel column name → DB field name. */
+export interface ImportMatchedColumn {
+	excel_column: string;
+	db_column: string;
+}
+
+/** Response from POST /api/import/check (file analysis). */
+export interface ImportCheckResponse {
+	file_token: string;
+	file_extension: string;
+	matched_columns: ImportMatchedColumn[];
+	unmatched_excel_columns: string[];
+	missing_db_columns: string[];
+	all_db_columns: string[];
+}
+
+/** Response from POST /api/import/confirm (execute import). */
+export interface ImportConfirmResponse {
+	imported_count: number;
+	errors: string[];
+}
