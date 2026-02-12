@@ -1,0 +1,152 @@
+/* Global search command palette (cmdk). Uses Base UI Dialog (not Radix).
+   Styles target .global-search-overlay, .global-search-dialog and cmdk internal parts. */
+
+/* Overlay: dimmed background (Base UI Dialog.Backdrop) */
+.global-search-overlay {
+	position: fixed;
+	inset: 0;
+	background: oklch(0 0 0 / 0.5);
+	animation: cmdk-overlay-in 150ms ease;
+}
+
+@keyframes cmdk-overlay-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* Dialog content: centered panel (Base UI Dialog.Popup) */
+.global-search-dialog {
+	position: relative;
+	width: min(90vw, 32rem);
+	max-height: 70vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--popover);
+	color: var(--popover-foreground);
+	border-radius: var(--radius-3xl);
+	box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.25);
+	border: 1px solid var(--border);
+	animation: cmdk-dialog-in 150ms ease;
+	overflow: hidden;
+}
+
+@keyframes cmdk-dialog-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Wrapper: padding from dialog so input looks floating */
+.global-search-input-wrap {
+	padding: 0.75rem 0.75rem 0rem 0.75rem;
+}
+
+/* Input: floating look — no border, own background */
+.global-search-input,
+.global-search-dialog [cmdk-input] {
+	width: 100%;
+	padding: 0.625rem 0.875rem;
+	font-size: 0.9375rem;
+	border: none;
+	background: var(--muted);
+	color: var(--foreground);
+	outline: none;
+	border-radius: var(--radius-xl);
+}
+
+.global-search-input::placeholder,
+.global-search-dialog [cmdk-input]::placeholder {
+	color: var(--muted-foreground);
+}
+
+/* Scrollable list of results */
+.global-search-list,
+[cmdk-list] {
+	min-height: 8rem;
+	max-height: min(60vh, 20rem);
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 0.25rem 0;
+	scroll-padding-block-start: 8px;
+	scroll-padding-block-end: 8px;
+}
+
+/* Group heading (Clienti con trattative, Referenti / Trattative, etc.) */
+[cmdk-group-heading],
+.global-search-group [cmdk-group-heading] {
+	padding: 0.375rem 1rem;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--muted-foreground);
+	user-select: none;
+}
+
+/* Each result row */
+.global-search-item,
+[cmdk-item] {
+	display: block;
+	width: 100%;
+	padding: 0.5rem 1rem;
+	font-size: 0.875rem;
+	text-align: left;
+	cursor: pointer;
+	border: none;
+	background: transparent;
+	color: var(--foreground);
+	outline: none;
+	transition: background-color 100ms ease;
+}
+
+[cmdk-item][data-selected="true"] {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+
+@media (hover: hover) {
+	[cmdk-item]:hover {
+		background: var(--accent);
+		color: var(--accent-foreground);
+	}
+}
+
+/* Empty and loading states */
+.global-search-empty,
+.global-search-loading,
+[cmdk-empty],
+[cmdk-loading] {
+	padding: 1.5rem 1rem;
+	font-size: 0.875rem;
+	color: var(--muted-foreground);
+	text-align: center;
+}
+
+.global-search-error {
+	padding: 1rem;
+	font-size: 0.875rem;
+	color: var(--destructive);
+	text-align: center;
+}
+
+/* Screen reader only */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}

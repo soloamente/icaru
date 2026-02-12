@@ -11,6 +11,7 @@ import type {
 	ImportCheckResponse,
 	ImportConfirmResponse,
 	LoginResponse,
+	SearchResponse,
 	SpancoStatistics,
 	UpdateNegotiationBody,
 } from "./types";
@@ -389,6 +390,33 @@ export async function createNegotiation(
 }
 
 /**
+ * GET /negotiations/{id} — Fetch a single negotiation by ID.
+ */
+export async function getNegotiation(
+	accessToken: string,
+	id: number
+): Promise<{ data: ApiNegotiation } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/negotiations/${id}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiNegotiation | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Trattativa non trovata";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
  * PUT /negotiations/{id} — Update negotiation state.
  */
 export async function updateNegotiation(
@@ -638,6 +666,56 @@ export async function importConfirm(
 			return { error: msg };
 		}
 		return { data: json as ImportConfirmResponse };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+// --- Global Search API ---
+// POST /api/search — Smart search for clients and referents (min 2 chars). Scoped by role (Direttore: company; Venditore: own).
+
+/**
+ * POST /search — Unified search for clients (with/without negotiations) and referents.
+ * Body: { query: string } (min 2 chars). Returns clients_with_negotiations, referents, clients_without_negotiations.
+ * 422 if query missing or < 2 chars; 403 for Admin.
+ */
+export async function search(
+	accessToken: string,
+	query: string
+): Promise<{ data: SearchResponse } | { error: string }> {
+	const trimmed = query.trim();
+	if (trimmed.length < 2) {
+		return { error: "Inserire almeno 2 caratteri" };
+	}
+	try {
+		// Use Next.js API proxy to avoid CORS; proxy forwards to Laravel backend
+		const res = await fetch("/api/search", {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify({ query: trimmed }),
+		});
+		const json = (await res.json()) as
+			| SearchResponse
+			| { data?: SearchResponse }
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nella ricerca";
+			return { error: msg };
+		}
+		// Laravel may return { data: SearchResponse } or the shape directly
+		const payload = json as { data?: SearchResponse } & SearchResponse;
+		const data: SearchResponse =
+			payload.data &&
+			Array.isArray(payload.data.clients_with_negotiations) &&
+			Array.isArray(payload.data.referents) &&
+			Array.isArray(payload.data.clients_without_negotiations)
+				? payload.data
+				: (payload as unknown as SearchResponse);
+		return { data };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };

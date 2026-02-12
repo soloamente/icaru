@@ -4,6 +4,7 @@ import { Select } from "@base-ui/react/select";
 import { ChevronDown, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -14,15 +15,14 @@ import {
 	listNegotiationsMe,
 	listNegotiationsMeAbandoned,
 	listNegotiationsMeConcluded,
-	updateNegotiation,
 } from "@/lib/api/client";
 import type {
 	ApiNegotiation,
 	CreateNegotiationBody,
 	SpancoStage,
-	UpdateNegotiationBody,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 import CircleXmarkFilled from "./icons/circle-xmark-filled";
 import IconDeleteLeftFill18 from "./icons/delete-left-fill-18";
@@ -715,216 +715,6 @@ function CreateNegotiationDialog({
 	);
 }
 
-interface UpdateNegotiationDialogProps {
-	negotiation: ApiNegotiation | null;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	onSuccess: () => void;
-}
-
-function UpdateNegotiationDialog({
-	negotiation,
-	open,
-	onOpenChange,
-	onSuccess,
-}: UpdateNegotiationDialogProps) {
-	const { token } = useAuth();
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [form, setForm] = useState<UpdateNegotiationBody>({
-		spanco: "S",
-		percentuale: 0,
-		importo: 0,
-		abbandonata: false,
-	});
-
-	// Sync form when negotiation changes
-	useEffect(() => {
-		if (negotiation) {
-			setForm({
-				spanco: negotiation.spanco,
-				percentuale: negotiation.percentuale,
-				importo: negotiation.importo,
-				abbandonata: negotiation.abbandonata,
-			});
-		}
-	}, [negotiation]);
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!(token && negotiation)) {
-			return;
-		}
-		setIsSubmitting(true);
-		setError(null);
-		const result = await updateNegotiation(token, negotiation.id, form);
-		setIsSubmitting(false);
-		if ("error" in result) {
-			setError(result.error);
-			return;
-		}
-		onSuccess();
-		onOpenChange(false);
-	};
-
-	if (!(open && negotiation)) {
-		return null;
-	}
-
-	return (
-		<div
-			/* Backdrop for update dialog: clicking outside the card closes it,
-			 * matching the behaviour of the creation dialog and avoiding traps.
-			 */
-			aria-labelledby="update-negotiation-title"
-			aria-modal="true"
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-			onClick={() => onOpenChange(false)}
-			role="dialog"
-		>
-			{/* Dialog container: keep styling in sync with creation dialog for a coherent experience.
-			 * Stop propagation so internal clicks do not bubble to the backdrop.
-			 */}
-			<div
-				className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-card px-6 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.55)]"
-				onClick={(event) => event.stopPropagation()}
-			>
-				<h2
-					className="mb-5 font-bold text-foreground text-xl tracking-tight"
-					id="update-negotiation-title"
-				>
-					Aggiorna trattativa #{negotiation.id}
-				</h2>
-				<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-					<label
-						className={DIALOG_FIELD_CONTAINER_CLASSES}
-						htmlFor="update-spanco"
-					>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Spanco</span>
-						<span className="relative flex flex-1 flex-row items-center justify-end">
-							<select
-								className={cn(DIALOG_FIELD_SELECT_BASE_CLASSES, "h-9")}
-								id="update-spanco"
-								onChange={(e) =>
-									setForm((prev) => ({
-										...prev,
-										spanco: e.target.value as SpancoStage,
-									}))
-								}
-								value={form.spanco}
-							>
-								{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map((k) => (
-									<option key={k} value={k}>
-										{SPANCO_LABELS[k]}
-									</option>
-								))}
-							</select>
-							<ChevronDown
-								aria-hidden
-								className="pointer-events-none absolute right-0 size-4 shrink-0 text-muted-foreground"
-							/>
-						</span>
-					</label>
-					<label
-						className={DIALOG_FIELD_CONTAINER_CLASSES}
-						htmlFor="update-percentuale"
-					>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
-							Percentuale avanzamento
-						</span>
-						<span className="relative flex flex-1 flex-row items-center justify-end">
-							<select
-								className={cn(DIALOG_FIELD_SELECT_BASE_CLASSES, "h-9")}
-								id="update-percentuale"
-								onChange={(e) =>
-									setForm((prev) => ({
-										...prev,
-										percentuale: Number(e.target.value),
-									}))
-								}
-								value={form.percentuale}
-							>
-								{PERCENTUALE_OPTIONS.map((p) => (
-									<option key={p} value={p}>
-										{p}%
-									</option>
-								))}
-							</select>
-							<ChevronDown
-								aria-hidden
-								className="pointer-events-none absolute right-0 size-4 shrink-0 text-muted-foreground"
-							/>
-						</span>
-					</label>
-					<label
-						className={DIALOG_FIELD_CONTAINER_CLASSES}
-						htmlFor="update-importo"
-					>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Importo (€)</span>
-						<Input
-							className={DIALOG_FIELD_INPUT_BASE_CLASSES}
-							id="update-importo"
-							min={0}
-							onChange={(e) =>
-								setForm((prev) => ({
-									...prev,
-									importo: Number.parseInt(e.target.value, 10) || 0,
-								}))
-							}
-							step={100}
-							type="number"
-							value={form.importo ?? ""}
-						/>
-					</label>
-					{/* Abbandonata toggle: render checkbox and label inside a shared pill so the hit area is generous and consistent. */}
-					<label
-						className="flex cursor-pointer items-center gap-2 rounded-2xl bg-table-header px-3.75 py-2.75"
-						htmlFor="update-abbandonata"
-					>
-						<input
-							checked={form.abbandonata ?? false}
-							className="size-4 shrink-0 cursor-pointer rounded border border-checkbox-border bg-transparent text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-							id="update-abbandonata"
-							onChange={(e) =>
-								setForm((prev) => ({
-									...prev,
-									abbandonata: e.target.checked,
-								}))
-							}
-							type="checkbox"
-						/>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Abbandonata</span>
-					</label>
-					{error && (
-						<p className="text-destructive text-sm" role="alert">
-							{error}
-						</p>
-					)}
-					{/* Same button pattern as Create dialog: rounded, larger, justify-between. */}
-					<div className="mt-2 flex justify-between gap-3">
-						<Button
-							className="h-10 min-w-26 rounded-xl text-sm"
-							disabled={isSubmitting}
-							onClick={() => onOpenChange(false)}
-							type="button"
-							variant="outline"
-						>
-							Annulla
-						</Button>
-						<Button
-							className="h-10 min-w-26 rounded-xl text-sm"
-							disabled={isSubmitting}
-							type="submit"
-						>
-							{isSubmitting ? "Salvataggio…" : "Salva"}
-						</Button>
-					</div>
-				</form>
-			</div>
-		</div>
-	);
-}
-
 /** Filter for which negotiations to show: all, only completed (spanco C), or only abandoned. */
 export type TrattativeFilter = "all" | "concluse" | "abbandonate" | "aperte";
 
@@ -952,9 +742,8 @@ export default function TrattativeTable({
 	const [statoFilter, setStatoFilter] = useState<
 		"all" | "aperta" | "conclusa" | "abbandonata"
 	>("all");
+	const router = useRouter();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-	const [updateTarget, setUpdateTarget] = useState<ApiNegotiation | null>(null);
-	const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
 	const [sortState, setSortState] = useState<{
 		column: SortColumn;
 		direction: "asc" | "desc";
@@ -1106,9 +895,11 @@ export default function TrattativeTable({
 		percentSortDirection
 	);
 	const spancoSortAriaLabel = getSortAriaLabel("spanco", spancoSortDirection);
+	// Navigate to dedicated edit page based on stato (aperte/concluse/abbandonate).
+	// When on "tutte" we derive stato from the negotiation; otherwise use current filter.
 	const handleOpenUpdate = (n: ApiNegotiation) => {
-		setUpdateTarget(n);
-		setIsUpdateDialogOpen(true);
+		const stato = filter === "all" ? getNegotiationStatoSegment(n) : filter;
+		router.push(`/trattative/${stato}/${n.id}`);
 	};
 
 	// Reusable search field element so we can place it either on its own row
@@ -1656,12 +1447,6 @@ export default function TrattativeTable({
 				onOpenChange={setIsCreateDialogOpen}
 				onSuccess={fetchNegotiations}
 				open={isCreateDialogOpen}
-			/>
-			<UpdateNegotiationDialog
-				negotiation={updateTarget}
-				onOpenChange={setIsUpdateDialogOpen}
-				onSuccess={fetchNegotiations}
-				open={isUpdateDialogOpen}
 			/>
 		</main>
 	);

@@ -47,6 +47,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 
 ## Executor's Feedback or Assistance Requests
 
+- **GlobalSearchCommand (⌘K) su /clienti:** Ho applicato il feedback di pagina: (1) dialog centrato nella viewport: il contenitore è passato da `items-start justify-center pt-[15vh]` a `items-center justify-center p-4`; (2) input “floating”: rimosso il border-bottom, aggiunto wrapper `.global-search-input-wrap` con padding (top e lati) e input con `background: var(--muted)`, `border-radius: var(--radius-md)` e padding interno, senza bordo. Corretto anche l’ordine dei selettori in `cmdk.css` per il lint (specificity). Chiedo una verifica visiva su /clienti (aprire la command palette con ⌘K/Ctrl+K) prima di considerare il task chiuso.
 - Implementazione in corso per il colore del nome dell'utente loggato nella `Sidebar`. Dopo la modifica chiederò conferma all'utente per validare il risultato visivo prima di segnare il task come completato nella board.
 - Sto lavorando ora in priorità sulla palette dark del tema **Dataweb** (`data-color-scheme="rich"`), aggiornando i token nella sezione `.dark[data-color-scheme="rich"]` di `globals.css`. Dopo le modifiche suggerirò un check visivo all'utente prima che il Planner dichiari il task completato.
 - Ho iniziato a lavorare sulla pagina per le **trattative aperte**, aggiungendo la voce dedicata in `Sidebar` e collegandola alla route `/trattative/aperte` con un filtro che mostri solo le trattative effettivamente aperte (non abbandonate e non concluse).
@@ -79,6 +80,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - Ho reso il "drag handle" della percentuale nel dialog `CreateNegotiationDialog` effettivamente trascinabile: ora è possibile afferrare il manico sul bordo del fill e trascinarlo orizzontalmente per aggiornare il valore della `range`, con snapping ai passi 0/20/40/60/80/100, così che il comportamento rispecchi in modo diretto l’affordance visiva.
  - Ho aumentato leggermente l’altezza del "drag handle" della percentuale nel dialog `CreateNegotiationDialog` (mantendendo larghezza e stile invariati) e l’ho spostato di pochi pixel verso l’interno del fill, così che il manico sia più visibile ma non appiccicato al bordo della barra di avanzamento nella vista `/trattative/aperte`.
  - Ho riallineato le tacche (hash marks) del track percentuale facendole estendere sull’intera larghezza utile dello slider, così che ognuna corrisponda visivamente a uno step del controllo (0, 20, 40, 60, 80, 100%) senza offset rispetto al fill.
+- Ho aggiornato la pagina di dettaglio trattativa abbandonata (`/trattative/abbandonate/[id]`) facendo sì che gli stati di caricamento/auth mostrino il componente `Loader` all'interno dello stesso shell grafico (card + `table-container-bg`) usato per il contenuto e non più su sfondo nudo, così da avere un layout coerente con le altre viste di trattative.
 
 ## Lessons
 

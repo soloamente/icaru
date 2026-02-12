@@ -84,7 +84,27 @@ export default function RootLayout({
 			</head>
 			<body className="h-full overflow-hidden">
 				<Providers>
-					<Suspense fallback={<Loader />}>
+					{/* Keep the main app shell (sidebar + content chrome) visible while
+					 * routes and data are loading so the Loader appears inside the same
+					 * containers as normal page content, instead of as a bare full-screen
+					 * spinner on the raw background.
+					 */}
+					<Suspense
+						fallback={
+							<LayoutContent>
+								{/* Generic page chrome: mirrors the main app pages so that
+								 * when a route is streaming or being code-split, the user
+								 * still sees the usual card + table-container background
+								 * with the spinner centered inside.
+								 */}
+								<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+									<div className="table-container-bg flex min-h-0 flex-1 flex-col items-center overflow-auto rounded-t-3xl px-5.5 pt-6.25">
+										<Loader />
+									</div>
+								</main>
+							</LayoutContent>
+						}
+					>
 						<LayoutContent>{children}</LayoutContent>
 					</Suspense>
 				</Providers>

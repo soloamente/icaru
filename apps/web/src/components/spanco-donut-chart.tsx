@@ -189,6 +189,8 @@ export function SpancoDonutChart({
 						>
 							{chartData.map((entry) => (
 								<Cell
+									// Cursor help sui segmenti che mostrano il tooltip all’hover.
+									className="cursor-help"
 									// Usiamo stage come chiave stabile per evitare warning React.
 									fill={entry.color}
 									key={entry.stage}

@@ -138,3 +138,32 @@ export interface ImportConfirmResponse {
 	imported_count: number;
 	errors: string[];
 }
+
+// --- Global Search API (POST /api/search) ---
+
+/** Single client in search results (clients_with_negotiations / clients_without_negotiations). */
+export interface SearchClientResult {
+	id: number;
+	ragione_sociale: string;
+	p_iva: string | null;
+	email: string | null;
+	telefono: string | null;
+	tipologia: string | null;
+}
+
+/** Referent row in search results (id = negotiation ID). */
+export interface SearchReferentResult {
+	id: number;
+	referente: string;
+	client_id: number;
+	data_apertura: string;
+	spanco: string;
+	client: { ragione_sociale: string };
+}
+
+/** Response from POST /api/search (smart search for clients and referents). */
+export interface SearchResponse {
+	clients_with_negotiations: SearchClientResult[];
+	referents: SearchReferentResult[];
+	clients_without_negotiations: SearchClientResult[];
+}
