@@ -173,7 +173,10 @@ export default function UpdateNegotiationForm({
 
 	const clampedHandlePercent = Math.min(
 		SLIDER_HANDLE_INSET_END_PERCENT,
-		Math.max(form.percentuale, SLIDER_HANDLE_INSET_START_PERCENT)
+		Math.max(
+			form.percentuale ?? SLIDER_HANDLE_INSET_START_PERCENT,
+			SLIDER_HANDLE_INSET_START_PERCENT
+		)
 	);
 	const isHandleNearLeft =
 		clampedHandlePercent <= SLIDER_HANDLE_SHRINK_NEAR_LEFT_PERCENT;
