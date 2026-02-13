@@ -2,7 +2,6 @@
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Agentation } from "agentation";
-import { DialRoot } from "dialkit";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { PreferencesProvider } from "@/lib/preferences/preferences-context";
 import { queryClient } from "@/utils/trpc";
@@ -20,7 +19,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			<PreferencesProvider>
 				<QueryClientProvider client={queryClient}>
 					<AuthProvider>
-						<DialRoot />
 						{children}
 						{process.env.NODE_ENV === "development" && (
 							<Agentation
