@@ -205,7 +205,9 @@ export function SpancoDonutChart({
 			className="flex w-full flex-col items-center justify-center py-6"
 		>
 			{/* Same fixed dimensions as loading/error so cards below don't move. */}
-			<div className={CHART_CONTAINER_CLASS}>
+			<div
+				className={`${CHART_CONTAINER_CLASS} [&_*:focus]:outline-none [&_*:focus]:ring-0`}
+			>
 				<ResponsiveContainer height="100%" width="100%">
 					<PieChart>
 						{/* Tooltip flottante che segue il puntatore quando si passa sopra ai segmenti. */}
