@@ -6,6 +6,7 @@
 
 import type {
 	ApiClient,
+	ApiClientWithoutNegotiation,
 	ApiNegotiation,
 	CreateNegotiationBody,
 	ImportCheckResponse,
