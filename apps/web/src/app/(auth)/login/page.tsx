@@ -42,11 +42,11 @@ export default function LoginPage() {
 			>
 				<Image
 					alt="Logo Icaru"
-					className="h-8 w-auto object-contain"
-					height={32}
+					className="h-16 w-auto object-contain md:h-20"
+					height={80}
 					priority
 					src="/images/logo_positivo.png"
-					width={120}
+					width={300}
 				/>
 			</motion.div>
 
