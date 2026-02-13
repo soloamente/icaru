@@ -14,7 +14,11 @@ export default function Home() {
 
 	// Wait for auth to load from localStorage before redirecting
 	if (!auth?.isLoaded) {
-		return <Loader />;
+		return (
+			<main className="flex min-h-screen items-center justify-center">
+				<Loader />
+			</main>
+		);
 	}
 
 	// Redirect all authenticated users to Dashboard (first page after login)

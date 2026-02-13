@@ -42,7 +42,7 @@ function buildSearchResponseFromLists(
 	const toSearchClient = (c: ApiClient): SearchClientResult => ({
 		id: c.id,
 		ragione_sociale: c.ragione_sociale,
-		p_iva: c.partita_iva ?? null,
+		p_iva: c.p_iva ?? null,
 		email: (c.email as string) ?? null,
 		telefono: (c.telefono as string) ?? null,
 		tipologia: (c.tipologia as string) ?? null,

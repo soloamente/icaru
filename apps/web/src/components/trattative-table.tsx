@@ -1,20 +1,25 @@
-﻿"use client";
+"use client";
 
+import { Dialog } from "@base-ui/react/dialog";
 import { Select } from "@base-ui/react/select";
-import { ChevronDown, Plus, Search } from "lucide-react";
+import { ChevronDown, Paperclip, Plus, Search, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Drawer } from "vaul";
 import { CheckIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
 	createNegotiation,
+	listClientsWithoutNegotiations,
 	listNegotiationsCompany,
 	listNegotiationsMe,
 	listNegotiationsMeAbandoned,
 	listNegotiationsMeConcluded,
+	uploadNegotiationFiles,
 } from "@/lib/api/client";
 import type {
 	ApiNegotiation,
@@ -104,7 +109,7 @@ const DIALOG_FIELD_CONTAINER_CLASSES =
 /** Text styling for field labels inside dialog pills.
  *  Slightly smaller than values to establish hierarchy; muted color for secondary
  *  status so the user's eye goes first to the editable value area.
- *  Uses text-base so labels (ID Cliente, Referente, Spanco, Importo, Percentuale avanzamento, Note)
+ *  Uses text-base so labels (Cliente, Referente, Spanco, Importo, Percentuale avanzamento, Note)
  *  are clearly readable in the create/update trattativa dialog rows.
  */
 const DIALOG_FIELD_LABEL_TEXT_CLASSES =
@@ -113,7 +118,7 @@ const DIALOG_FIELD_LABEL_TEXT_CLASSES =
 /** Base classes for text/number inputs inside dialog pills: visually flat, right-aligned.
  *  cursor-text signals editability so the affordance is obvious at a glance.
  *  text-base (and md:text-base) override the default Input component's text-xs/md:text-xs
- *  so ID Cliente, Referente, Importo, Note match label size in the dialog rows.
+ *  so Cliente, Referente, Importo, Note match label size in the dialog rows.
  */
 const DIALOG_FIELD_INPUT_BASE_CLASSES =
 	"flex-1 w-full cursor-text border-none bg-transparent! px-0 py-0 text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 md:text-base";
@@ -259,22 +264,80 @@ interface CreateNegotiationDialogProps {
 	onSuccess: () => void;
 }
 
+/** Breakpoint for drawer vs dialog (match useIsMobile). */
+const CREATE_NEGOTIATION_MOBILE_BREAKPOINT_PX = 768;
+
+/**
+ * "Nuova trattativa": on mobile Vaul Drawer (styled like Aggiungi cliente sheet), on desktop Base UI Dialog.
+ * layoutReady + isDesktop ensure we never mount Dialog on mobile (no dialog under drawer).
+ */
 function CreateNegotiationDialog({
 	open,
 	onOpenChange,
 	onSuccess,
 }: CreateNegotiationDialogProps) {
+	const [layoutReady, setLayoutReady] = useState(false);
+	const [isDesktop, setIsDesktop] = useState(false);
+	useEffect(() => {
+		const mql = window.matchMedia(
+			`(max-width: ${CREATE_NEGOTIATION_MOBILE_BREAKPOINT_PX - 1}px)`
+		);
+		const handler = () => setIsDesktop(!mql.matches);
+		handler();
+		setLayoutReady(true);
+		mql.addEventListener("change", handler);
+		return () => mql.removeEventListener("change", handler);
+	}, []);
+
 	const { token } = useAuth();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	// Clients without negotiations: loaded when dialog opens, used for the Cliente select.
+	const [clientsWithoutNegotiations, setClientsWithoutNegotiations] = useState<
+		{ id: number; nome: string }[]
+	>([]);
+	const [clientsLoading, setClientsLoading] = useState(false);
+	const [clientsError, setClientsError] = useState<string | null>(null);
 	const [form, setForm] = useState<CreateNegotiationBody>({
-		client_id: 1,
+		client_id: 0,
 		referente: "",
 		spanco: "S",
 		importo: 0,
 		percentuale: 0,
 		note: "",
 	});
+	// Allegati: selezionati in creazione; caricati con seconda API dopo POST /negotiations.
+	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+	// When dialog opens, fetch clients without negotiations and reset allegati.
+	useEffect(() => {
+		if (!(open && token)) {
+			return;
+		}
+		setSelectedFiles([]);
+		setClientsLoading(true);
+		setClientsError(null);
+		listClientsWithoutNegotiations(token)
+			.then((result) => {
+				if ("error" in result) {
+					setClientsError(result.error);
+					setClientsWithoutNegotiations([]);
+					return;
+				}
+				setClientsWithoutNegotiations(result.data);
+				setClientsError(null);
+				// Default to first client so the select has a valid value.
+				setForm((prev) => ({
+					...prev,
+					client_id:
+						result.data.length > 0 ? result.data[0].id : prev.client_id,
+				}));
+			})
+			.finally(() => {
+				setClientsLoading(false);
+			});
+	}, [open, token]);
 
 	// Track + input refs for the "Percentuale avanzamento" slider so we can
 	// translate pointer movements on the decorative handle into a concrete
@@ -371,82 +434,179 @@ function CreateNegotiationDialog({
 		}
 		setIsSubmitting(true);
 		setError(null);
+		// Prima API: crea la trattativa.
 		const result = await createNegotiation(token, {
 			...form,
 			note: form.note || undefined,
 		});
-		setIsSubmitting(false);
 		if ("error" in result) {
+			setIsSubmitting(false);
 			setError(result.error);
 			return;
 		}
+		const createdId = result.data.id;
+		// Seconda API: carica gli allegati (se presenti).
+		if (selectedFiles.length > 0) {
+			const uploadResult = await uploadNegotiationFiles(
+				token,
+				createdId,
+				selectedFiles
+			);
+			if ("error" in uploadResult) {
+				setIsSubmitting(false);
+				setError(uploadResult.error);
+				return;
+			}
+		}
+		setIsSubmitting(false);
 		onSuccess();
 		onOpenChange(false);
 		setForm({
-			client_id: 1,
+			client_id: clientsWithoutNegotiations[0]?.id ?? 0,
 			referente: "",
 			spanco: "S",
 			importo: 0,
 			percentuale: 0,
 			note: "",
 		});
+		setSelectedFiles([]);
 	};
 
-	if (!open) {
+	// Only return null when closed on desktop. On mobile keep Drawer mounted when closing
+	// so Vaul can run the slide-out exit animation (otherwise we unmount and it never plays).
+	if (!open && layoutReady && isDesktop) {
+		return null;
+	}
+	if (!(open || layoutReady)) {
 		return null;
 	}
 
-	return (
-		<div
-			/* Backdrop: clicking outside the card closes the dialog so the user
-			 * is never trapped if a control inside becomes hard to reach.
-			 */
-			aria-labelledby="create-negotiation-title"
-			aria-modal="true"
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-			onClick={() => onOpenChange(false)}
-			role="dialog"
-		>
-			{/* Dialog container: stop click propagation so interactions inside
-			 * (form submit, slider drag, buttons) do not accidentally close the
-			 * dialog when the user clicks within the card.
-			 * Slightly larger and more rounded to mirror main card shells.
-			 */}
-			<div
-				className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-card px-6 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.55)]"
-				onClick={(event) => event.stopPropagation()}
-			>
-				{/* Centered title with more visual weight and spacing from the form below. */}
-				<h2
-					className="mb-8 text-center font-bold text-2xl text-foreground tracking-tight"
-					id="create-negotiation-title"
-				>
-					Nuova trattativa
-				</h2>
+	/** Content: header row (title + close button) + form. closeButton: Dialog.Close on desktop, plain button on mobile (Drawer). */
+	function renderDialogContent(closeButton: ReactNode) {
+		return (
+			<>
+				<div className="flex items-center justify-between gap-3 pb-6">
+					<h2
+						className="font-bold text-2xl text-foreground tracking-tight"
+						id="create-negotiation-title"
+					>
+						Nuova trattativa
+					</h2>
+					{closeButton}
+				</div>
 				<form
 					className="grid grid-cols-2 gap-x-4 gap-y-4"
 					onSubmit={handleSubmit}
 				>
-					{/* ID Cliente field: wrap label text and control in a single pill so the whole area is clickable. */}
+					{/* Cliente: select populated from API /api/clients/without-negotiations (id + nome). */}
 					<label
 						className={DIALOG_FIELD_CONTAINER_CLASSES}
-						htmlFor="create-client-id"
+						htmlFor="create-cliente"
 					>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>ID Cliente</span>
-						<Input
-							className={DIALOG_FIELD_INPUT_BASE_CLASSES}
-							id="create-client-id"
-							min={1}
-							onChange={(e) =>
-								setForm((prev) => ({
-									...prev,
-									client_id: Number.parseInt(e.target.value, 10) || 1,
-								}))
+						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Cliente</span>
+						{(() => {
+							if (clientsLoading) {
+								return (
+									<span
+										className={cn(
+											DIALOG_FIELD_INPUT_BASE_CLASSES,
+											"flex items-center justify-end text-muted-foreground"
+										)}
+										id="create-cliente"
+									>
+										Caricamento…
+									</span>
+								);
 							}
-							required
-							type="number"
-							value={form.client_id}
-						/>
+							if (clientsError) {
+								return (
+									<span
+										className={cn(
+											DIALOG_FIELD_INPUT_BASE_CLASSES,
+											"flex items-center justify-end text-destructive"
+										)}
+										id="create-cliente"
+									>
+										{clientsError}
+									</span>
+								);
+							}
+							if (clientsWithoutNegotiations.length === 0) {
+								return (
+									<span
+										className={cn(
+											DIALOG_FIELD_INPUT_BASE_CLASSES,
+											"flex items-center justify-end text-muted-foreground"
+										)}
+										id="create-cliente"
+									>
+										Nessun cliente senza trattative
+									</span>
+								);
+							}
+							const firstClientId = clientsWithoutNegotiations[0]?.id;
+							const selectValue =
+								form.client_id || firstClientId
+									? String(form.client_id || firstClientId)
+									: "";
+							return (
+								<Select.Root
+									onValueChange={(value) => {
+										if (value !== null) {
+											const id = Number.parseInt(value, 10);
+											if (!Number.isNaN(id)) {
+												setForm((prev) => ({ ...prev, client_id: id }));
+											}
+										}
+									}}
+									value={selectValue}
+								>
+									<Select.Trigger
+										className={cn(
+											DIALOG_FIELD_SELECT_BASE_CLASSES,
+											"flex h-9 w-fit flex-none items-center justify-end gap-2"
+										)}
+										id="create-cliente"
+									>
+										<Select.Value className="min-w-0 flex-1 text-right">
+											{(value: string) => {
+												const client = clientsWithoutNegotiations.find(
+													(c) => String(c.id) === value
+												);
+												return client?.nome ?? value;
+											}}
+										</Select.Value>
+										<Select.Icon className="shrink-0 text-muted-foreground">
+											<ChevronDown aria-hidden className="size-4" />
+										</Select.Icon>
+									</Select.Trigger>
+									<Select.Portal>
+										<Select.Positioner
+											alignItemWithTrigger={false}
+											className="z-100 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+											sideOffset={8}
+										>
+											<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+												<Select.List className="flex h-fit flex-col gap-1">
+													{clientsWithoutNegotiations.map((client) => (
+														<Select.Item
+															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															key={client.id}
+															value={String(client.id)}
+														>
+															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+																<CheckIcon aria-hidden className="size-4" />
+															</Select.ItemIndicator>
+															<Select.ItemText>{client.nome}</Select.ItemText>
+														</Select.Item>
+													))}
+												</Select.List>
+											</Select.Popup>
+										</Select.Positioner>
+									</Select.Portal>
+								</Select.Root>
+							);
+						})()}
 					</label>
 					<label
 						className={DIALOG_FIELD_CONTAINER_CLASSES}
@@ -556,9 +716,9 @@ function CreateNegotiationDialog({
 						 * inset slightly from the fill edge so the boundary between filled and
 						 * unfilled zones feels softer and more crafted instead of harsh.
 						 */}
-						{/* Vertical padding (py-2.25) matches other dialog field rows for visual consistency. */}
+						{/* Taller pill (py-3.5) so the slider track has more vertical presence. */}
 						<div
-							className="group relative flex w-full cursor-grab items-center overflow-hidden rounded-2xl bg-table-header px-3.75 py-2.25 active:cursor-grabbing"
+							className="group relative flex w-full cursor-grab items-center overflow-hidden rounded-2xl bg-table-header px-3.75 py-3.5 active:cursor-grabbing"
 							onPointerDown={handlePercentTrackPointerDown}
 							onPointerMove={handlePercentTrackPointerMove}
 							onPointerUp={handlePercentTrackPointerUp}
@@ -669,29 +829,94 @@ function CreateNegotiationDialog({
 							/>
 						</div>
 					</label>
-					{/* Note field spans full width so the label + input row has room. */}
-					<label
-						className={cn(DIALOG_FIELD_CONTAINER_CLASSES, "col-span-2")}
-						htmlFor="create-note"
-					>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Note</span>
-						<Input
-							className={DIALOG_FIELD_INPUT_BASE_CLASSES}
+					{/* Note field: solo textarea a tutta larghezza, senza label visibile. */}
+					<div className="col-span-2 rounded-2xl bg-table-header px-3.75 py-2.25">
+						<textarea
+							aria-label="Note"
+							className={cn(
+								"min-h-[120px] w-full resize-y rounded-none bg-transparent px-0 py-2 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-base",
+								"text-left"
+							)}
 							id="create-note"
 							onChange={(e) =>
 								setForm((prev) => ({ ...prev, note: e.target.value }))
 							}
 							placeholder="Note opzionali"
+							rows={5}
 							value={form.note ?? ""}
 						/>
-					</label>
+					</div>
+					{/* Allegati: stessa riga degli altri campi (label sinistra, controllo destra). */}
+					<fieldset
+						aria-label="Allegati"
+						className={cn(
+							DIALOG_FIELD_CONTAINER_CLASSES,
+							"col-span-2 min-w-0 border-0"
+						)}
+					>
+						<legend className="sr-only">Allegati</legend>
+						<span aria-hidden className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
+							Allegati
+						</span>
+						<div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+							<input
+								accept="*/*"
+								className="hidden"
+								multiple
+								onChange={(e) => {
+									const files = e.target.files
+										? Array.from(e.target.files)
+										: [];
+									setSelectedFiles((prev) => [...prev, ...files]);
+									e.target.value = "";
+								}}
+								ref={fileInputRef}
+								type="file"
+							/>
+							<Button
+								className="h-9 gap-1.5 rounded-xl text-sm"
+								onClick={() => fileInputRef.current?.click()}
+								type="button"
+								variant="outline"
+							>
+								<Paperclip aria-hidden className="size-4" />
+								Allega file
+							</Button>
+							{selectedFiles.length > 0 && (
+								<ul className="flex flex-wrap justify-end gap-1.5 text-muted-foreground text-sm">
+									{selectedFiles.map((file, index) => (
+										<li
+											className="flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1"
+											key={`${file.name}-${index}`}
+										>
+											<span className="max-w-32 truncate" title={file.name}>
+												{file.name}
+											</span>
+											<button
+												aria-label={`Rimuovi ${file.name}`}
+												className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+												onClick={() =>
+													setSelectedFiles((prev) =>
+														prev.filter((_, i) => i !== index)
+													)
+												}
+												type="button"
+											>
+												<X className="size-3.5" />
+											</button>
+										</li>
+									))}
+								</ul>
+							)}
+						</div>
+					</fieldset>
 					{error && (
 						<p className="col-span-2 text-destructive text-sm" role="alert">
 							{error}
 						</p>
 					)}
 					{/* Actions: cancel left, primary submit right; rounded and larger to match dialog design (rounded-2xl fields, text-base). */}
-					<div className="col-span-2 mt-2 flex justify-between gap-3">
+					<div className="col-span-2 mt-6 flex justify-between gap-3">
 						<Button
 							className="h-10 min-w-26 rounded-xl text-sm"
 							disabled={isSubmitting}
@@ -703,15 +928,102 @@ function CreateNegotiationDialog({
 						</Button>
 						<Button
 							className="h-10 min-w-32 rounded-xl text-sm"
-							disabled={isSubmitting}
+							disabled={
+								isSubmitting ||
+								clientsLoading ||
+								clientsWithoutNegotiations.length === 0 ||
+								!form.client_id
+							}
 							type="submit"
 						>
 							{isSubmitting ? "Creazione…" : "Crea trattativa"}
 						</Button>
 					</div>
 				</form>
-			</div>
-		</div>
+			</>
+		);
+	}
+
+	// Don't render until we know layout (prevents Dialog from mounting on mobile).
+	if (!layoutReady) {
+		return null;
+	}
+
+	// Mobile: Vaul Drawer, styled like Aggiungi cliente / Importa clienti (inset 10px, rounded-[36px]).
+	if (!isDesktop) {
+		const closeButton = (
+			<button
+				aria-label="Chiudi"
+				className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+				onClick={() => onOpenChange(false)}
+				type="button"
+			>
+				<X aria-hidden className="size-4" />
+			</button>
+		);
+		return (
+			<Drawer.Root onOpenChange={onOpenChange} open={open}>
+				<Drawer.Portal>
+					<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
+					<Drawer.Content className="create-negotiation-drawer fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]">
+						{/* Required by Radix Dialog (Vaul) for screen reader accessibility */}
+						<Drawer.Title className="sr-only">Nuova trattativa</Drawer.Title>
+						<Drawer.Description className="sr-only">
+							Form per creare una nuova trattativa: cliente, referente, spanco,
+							importo, percentuale, note e allegati.
+						</Drawer.Description>
+						<div className="mx-auto mt-0.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
+						<div className="min-h-0 flex-1 overflow-y-auto pt-2">
+							{renderDialogContent(closeButton)}
+						</div>
+					</Drawer.Content>
+				</Drawer.Portal>
+			</Drawer.Root>
+		);
+	}
+
+	// Desktop: Base UI Dialog (same as Aggiungi cliente / Importa clienti).
+	return (
+		<Dialog.Root
+			disablePointerDismissal={false}
+			onOpenChange={onOpenChange}
+			open={open}
+		>
+			<Dialog.Portal>
+				<Dialog.Backdrop
+					aria-hidden
+					className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
+				/>
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+					<Dialog.Popup
+						aria-describedby="create-negotiation-desc"
+						aria-labelledby="create-negotiation-dialog-title"
+						className="data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[36px] bg-card px-6 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in"
+					>
+						<Dialog.Title
+							className="sr-only"
+							id="create-negotiation-dialog-title"
+						>
+							Nuova trattativa
+						</Dialog.Title>
+						<p className="sr-only" id="create-negotiation-desc">
+							Form per creare una nuova trattativa: cliente, referente, spanco,
+							importo, percentuale, note e allegati.
+						</p>
+						<div className="overflow-y-auto">
+							{renderDialogContent(
+								<Dialog.Close
+									aria-label="Chiudi"
+									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+								>
+									<X aria-hidden className="size-4" />
+								</Dialog.Close>
+							)}
+						</div>
+					</Dialog.Popup>
+				</div>
+			</Dialog.Portal>
+		</Dialog.Root>
 	);
 }
 

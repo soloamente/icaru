@@ -2,6 +2,7 @@
  * Icon components - centralized export.
  * biome-ignore lint/performance/noBarrelFile: Icons are typically imported together; direct imports add verbosity.
  */
+export { ArrowUpRight } from "./arrow-up-right";
 export { CheckIcon } from "./check-icon";
 export { DashboardIcon } from "./dashboard-icon";
 export { FileTextIcon } from "./file-text-icon";

@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ComponentType, type SVGProps, useEffect, useState } from "react";
@@ -23,6 +24,7 @@ import {
 	type NavigationPositionId,
 	usePreferences,
 } from "@/lib/preferences/preferences-context";
+import { useSidebarOpen } from "@/lib/sidebar/sidebar-open-context";
 import { cn } from "@/lib/utils";
 import FileXmark from "./file-xmark";
 import FolderOpen from "./folder-open";
@@ -71,6 +73,8 @@ interface SidebarProps {
 	user?: { email: string } | null;
 	/** Where the nav is placed: left/right sidebar (vertical) or top/bottom bar (horizontal). */
 	variant?: NavigationPositionId;
+	/** Optional: extra class names (e.g. for absolute positioning when content panel overlays sidebar). */
+	className?: string;
 }
 
 const DEFAULT_VARIANT: NavigationPositionId = "sidebar-left";
@@ -80,6 +84,7 @@ const DEFAULT_VARIANT: NavigationPositionId = "sidebar-left";
 export default function Sidebar({
 	user: userProp,
 	variant = DEFAULT_VARIANT,
+	className: classNameProp,
 }: SidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
@@ -191,6 +196,7 @@ export default function Sidebar({
 		return role;
 	}
 
+	const sidebarOpen = useSidebarOpen();
 	const isHorizontal = variant === "top" || variant === "bottom";
 
 	// Horizontal bar (top or bottom): single row, compact nav with Trattative as dropdown
@@ -206,6 +212,21 @@ export default function Sidebar({
 							: "bg-background"
 					)}
 				>
+					{/* Logo on the left in top/bottom navbar */}
+					<Link
+						aria-label="Vai alla home"
+						className="flex shrink-0 items-center"
+						href="/dashboard"
+					>
+						<Image
+							alt="Logo Positivo"
+							className="h-8 w-auto object-contain"
+							height={32}
+							priority
+							src="/images/logo_positivo.png"
+							width={120}
+						/>
+					</Link>
 					{/* User block (compact) + bottone Esci (OpenRectArrowOutIcon) */}
 					<div
 						className={cn(
@@ -360,13 +381,40 @@ export default function Sidebar({
 			aria-label="Sidebar"
 			className={cn(
 				"h-full w-full min-w-60.5 flex-0 px-6.5 py-6 font-medium",
-				variant === "sidebar-right" && ""
+				variant === "sidebar-right" && "",
+				classNameProp
 			)}
 		>
-			<div className="flex h-full flex-col justify-between">
-				{/* Navigation */}
-
-				<div className="flex flex-col gap-6 pt-2">
+			<div className="flex h-full flex-col">
+				{/* Logo and close button (mobile overlay) on the same row — logo left, Chiudi menu right */}
+				<div className="mb-2 flex items-center justify-between gap-2">
+					<Link
+						aria-label="Vai alla home"
+						className="flex min-w-0 shrink-0 items-center"
+						href="/dashboard"
+					>
+						<Image
+							alt="Logo Positivo"
+							className="h-12 w-auto object-contain"
+							height={48}
+							priority
+							src="/images/logo_positivo.png"
+							width={187}
+						/>
+					</Link>
+					{sidebarOpen?.isMobile && sidebarOpen?.isOpen && (
+						<button
+							aria-label="Chiudi menu"
+							className="flex size-10 shrink-0 items-center justify-center rounded-lg text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+							onClick={() => sidebarOpen.setOpen(false)}
+							type="button"
+						>
+							<X aria-hidden className="size-5" />
+						</button>
+					)}
+				</div>
+				{/* Navigation: fills remaining space so footer stays at bottom */}
+				<div className="flex min-h-0 flex-1 flex-col gap-4 pt-2">
 					<div className="flex items-center gap-3.5 rounded-xl bg-sidebar-accent/80 px-2 py-1.5 pl-1.5">
 						<Avatar className="size-9 rounded-md! bg-background text-sidebar-primary">
 							<AvatarFallback
@@ -501,8 +549,8 @@ export default function Sidebar({
 					</div>
 				</div>
 
-				{/* Footer: Support, Logout, User */}
-				<div className="flex flex-col gap-2.5 pb-2">
+				{/* Footer: Support, Preferenze */}
+				<div className="flex shrink-0 flex-col gap-2.5 pb-2">
 					{navFooter.map((item) => (
 						<button
 							className="flex cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"

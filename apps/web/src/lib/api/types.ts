@@ -51,11 +51,37 @@ export function roleFromApi(role: ApiRole | undefined): AppRole {
 
 // --- Clients API ---
 
+/** Address object included with every client from GET /clients. */
+export interface ApiClientAddress {
+	id: number;
+	client_id: number;
+	indirizzo: string;
+	citta: string;
+	CAP: string;
+	provincia: string;
+	regione: string;
+}
+
+/**
+ * Lightweight client item from GET /clients/without-negotiations (id + nome only).
+ * Used for the "Cliente" select in the new negotiation form.
+ */
+export interface ApiClientWithoutNegotiation {
+	id: number;
+	nome: string;
+}
+
 /** Client from GET /clients. Sellers see only own clients; Directors see all company clients. */
 export interface ApiClient {
 	id: number;
 	ragione_sociale: string;
-	partita_iva?: string | null;
+	email?: string | null;
+	p_iva?: string | null;
+	telefono?: string | null;
+	company_id?: number;
+	user_id?: number;
+	/** Ogni cliente include sempre l'oggetto address. */
+	address?: ApiClientAddress | null;
 	[key: string]: unknown;
 }
 

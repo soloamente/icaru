@@ -246,7 +246,7 @@ html.dark[data-color-scheme="rich"] {
 	--sidebar-primary: oklch(1 0 0);
 	--sidebar-secondary: oklch(0.8015 0 0);
 	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.269 0 0);
+	--sidebar-accent: oklch(0.2264 0 0);
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.556 0 0);
@@ -603,4 +603,10 @@ html[data-font="rounded"] {
 		transform: translate(-50%, -50%) scale(0);
 		opacity: 0;
 	}
+}
+
+/* Vaul drawer: hide the ::after shape that extends below the drawer (visible under "Nuova trattativa" drawer). */
+[data-vaul-drawer].create-negotiation-drawer::after,
+[data-vaul-drawer]:has(.create-negotiation-drawer)::after {
+	display: none !important;
 }

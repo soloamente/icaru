@@ -9,7 +9,7 @@ import {
 	Tooltip,
 	type TooltipProps,
 } from "recharts";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { SpancoStage, SpancoStatistics } from "@/lib/api/types";
 
 interface SpancoDonutChartProps {
@@ -117,6 +117,37 @@ function SpancoTooltip({
 	);
 }
 
+/** Fixed height used by both skeleton and chart so layout doesn't shift. */
+const CHART_CONTAINER_CLASS =
+	"relative h-[360px] w-full max-w-[580px] sm:h-[440px] sm:max-w-[660px] md:h-[520px] md:max-w-[760px]";
+
+/**
+ * Donut chart skeleton: same dimensions as the real chart.
+ * Rendered from first paint (before hydration/auth) so it appears immediately with card skeletons.
+ */
+export function SpancoDonutChartSkeleton(): ReactNode {
+	return (
+		<section
+			aria-busy="true"
+			aria-label="Distribuzione delle trattative per stato SPANCO"
+			className="flex w-full flex-col items-center justify-center py-6"
+		>
+			<div className={CHART_CONTAINER_CLASS}>
+				<div className="flex h-full flex-col items-center justify-center">
+					<div className="relative size-[min(100%,--spacing(80))] min-h-[280px] min-w-[280px] sm:min-h-[340px] sm:min-w-[340px] md:min-h-[400px] md:min-w-[400px]">
+						<Skeleton className="absolute inset-0 rounded-full" />
+						<div className="absolute inset-[18%] rounded-full bg-background" />
+						<div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+							<Skeleton className="h-14 w-16" />
+							<Skeleton className="h-4 w-28" />
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	);
+}
+
 /** Grafico SPANCO ad anello grande, simile all'esempio fornito nella richiesta. */
 export function SpancoDonutChart({
 	stats,
@@ -126,35 +157,44 @@ export function SpancoDonutChart({
 	const chartData = useMemo(() => buildChartData(stats), [stats]);
 	const total = useMemo(() => computeTotal(stats), [stats]);
 
-	if (isLoading) {
-		return (
-			<section className="flex w-full flex-col items-center justify-center py-8">
-				<div className="flex flex-col items-center gap-3 text-center">
-					<Spinner className="text-muted-foreground" size="lg" />
-					<p className="text-muted-foreground text-sm">
-						Carico le statistiche SPANCO…
-					</p>
-				</div>
-			</section>
-		);
+	// Show skeleton when explicitly loading OR when we have no data and no error yet
+	// (avoids delay on reload: chart mounts with stats=null, isLoading still false until effect runs).
+	const showSkeleton = isLoading || (stats === null && error === null);
+
+	if (showSkeleton) {
+		return <SpancoDonutChartSkeleton />;
 	}
 
 	if (error) {
 		return (
-			<section className="flex w-full flex-col items-center justify-center py-8">
-				<p className="max-w-md text-center text-destructive text-sm">
-					Impossibile caricare le statistiche SPANCO: {error}
-				</p>
+			<section
+				aria-label="Distribuzione delle trattative per stato SPANCO"
+				className="flex w-full flex-col items-center justify-center py-6"
+			>
+				<div className={CHART_CONTAINER_CLASS}>
+					<div className="flex h-full items-center justify-center">
+						<p className="max-w-md text-center text-destructive text-sm">
+							Impossibile caricare le statistiche SPANCO: {error}
+						</p>
+					</div>
+				</div>
 			</section>
 		);
 	}
 
 	if (!stats || total === 0 || chartData.length === 0) {
 		return (
-			<section className="flex w-full flex-col items-center justify-center py-8">
-				<p className="text-muted-foreground text-sm">
-					Nessuna trattativa attiva da mostrare nel grafico SPANCO.
-				</p>
+			<section
+				aria-label="Distribuzione delle trattative per stato SPANCO"
+				className="flex w-full flex-col items-center justify-center py-6"
+			>
+				<div className={CHART_CONTAINER_CLASS}>
+					<div className="flex h-full items-center justify-center">
+						<p className="text-muted-foreground text-sm">
+							Nessuna trattativa attiva da mostrare nel grafico SPANCO.
+						</p>
+					</div>
+				</div>
 			</section>
 		);
 	}
@@ -164,12 +204,15 @@ export function SpancoDonutChart({
 			aria-label="Distribuzione delle trattative per stato SPANCO"
 			className="flex w-full flex-col items-center justify-center py-6"
 		>
-			{/* Wrapper senza card/container, così il grafico rimane protagonista e molto grande. */}
-			<div className="relative h-[260px] w-full max-w-[420px] sm:h-[320px] md:h-[380px]">
+			{/* Same fixed dimensions as loading/error so cards below don't move. */}
+			<div className={CHART_CONTAINER_CLASS}>
 				<ResponsiveContainer height="100%" width="100%">
 					<PieChart>
 						{/* Tooltip flottante che segue il puntatore quando si passa sopra ai segmenti. */}
 						<Tooltip
+							// Disable position animation so the tooltip doesn't "fly" from (0,0)
+							// when hovering a different sector; it appears directly at the cursor.
+							animationDuration={0}
 							// Cursor trasparente: evitiamo l'overlay grigio di default e lasciamo
 							// solo il tooltip personalizzato.
 							content={<SpancoTooltip />}
@@ -200,41 +243,15 @@ export function SpancoDonutChart({
 					</PieChart>
 				</ResponsiveContainer>
 
-				{/* Testo centrale che mostra il totale, simile allo screenshot di riferimento. */}
+				{/* Centrale: totale più grande e label "Trattative attive" più leggibile. */}
 				<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-					<span className="font-semibold text-4xl text-foreground sm:text-5xl">
+					<span className="font-semibold text-5xl text-foreground sm:text-6xl md:text-7xl">
 						{total}
 					</span>
-					<span className="mt-1 text-muted-foreground text-xs sm:text-sm">
+					<span className="mt-1.5 text-muted-foreground text-sm sm:text-base md:text-lg">
 						Trattative attive
 					</span>
 				</div>
-			</div>
-
-			{/* Legenda compatta sotto al grafico, mostra solo gli stati presenti. */}
-			<div className="mt-4 flex flex-wrap justify-center gap-3 text-xs sm:text-sm">
-				{STAGE_CONFIG.map((config) => {
-					const value = stats?.[config.stage] ?? 0;
-					if (value === 0) {
-						return null;
-					}
-
-					return (
-						<div className="flex items-center gap-1.5" key={config.stage}>
-							<span
-								aria-hidden="true"
-								className="inline-block size-2.5 rounded-full"
-								style={{ backgroundColor: config.color }}
-							/>
-							<span className="text-muted-foreground">
-								<span className="font-medium text-foreground">
-									{config.stage}
-								</span>{" "}
-								{config.label} · {value}
-							</span>
-						</div>
-					);
-				})}
 			</div>
 		</section>
 	);

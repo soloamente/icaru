@@ -1,11 +1,120 @@
 "use client";
 
+import { useDialKit } from "dialkit";
+import { Menu } from "lucide-react";
+import { motion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import type { NavigationPositionId } from "@/lib/preferences/preferences-context";
 import { usePreferences } from "@/lib/preferences/preferences-context";
+import {
+	SidebarOpenProvider,
+	useSidebarOpen,
+} from "@/lib/sidebar/sidebar-open-context";
 import GlobalSearchCommand from "./global-search-command";
 import Sidebar from "./sidebar";
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ANIMATION STORYBOARD — Sidebar open/close
+ *
+ * Sidebar stays in the background (no extra container). Content panel animates
+ * over it so when closed the content takes full width and visually covers the sidebar.
+ * On phone, sidebar is closed by default so page content is visible.
+ *
+ *    0ms   toggle: content panel starts moving (left position)
+ *  ~300ms  content panel settles (spring); when closing, panel covers sidebar
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/** Sidebar width in px; content panel left offset when open. */
+const SIDEBAR_WIDTH_PX = 219;
+
+/** Default spring for content panel (used when DialKit not available). */
+const CONTENT_PANEL_SPRING_DEFAULT = {
+	type: "spring" as const,
+	stiffness: 200,
+	damping: 52,
+	mass: 2.67,
+};
+
+/** DialKit controls for sidebar content panel timing/spring (tune in dev). */
+function useSidebarPanelDialKit() {
+	return useDialKit("Sidebar open/close", {
+		content: {
+			openLeft: [SIDEBAR_WIDTH_PX, 0, 400],
+			spring: {
+				type: "spring",
+				stiffness: 200,
+				damping: 52,
+				mass: 2.67,
+				__mode: "advanced",
+			},
+		},
+	});
+}
+
+/**
+ * Left sidebar layout: sidebar positioned in background, content panel animates left/right
+ * to reveal or cover it. Toggle opens/closes; on phone sidebar is closed by default.
+ */
+function SidebarLeftAnimatedLayout({
+	user,
+	children,
+}: {
+	user: { email: string } | null;
+	children: React.ReactNode;
+}) {
+	const sidebarOpen = useSidebarOpen();
+	const dialParams = useSidebarPanelDialKit();
+
+	if (!sidebarOpen) {
+		return (
+			<div className="flex h-screen overflow-hidden">
+				<Sidebar user={user} variant="sidebar-left" />
+				{children}
+			</div>
+		);
+	}
+
+	const isOpen = sidebarOpen.isOpen;
+	const openLeft = dialParams?.content?.openLeft ?? SIDEBAR_WIDTH_PX;
+	const spring = dialParams?.content?.spring ?? CONTENT_PANEL_SPRING_DEFAULT;
+
+	return (
+		<div className="relative h-screen overflow-hidden">
+			{/* Sidebar: no new container, positioned in background so content can overlay it */}
+			<Sidebar
+				className="absolute top-0 left-0 z-0 h-full w-[243px] min-w-0 shrink-0"
+				user={user}
+				variant="sidebar-left"
+			/>
+			{/* Content panel: transparent background; animates left to reveal (open) or cover (closed) the sidebar. */}
+			<motion.div
+				animate={{ left: isOpen ? openLeft : 0 }}
+				className="absolute top-0 right-0 bottom-0 z-10 flex min-h-0 flex-col bg-transparent"
+				initial={false}
+				onClick={() => {
+					if (sidebarOpen.isMobile && isOpen) {
+						sidebarOpen.setOpen(false);
+					}
+				}}
+				transition={spring}
+			>
+				{/* Toggle: when sidebar is closed, show menu button so user can open it */}
+				{!isOpen && (
+					<button
+						aria-label="Apri menu"
+						className="absolute top-2 left-2 z-20 flex size-10 items-center justify-center rounded-lg border border-border bg-background text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						onClick={sidebarOpen.toggle}
+						type="button"
+					>
+						<Menu aria-hidden className="size-5" />
+					</button>
+				)}
+				{children}
+			</motion.div>
+		</div>
+	);
+}
 
 /**
  * LayoutContent Component (Client Component)
@@ -53,15 +162,16 @@ export default function LayoutContent({
 		);
 	}
 
-	// Sidebar on the left (default): row layout, nav first
+	// Sidebar on the left (default): sidebar in background, content panel animates over it (open/close with storyboard + DialKit)
 	if (navVariant === "sidebar-left") {
 		return (
 			<>
 				<GlobalSearchCommand />
-				<div className="flex h-screen overflow-hidden">
-					<Sidebar user={user} variant="sidebar-left" />
-					{children}
-				</div>
+				<SidebarOpenProvider>
+					<SidebarLeftAnimatedLayout user={user}>
+						{children}
+					</SidebarLeftAnimatedLayout>
+				</SidebarOpenProvider>
 			</>
 		);
 	}

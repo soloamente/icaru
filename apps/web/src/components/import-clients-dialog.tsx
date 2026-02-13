@@ -2,10 +2,9 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Select } from "@base-ui/react/select";
-import { ChevronDown, FileSpreadsheet, Upload } from "lucide-react";
+import { ChevronDown, Upload, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
-import { Drawer } from "vaul";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { importCheck, importConfirm } from "@/lib/api/client";
 import type { ImportCheckResponse } from "@/lib/api/types";
@@ -52,7 +51,7 @@ interface ImportClientsDialogProps {
  * Step 1: Upload file → analyze (POST /import/check).
  * Step 2: Review/adjust column mapping, then confirm (POST /import/confirm).
  * Step 3: Show result (imported count + any row errors).
- * Uses Base UI Dialog on desktop and Vaul Drawer on mobile, with motion for step transitions.
+ * Uses Base UI Dialog only; on mobile styled as bottom sheet (inset, rounded), with motion for step transitions.
  */
 export function ImportClientsDialog({
 	open,
@@ -63,7 +62,6 @@ export function ImportClientsDialog({
 	const { token } = useAuth();
 
 	const [step, setStep] = useState<Step>("upload");
-	const [file, setFile] = useState<File | null>(null);
 	const [analysis, setAnalysis] = useState<ImportCheckResponse | null>(null);
 	const [fileToken, setFileToken] = useState<string>("");
 	const [fileExtension, setFileExtension] = useState<string>("");
@@ -82,7 +80,6 @@ export function ImportClientsDialog({
 
 	const resetState = useCallback(() => {
 		setStep("upload");
-		setFile(null);
 		setAnalysis(null);
 		setFileToken("");
 		setFileExtension("");
@@ -111,13 +108,11 @@ export function ImportClientsDialog({
 				return;
 			}
 			setUploadError(null);
-			setFile(selectedFile);
 			setIsAnalyzing(true);
 			const result = await importCheck(token, selectedFile);
 			setIsAnalyzing(false);
 			if ("error" in result) {
 				setUploadError(result.error);
-				setFile(null);
 				return;
 			}
 			setAnalysis(result.data);
@@ -216,8 +211,19 @@ export function ImportClientsDialog({
 		handleOpenChange(false);
 	}, [onSuccess, handleOpenChange]);
 
+	// Dialog title changes with step so we don't show two titles (e.g. "Importa clienti" + "Associa le colonne").
+	const dialogTitleByStep = (() => {
+		if (step === "upload") {
+			return "Importa clienti";
+		}
+		if (step === "mapping") {
+			return "Associa le colonne";
+		}
+		return "Importazione completata";
+	})();
+
 	const content = (
-		<div className="w-full max-w-lg">
+		<div className="w-full">
 			<AnimatePresence mode="wait">
 				{step === "upload" && (
 					<motion.div
@@ -228,15 +234,10 @@ export function ImportClientsDialog({
 						key="upload"
 						transition={{ duration: 0.2 }}
 					>
-						<header>
-							<h2 className="font-semibold text-foreground text-lg">
-								Importa clienti da Excel/CSV
-							</h2>
-							<p className="mt-1 text-muted-foreground text-sm">
-								Carica un file .xlsx, .xls o .csv. Nel passo successivo potrai
-								associare le colonne del file ai campi del database.
-							</p>
-						</header>
+						<p className="text-muted-foreground text-sm">
+							Carica un file .xlsx, .xls o .csv. Nel passo successivo potrai
+							associare le colonne del file ai campi del database.
+						</p>
 						{/* Drop zone: button triggers file input; drag/drop on same surface for accessibility. */}
 						<button
 							className={cn(
@@ -299,21 +300,12 @@ export function ImportClientsDialog({
 						key="mapping"
 						transition={{ duration: 0.2 }}
 					>
-						<header>
-							<h2 className="font-semibold text-foreground text-lg">
-								Associa le colonne
-							</h2>
-							<p className="mt-1 text-muted-foreground text-sm">
+						<div>
+							<p className="text-muted-foreground text-sm">
 								Le colonne già riconosciute sono pre-associate. Per le altre
 								scegli il campo database o lascia "Non importare".
 							</p>
-							{file && (
-								<p className="mt-1 flex items-center gap-1.5 text-muted-foreground text-xs">
-									<FileSpreadsheet className="size-3.5" />
-									{file.name}
-								</p>
-							)}
-						</header>
+						</div>
 
 						{/* Matched columns: read-only list */}
 						{analysis.matched_columns.length > 0 && (
@@ -370,7 +362,7 @@ export function ImportClientsDialog({
 											>
 												<Select.Trigger
 													className={cn(
-														"flex h-9 flex-1 cursor-pointer items-center justify-between rounded-xl border-none bg-table-buttons px-3 py-2 font-medium text-foreground text-sm shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														"flex min-h-12 flex-1 cursor-pointer items-center justify-between rounded-xl border-none bg-table-buttons px-3 py-3 font-medium text-foreground text-sm shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 													)}
 												>
 													<Select.Value>
@@ -393,7 +385,7 @@ export function ImportClientsDialog({
 														<Select.Popup className="max-h-60 overflow-y-auto rounded-2xl bg-popover p-1 text-popover-foreground">
 															<Select.List className="flex flex-col gap-0.5">
 																<Select.Item
-																	className="relative flex cursor-pointer select-none items-center rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																	className="relative flex min-h-11 cursor-pointer select-none items-center rounded-xl py-3 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
 																	value=""
 																>
 																	<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -405,7 +397,7 @@ export function ImportClientsDialog({
 																</Select.Item>
 																{analysis.all_db_columns.map((dbCol) => (
 																	<Select.Item
-																		className="relative flex cursor-pointer select-none items-center rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																		className="relative flex min-h-11 cursor-pointer select-none items-center rounded-xl py-3 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
 																		key={dbCol}
 																		value={dbCol}
 																	>
@@ -438,17 +430,23 @@ export function ImportClientsDialog({
 							</motion.p>
 						)}
 
-						<div className="flex gap-2 pt-2">
+						<div className="mt-6 flex justify-between gap-3">
 							<Button
+								className="h-10 min-w-26 rounded-xl text-sm"
 								onClick={() => {
 									setStep("upload");
 									setConfirmError(null);
 								}}
+								type="button"
 								variant="outline"
 							>
 								Indietro
 							</Button>
-							<Button disabled={isConfirming} onClick={handleConfirmImport}>
+							<Button
+								className="h-10 min-w-32 rounded-xl text-sm"
+								disabled={isConfirming}
+								onClick={handleConfirmImport}
+							>
 								{isConfirming ? (
 									<>
 										<Spinner className="size-4" />
@@ -471,20 +469,15 @@ export function ImportClientsDialog({
 						key="result"
 						transition={{ duration: 0.2 }}
 					>
-						<header>
-							<h2 className="font-semibold text-foreground text-lg">
-								Importazione completata
-							</h2>
-							<motion.p
-								animate={{ opacity: 1, scale: 1 }}
-								className="mt-2 flex items-center gap-2 font-medium text-foreground text-xl tabular-nums"
-								initial={{ opacity: 0, scale: 0.95 }}
-								transition={{ delay: 0.1, duration: 0.2 }}
-							>
-								<CheckIcon className="size-6 text-green-500" />
-								{importedCount} clienti importati
-							</motion.p>
-						</header>
+						<motion.p
+							animate={{ opacity: 1, scale: 1 }}
+							className="flex items-center gap-2 font-medium text-foreground text-xl tabular-nums"
+							initial={{ opacity: 0, scale: 0.95 }}
+							transition={{ delay: 0.1, duration: 0.2 }}
+						>
+							<CheckIcon className="size-6 text-green-500" />
+							{importedCount} clienti importati
+						</motion.p>
 						{importErrors.length > 0 && (
 							<div className="rounded-xl bg-destructive/10 px-3 py-2.5">
 								<h3 className="mb-1.5 font-medium text-destructive text-sm">
@@ -497,28 +490,19 @@ export function ImportClientsDialog({
 								</ul>
 							</div>
 						)}
-						<Button className="w-full" onClick={handleCloseAfterResult}>
-							Chiudi
-						</Button>
+						<div className="mt-6 flex justify-end">
+							<Button
+								className="h-10 min-w-32 rounded-xl text-sm"
+								onClick={handleCloseAfterResult}
+							>
+								Chiudi
+							</Button>
+						</div>
 					</motion.div>
 				)}
 			</AnimatePresence>
 		</div>
 	);
-
-	if (isMobile) {
-		return (
-			<Drawer.Root onOpenChange={handleOpenChange} open={open}>
-				<Drawer.Portal>
-					<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
-					<Drawer.Content className="fixed right-0 bottom-0 left-0 z-50 flex max-h-[90vh] flex-col rounded-t-xl bg-card text-card-foreground outline-none">
-						<div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
-						<div className="overflow-y-auto p-6 pb-8">{content}</div>
-					</Drawer.Content>
-				</Drawer.Portal>
-			</Drawer.Root>
-		);
-	}
 
 	return (
 		<Dialog.Root
@@ -531,20 +515,48 @@ export function ImportClientsDialog({
 					aria-hidden
 					className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
 				/>
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+				<div
+					className={
+						isMobile
+							? "fixed inset-0 z-50 flex items-end justify-center p-4"
+							: "fixed inset-0 z-50 flex items-center justify-center p-4"
+					}
+				>
 					<Dialog.Popup
 						aria-describedby="import-clients-dialog-desc"
 						aria-labelledby="import-clients-dialog-title"
-						className="data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-lg overflow-hidden rounded-3xl bg-card text-card-foreground shadow-lg outline-none duration-200 data-closed:animate-out data-open:animate-in"
+						className={cn(
+							"flex max-h-[90vh] flex-col overflow-hidden bg-card shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in",
+							isMobile
+								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-[10px] max-w-none rounded-[36px]"
+								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-lg rounded-3xl px-6 py-5"
+						)}
 					>
-						<div className="max-h-[85vh] overflow-y-auto p-6">
-							<h2 className="sr-only" id="import-clients-dialog-title">
-								Importa clienti da Excel/CSV
-							</h2>
-							<p className="sr-only" id="import-clients-dialog-desc">
-								Carica un file e associa le colonne ai campi del database, poi
-								conferma l’importazione.
-							</p>
+						<Dialog.Title className="sr-only" id="import-clients-dialog-title">
+							{dialogTitleByStep}
+						</Dialog.Title>
+						<p className="sr-only" id="import-clients-dialog-desc">
+							Carica un file e associa le colonne ai campi del database, poi
+							conferma l’importazione.
+						</p>
+						<div
+							className={
+								isMobile
+									? "min-h-0 flex-1 overflow-y-auto p-6"
+									: "overflow-y-auto"
+							}
+						>
+							<div className="flex items-center justify-between gap-3">
+								<h2 className="font-bold text-2xl text-foreground tracking-tight">
+									{dialogTitleByStep}
+								</h2>
+								<Dialog.Close
+									aria-label="Chiudi"
+									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+								>
+									<X aria-hidden className="size-4" />
+								</Dialog.Close>
+							</div>
 							{content}
 						</div>
 					</Dialog.Popup>

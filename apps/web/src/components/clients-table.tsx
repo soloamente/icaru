@@ -1,11 +1,16 @@
 "use client";
 
-import { Search, Upload } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
+import { Plus, Search, X } from "lucide-react";
+import { motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useCallback, useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { listClientsCompany, listClientsMe } from "@/lib/api/client";
-import type { ApiClient } from "@/lib/api/types";
+import type { ApiClient, ApiClientAddress } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { cn } from "@/lib/utils";
+import Download4 from "./icons/download-4";
 import { UserGroupIcon } from "./icons/user-group";
 import { ImportClientsDialog } from "./import-clients-dialog";
 
@@ -16,6 +21,18 @@ function getClientDisplay(c: ApiClient): string {
 	return c.ragione_sociale || `Cliente #${c.id}`;
 }
 
+/** Formatta indirizzo per la colonna Sede: indirizzo, CAP citta (provincia) */
+function formatAddress(addr: ApiClientAddress | null | undefined): string {
+	if (!addr) {
+		return "";
+	}
+	const parts = [addr.indirizzo, `${addr.CAP} ${addr.citta}`.trim()];
+	if (addr.provincia) {
+		parts.push(`(${addr.provincia})`);
+	}
+	return parts.filter(Boolean).join(", ");
+}
+
 export default function ClientsTable() {
 	const { token, role } = useAuth();
 	const [clients, setClients] = useState<ApiClient[]>([]);
@@ -24,6 +41,11 @@ export default function ClientsTable() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+	/** Opens dialog to add a single client (placeholder until AddClientDialog exists). */
+	const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
+	const isMobile = useIsMobile();
+	// Controls animated width of the search pill (expand on focus, like trattative page).
+	const [isSearchFocused, setIsSearchFocused] = useState(false);
 
 	// Debounce search term before calling API
 	useEffect(() => {
@@ -61,21 +83,23 @@ export default function ClientsTable() {
 	/**
 	 * Local, defensive filtering so that the search input always works even if
 	 * the backend ignores or only partially supports the `search` query param.
-	 * We match by ragione sociale, partita IVA e ID cliente in modo
-	 * case-insensitive. The same filtered list is used for the table and the
-	 * "Totale clienti" stat box, so the counter always reflects visible rows.
+	 * Match by ragione sociale, email, P.IVA, telefono, indirizzo (case-insensitive).
 	 */
 	const normalizedSearch = debouncedSearch.toLowerCase();
 	const visibleClients =
 		normalizedSearch.length > 0
 			? clients.filter((client) => {
 					const name = getClientDisplay(client).toLowerCase();
-					const partitaIva = client.partita_iva?.toLowerCase() ?? "";
-					const idAsString = String(client.id);
+					const pIva = client.p_iva?.toLowerCase() ?? "";
+					const email = client.email?.toLowerCase() ?? "";
+					const telefono = client.telefono ?? "";
+					const sede = formatAddress(client.address).toLowerCase();
 					return (
 						name.includes(normalizedSearch) ||
-						partitaIva.includes(normalizedSearch) ||
-						idAsString.includes(normalizedSearch)
+						pIva.includes(normalizedSearch) ||
+						email.includes(normalizedSearch) ||
+						telefono.includes(normalizedSearch) ||
+						sede.includes(normalizedSearch)
 					);
 				})
 			: clients;
@@ -90,28 +114,49 @@ export default function ClientsTable() {
 					<span>Clienti</span>
 				</h1>
 				<div className="flex items-center justify-end gap-2">
-					<label
-						/* Search bar background follows table buttons color for consistency */
-						className="flex w-60 items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
+					{/* Search pill expands on focus (same behavior as trattative page). */}
+					<motion.label
+						animate={{
+							width: isSearchFocused ? "21rem" : "15rem",
+						}}
+						className="flex items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
 						htmlFor="clients-search"
+						initial={false}
+						transition={{
+							duration: 0.5,
+							ease: [0.541, 0.232, 0.226, 1.002],
+						}}
 					>
 						<input
 							className="w-full truncate placeholder:text-search-placeholder focus:outline-none"
 							id="clients-search"
+							onBlur={() => setIsSearchFocused(false)}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							placeholder="Cerca per nome o P.IVA..."
+							onFocus={() => setIsSearchFocused(true)}
+							placeholder="Cerca per nome, email, P.IVA, telefono, sede..."
 							value={searchTerm}
 						/>
-						<Search className="size-4 text-search-placeholder" />
-					</label>
-					{/* Same pill style as "Aggiungi" on the trattative page; placed to the right of search. */}
+						<Search className="size-4 shrink-0 text-search-placeholder" />
+					</motion.label>
+					{/* Primary action: add a single client (same pill style as trattative "Aggiungi"). */}
 					<button
-						className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons py-1.75 pr-2.5 pl-3.75 text-sm"
+						aria-label="Aggiungi cliente"
+						className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons px-3.75 py-1.75 text-sm"
+						onClick={() => setIsAddClientDialogOpen(true)}
+						type="button"
+					>
+						Aggiungi
+						<Plus className="size-4 text-button-secondary" />
+					</button>
+					{/* Import from Excel/CSV; same pill style, placed to the right of Aggiungi. */}
+					<button
+						aria-label="Importa clienti"
+						className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons px-3.75 py-1.75 text-sm"
 						onClick={() => setIsImportDialogOpen(true)}
 						type="button"
 					>
 						Importa
-						<Upload className="size-4 text-button-secondary" />
+						<Download4 className="size-4 text-button-secondary" />
 					</button>
 				</div>
 			</div>
@@ -137,10 +182,12 @@ export default function ClientsTable() {
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
 					{/* Header: align background with table container using the same CSS variable */}
 					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
-						<div className="grid grid-cols-[minmax(80px,0.5fr)_minmax(200px,1.5fr)_minmax(120px,1fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
-							<div>ID</div>
+						<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(200px,1.5fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
 							<div>Ragione sociale</div>
-							<div>Partita IVA</div>
+							<div>Email</div>
+							<div>P.IVA</div>
+							<div>Telefono</div>
+							<div>Sede</div>
 						</div>
 					</div>
 					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-scroll">
@@ -169,13 +216,31 @@ export default function ClientsTable() {
 									className="w-full border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
 									key={c.id}
 								>
-									<div className="grid grid-cols-[minmax(80px,0.5fr)_minmax(200px,1.5fr)_minmax(120px,1fr)] items-center gap-4 text-base">
-										<div className="truncate tabular-nums">{c.id}</div>
+									<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(200px,1.5fr)] items-center gap-4 text-base">
 										<div className="truncate">{getClientDisplay(c)}</div>
-										<div className="truncate tabular-nums">
-											{c.partita_iva ? (
-												c.partita_iva
+										<div className="truncate">
+											{c.email ? (
+												c.email
 											) : (
+												<span className="text-stats-title">—</span>
+											)}
+										</div>
+										<div className="truncate tabular-nums">
+											{c.p_iva ? (
+												c.p_iva
+											) : (
+												<span className="text-stats-title">—</span>
+											)}
+										</div>
+										<div className="truncate tabular-nums">
+											{c.telefono ? (
+												c.telefono
+											) : (
+												<span className="text-stats-title">—</span>
+											)}
+										</div>
+										<div className="truncate">
+											{formatAddress(c.address) || (
 												<span className="text-stats-title">—</span>
 											)}
 										</div>
@@ -191,6 +256,70 @@ export default function ClientsTable() {
 				onSuccess={fetchClients}
 				open={isImportDialogOpen}
 			/>
+
+			{/* Placeholder dialog "Aggiungi cliente": solo Base UI Dialog (come import-clients), stile bottom sheet su mobile e centrato su desktop. Nessun Radix/Vaul. */}
+			<Dialog.Root
+				disablePointerDismissal={false}
+				onOpenChange={setIsAddClientDialogOpen}
+				open={isAddClientDialogOpen}
+			>
+				<Dialog.Portal>
+					<Dialog.Backdrop
+						aria-hidden
+						className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
+					/>
+					<div
+						className={cn(
+							"fixed inset-0 z-50 flex p-4",
+							isMobile
+								? "items-end justify-center"
+								: "items-center justify-center"
+						)}
+					>
+						<Dialog.Popup
+							aria-describedby="add-client-dialog-desc"
+							aria-labelledby="add-client-dialog-title"
+							className={cn(
+								"flex max-h-[90vh] flex-col overflow-hidden bg-card shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in",
+								isMobile
+									? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-[10px] max-w-none rounded-[36px] px-6 py-5"
+									: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-md rounded-3xl px-6 py-5"
+							)}
+						>
+							<Dialog.Title className="sr-only" id="add-client-dialog-title">
+								Aggiungi cliente
+							</Dialog.Title>
+							<p className="sr-only" id="add-client-dialog-desc">
+								Funzionalità in arrivo. Qui sarà possibile inserire un nuovo
+								cliente manualmente.
+							</p>
+							<div
+								className={cn(
+									isMobile
+										? "min-h-0 flex-1 overflow-y-auto"
+										: "overflow-y-auto"
+								)}
+							>
+								<div className="flex items-center justify-between gap-3 pb-6">
+									<h2 className="font-bold text-2xl text-foreground tracking-tight">
+										Aggiungi cliente
+									</h2>
+									<Dialog.Close
+										aria-label="Chiudi"
+										className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+									>
+										<X aria-hidden className="size-4" />
+									</Dialog.Close>
+								</div>
+								<p className="text-muted-foreground text-sm">
+									Funzionalità in arrivo. Qui sarà possibile inserire un nuovo
+									cliente manualmente.
+								</p>
+							</div>
+						</Dialog.Popup>
+					</div>
+				</Dialog.Portal>
+			</Dialog.Root>
 		</main>
 	);
 }

@@ -185,6 +185,35 @@ export async function listClientsCompany(
 }
 
 /**
+ * GET /clients/without-negotiations — List clients that have no negotiations (lightweight: id, nome).
+ * Used to populate the "Cliente" select in the new negotiation form.
+ */
+export async function listClientsWithoutNegotiations(
+	accessToken: string
+): Promise<{ data: ApiClientWithoutNegotiation[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/clients/without-negotiations`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as
+			| ApiClientWithoutNegotiation[]
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento dei clienti";
+			return { error: msg };
+		}
+		return { data: json as ApiClientWithoutNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
  * List clients: defaults to "me" (Venditore/Direttore propri).
  * Use listClientsMe or listClientsCompany for explicit scope.
  */
@@ -444,6 +473,45 @@ export async function updateNegotiation(
 		return { error: message };
 	}
 }
+
+/**
+ * POST /negotiations/{id}/files — Upload one or more files for a negotiation.
+ * Second API: call after creating the negotiation (POST /negotiations) with the returned id.
+ * Body: multipart/form-data with field "file" (or "files[]" depending on backend).
+ * Sends one request per file for maximum backend compatibility.
+ */
+export async function uploadNegotiationFiles(
+	accessToken: string,
+	negotiationId: number,
+	files: File[]
+): Promise<{ ok: true } | { error: string }> {
+	if (files.length === 0) {
+		return { ok: true };
+	}
+	for (const file of files) {
+		const formData = new FormData();
+		formData.set("file", file);
+		const res = await fetch(`${BASE_URL}/negotiations/${negotiationId}/files`, {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				Authorization: `Bearer ${accessToken}`,
+				// Do not set Content-Type: browser sets multipart boundary
+			},
+			body: formData,
+		});
+		if (!res.ok) {
+			const json = (await res.json()) as { message?: string };
+			const msg =
+				typeof json.message === "string"
+					? json.message
+					: "Errore nel caricamento degli allegati";
+			return { error: msg };
+		}
+	}
+	return { ok: true };
+}
+
 /**
  * GET /statistics/negotiations/spanco — Statistiche SPANCO per l'utente corrente.
  *

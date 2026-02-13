@@ -23,15 +23,18 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "install:motion-plus": "powershell -ExecutionPolicy Bypass -File scripts/install-motion-plus.ps1"
   },
   "dependencies": {
+    "@base-ui/react": "^1.2.0",
     "@compravendita/env": "workspace:*",
     "agentation": "^2.2.0",
+    "base-ui": "^0.0.294",
     "dialkit": "^0.2.0",
     "dotenv": "catalog:",
     "motion": "^12.31.0",
-    "motion-plus": "^1.5.1",
+    "motion-plus": "file:./scripts/motion-plus.tgz",
     "recharts": "^3.7.0",
     "zod": "catalog:"
   },
