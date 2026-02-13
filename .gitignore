@@ -1,6 +1,5 @@
 # Dependencies
 node_modules
-scripts/motion-plus.tgz
 .pnp
 .pnp.js
 
@@ -46,6 +45,7 @@ coverage
 
 # Misc
 *.tgz
+!scripts/motion-plus.tgz
 .cache
 tmp
 temp
