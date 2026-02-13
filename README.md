@@ -44,6 +44,10 @@ compravendita/
 │   └── db/          # Database schema & queries
 ```
 
+## Deploying to Vercel
+
+The app uses **motion-plus** from Motion’s registry. The tarball is not in the repo, so Vercel runs a custom install script that downloads it before `bun install`. **Set the `MOTION_TOKEN` environment variable** in your Vercel project (Settings → Environment Variables). Get a token at [Motion+](https://plus.motion.dev/personal-token). Optional: set `MOTION_PLUS_VERSION` (default `2.8.0`) if you need a different version.
+
 ## Available Scripts
 
 - `bun run dev`: Start all applications in development mode

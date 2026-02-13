@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -39,9 +40,14 @@ export default function LoginPage() {
 				initial={{ opacity: 0, y: -10 }}
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
-				<span className="font-semibold text-foreground text-xl">
-					Compravendita
-				</span>
+				<Image
+					alt="Logo Icaru"
+					className="h-8 w-auto object-contain"
+					height={32}
+					priority
+					src="/images/logo_positivo.png"
+					width={120}
+				/>
 			</motion.div>
 
 			{/* Right panel with login form */}
@@ -58,7 +64,9 @@ export default function LoginPage() {
 						initial={{ opacity: 0, y: 10 }}
 						transition={{ duration: 0.4, delay: 0.3 }}
 					>
-						<h1 className="font-semibold text-4xl leading-none">Benvenuto</h1>
+						<h1 className="font-semibold text-4xl leading-none">
+							Benvenuto su Icaru
+						</h1>
 						<p className="font-normal text-muted-foreground text-sm">
 							Inserisci le tue credenziali per accedere al tuo account
 						</p>
