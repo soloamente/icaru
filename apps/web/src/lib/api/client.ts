@@ -12,6 +12,7 @@ import type {
 	ImportCheckResponse,
 	ImportConfirmResponse,
 	LoginResponse,
+	NegotiationsStatistics,
 	SearchResponse,
 	SpancoStatistics,
 	UpdateNegotiationBody,
@@ -476,10 +477,9 @@ export async function updateNegotiation(
 }
 
 /**
- * POST /negotiations/{id}/files — Upload one or more files for a negotiation.
- * Second API: call after creating the negotiation (POST /negotiations) with the returned id.
- * Body: multipart/form-data with field "file" (or "files[]" depending on backend).
- * Sends one request per file for maximum backend compatibility.
+ * POST /files — Upload a file for a negotiation.
+ * Body: multipart/form-data with `file` (binary) and `negotiation_id` (number).
+ * Response: File object. Call once per file; use uploadNegotiationFiles to upload multiple.
  */
 export async function uploadNegotiationFiles(
 	accessToken: string,
@@ -492,7 +492,8 @@ export async function uploadNegotiationFiles(
 	for (const file of files) {
 		const formData = new FormData();
 		formData.set("file", file);
-		const res = await fetch(`${BASE_URL}/negotiations/${negotiationId}/files`, {
+		formData.set("negotiation_id", String(negotiationId));
+		const res = await fetch(`${BASE_URL}/files`, {
 			method: "POST",
 			headers: {
 				Accept: "application/json",
@@ -511,6 +512,70 @@ export async function uploadNegotiationFiles(
 		}
 	}
 	return { ok: true };
+}
+
+/**
+ * GET /files/{id} — Download a file. Response: binary stream (file download).
+ * Returns the response as a Blob so the caller can create an object URL or trigger download.
+ */
+export async function getFileDownload(
+	accessToken: string,
+	fileId: number
+): Promise<{ data: Blob } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/files/${fileId}`, {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				// Let the backend set Content-Disposition / content type for the binary stream
+			},
+		});
+		if (!res.ok) {
+			const text = await res.text();
+			const msg =
+				text.length > 0 && text.length < 200
+					? text
+					: "Errore nel download del file";
+			return { error: msg };
+		}
+		const blob = await res.blob();
+		return { data: blob };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /statistics/negotiations — Statistiche trattative per l'utente corrente (Venditore/Direttore).
+ *
+ * Restituisce total_open_negotiations, conclusion_percentage, average_amount,
+ * total_open_amount e confronti mensili (aperte/concluse).
+ * Richiede Bearer Token.
+ */
+export async function getNegotiationsStatistics(
+	accessToken: string
+): Promise<{ data: NegotiationsStatistics } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/statistics/negotiations`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as
+			| NegotiationsStatistics
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche trattative";
+			return { error: msg };
+		}
+		return { data: json as NegotiationsStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
 }
 
 /**

@@ -51,15 +51,15 @@ export function roleFromApi(role: ApiRole | undefined): AppRole {
 
 // --- Clients API ---
 
-/** Address object included with every client from GET /clients. */
+/** Address object included with every client from GET /clients. Fields may be null if missing from API. */
 export interface ApiClientAddress {
 	id: number;
 	client_id: number;
-	indirizzo: string;
-	citta: string;
-	CAP: string;
-	provincia: string;
-	regione: string;
+	indirizzo?: string | null;
+	citta?: string | null;
+	CAP?: string | null;
+	provincia?: string | null;
+	regione?: string | null;
 }
 
 /**
@@ -78,6 +78,8 @@ export interface ApiClient {
 	email?: string | null;
 	p_iva?: string | null;
 	telefono?: string | null;
+	/** Tipologia cliente restituita dall'API (es. categoria/segmento). */
+	tipologia?: string | null;
 	company_id?: number;
 	user_id?: number;
 	/** Ogni cliente include sempre l'oggetto address. */
@@ -98,6 +100,31 @@ export type SpancoStage = "S" | "P" | "A" | "N" | "C" | "O";
  * sono i conteggi di trattative attive per quello stato.
  */
 export type SpancoStatistics = Partial<Record<SpancoStage, number>>;
+
+/**
+ * Confronto mensile (questo mese vs mese precedente) per statistiche trattative.
+ * Usato in NegotiationsStatistics per aperte e concluse.
+ */
+export interface NegotiationsMonthlyComparison {
+	current_month: number;
+	previous_month: number;
+	diff: number;
+	percentage: number;
+}
+
+/**
+ * Risposta GET /api/statistics/negotiations — Statistiche trattative per utente autenticato.
+ * Trattativa aperta: non abbandonata, Spanco != 'O', percentuale < 100.
+ * Trattativa conclusa: Spanco 'O' oppure percentuale 100%.
+ */
+export interface NegotiationsStatistics {
+	total_open_negotiations: number;
+	conclusion_percentage: number;
+	average_amount: number;
+	total_open_amount: number;
+	opened_negotiations_comparison: NegotiationsMonthlyComparison;
+	concluded_negotiations_comparison: NegotiationsMonthlyComparison;
+}
 
 /** Percentuale avanzamento: 0–100 in 20% increments */
 export type PercentualeAvanzamento = 0 | 20 | 40 | 60 | 80 | 100;

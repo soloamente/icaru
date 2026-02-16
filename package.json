@@ -30,6 +30,7 @@
     "@base-ui/react": "^1.2.0",
     "@compravendita/env": "workspace:*",
     "agentation": "^2.2.0",
+    "agentation-mcp": "^1.1.1",
     "base-ui": "^0.0.294",
     "dialkit": "^0.2.0",
     "dotenv": "catalog:",

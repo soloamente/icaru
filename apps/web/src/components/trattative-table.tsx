@@ -309,13 +309,20 @@ function CreateNegotiationDialog({
 	// Allegati: selezionati in creazione; caricati con seconda API dopo POST /negotiations.
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	// When using Vaul Drawer (mobile), portal the Cliente Select dropdown into the drawer
+	// so clicks hit the list items instead of content underneath (stacking/pointer-events).
+	const drawerContentRef = useRef<HTMLDivElement | null>(null);
 
-	// When dialog opens, fetch clients without negotiations and reset allegati.
+	// Search query for the Cliente dropdown: filters the list by client name.
+	const [clientSearchQuery, setClientSearchQuery] = useState("");
+
+	// When dialog opens, fetch clients without negotiations and reset allegati + client search.
 	useEffect(() => {
 		if (!(open && token)) {
 			return;
 		}
 		setSelectedFiles([]);
+		setClientSearchQuery("");
 		setClientsLoading(true);
 		setClientsError(null);
 		listClientsWithoutNegotiations(token)
@@ -445,7 +452,8 @@ function CreateNegotiationDialog({
 			return;
 		}
 		const createdId = result.data.id;
-		// Seconda API: carica gli allegati (se presenti).
+		// Seconda API: carica gli allegati via POST /files (multipart/form-data:
+		// file=Binary, negotiation_id=123). Download: GET /files/{id} → binary stream.
 		if (selectedFiles.length > 0) {
 			const uploadResult = await uploadNegotiationFiles(
 				token,
@@ -481,8 +489,12 @@ function CreateNegotiationDialog({
 		return null;
 	}
 
-	/** Content: header row (title + close button) + form. closeButton: Dialog.Close on desktop, plain button on mobile (Drawer). */
-	function renderDialogContent(closeButton: ReactNode) {
+	/** Content: header row (title + close button) + form. closeButton: Dialog.Close on desktop, plain button on mobile (Drawer).
+	 * When selectPortalContainer is set (mobile/Vaul), the Cliente Select dropdown is portaled into that element so it receives clicks. */
+	function renderDialogContent(
+		closeButton: ReactNode,
+		selectPortalContainer?: React.RefObject<HTMLElement | null>
+	) {
 		return (
 			<>
 				<div className="flex items-center justify-between gap-3 pb-6">
@@ -549,6 +561,13 @@ function CreateNegotiationDialog({
 								form.client_id || firstClientId
 									? String(form.client_id || firstClientId)
 									: "";
+							// Filter clients by search query (case-insensitive match on nome).
+							const clientSearchLower = clientSearchQuery.trim().toLowerCase();
+							const filteredClients = clientSearchLower
+								? clientsWithoutNegotiations.filter((c) =>
+										c.nome.toLowerCase().includes(clientSearchLower)
+									)
+								: clientsWithoutNegotiations;
 							return (
 								<Select.Root
 									onValueChange={(value) => {
@@ -580,26 +599,54 @@ function CreateNegotiationDialog({
 											<ChevronDown aria-hidden className="size-4" />
 										</Select.Icon>
 									</Select.Trigger>
-									<Select.Portal>
+									<Select.Portal container={selectPortalContainer ?? undefined}>
 										<Select.Positioner
 											alignItemWithTrigger={false}
 											className="z-100 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
 											sideOffset={8}
 										>
-											<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
-												<Select.List className="flex h-fit flex-col gap-1">
-													{clientsWithoutNegotiations.map((client) => (
-														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
-															key={client.id}
-															value={String(client.id)}
-														>
-															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																<CheckIcon aria-hidden className="size-4" />
-															</Select.ItemIndicator>
-															<Select.ItemText>{client.nome}</Select.ItemText>
-														</Select.Item>
-													))}
+											<Select.Popup className="flex max-h-80 flex-col overflow-hidden rounded-2xl bg-popover">
+												{/* Search input: sticky at top. Stop ALL key events from bubbling so Select type-ahead doesn't steal focus; typed text stays in the input. */}
+												<div className="sticky top-0 z-10 shrink-0 p-1.5">
+													<label className="relative flex cursor-text items-center justify-start gap-2 rounded-xl bg-accent px-2 py-2.5 focus-within:outline-none">
+														<Search
+															aria-hidden
+															className="text-muted-foreground"
+															size={16}
+														/>
+														<input
+															className="min-w-0 flex-1 bg-transparent text-foreground text-sm leading-none placeholder:text-muted-foreground focus:outline-none"
+															onChange={(e) =>
+																setClientSearchQuery(e.target.value)
+															}
+															onKeyDown={(e) => {
+																// Stop every key from bubbling to Select so type-ahead and list navigation don't steal focus.
+																e.stopPropagation();
+															}}
+															placeholder="Cerca cliente..."
+															value={clientSearchQuery}
+														/>
+													</label>
+												</div>
+												<Select.List className="flex h-fit min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1">
+													{filteredClients.length === 0 ? (
+														<div className="py-4 text-center text-muted-foreground text-sm">
+															Nessun cliente trovato
+														</div>
+													) : (
+														filteredClients.map((client) => (
+															<Select.Item
+																className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																key={client.id}
+																value={String(client.id)}
+															>
+																<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+																	<CheckIcon aria-hidden className="size-4" />
+																</Select.ItemIndicator>
+																<Select.ItemText>{client.nome}</Select.ItemText>
+															</Select.Item>
+														))
+													)}
 												</Select.List>
 											</Select.Popup>
 										</Select.Positioner>
@@ -965,7 +1012,10 @@ function CreateNegotiationDialog({
 			<Drawer.Root onOpenChange={onOpenChange} open={open}>
 				<Drawer.Portal>
 					<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
-					<Drawer.Content className="create-negotiation-drawer fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]">
+					<Drawer.Content
+						className="create-negotiation-drawer fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]"
+						ref={drawerContentRef}
+					>
 						{/* Required by Radix Dialog (Vaul) for screen reader accessibility */}
 						<Drawer.Title className="sr-only">Nuova trattativa</Drawer.Title>
 						<Drawer.Description className="sr-only">
@@ -974,7 +1024,7 @@ function CreateNegotiationDialog({
 						</Drawer.Description>
 						<div className="mx-auto mt-0.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
 						<div className="min-h-0 flex-1 overflow-y-auto pt-2">
-							{renderDialogContent(closeButton)}
+							{renderDialogContent(closeButton, drawerContentRef)}
 						</div>
 					</Drawer.Content>
 				</Drawer.Portal>
@@ -1017,7 +1067,8 @@ function CreateNegotiationDialog({
 									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 								>
 									<X aria-hidden className="size-4" />
-								</Dialog.Close>
+								</Dialog.Close>,
+								undefined
 							)}
 						</div>
 					</Dialog.Popup>
@@ -1729,7 +1780,7 @@ export default function TrattativeTable({
 														{n.note}
 													</span>
 												) : (
-													<span className="text-stats-title">ÔÇö</span>
+													<span className="text-stats-title">Nessuna nota</span>
 												)}
 											</div>
 											<div>

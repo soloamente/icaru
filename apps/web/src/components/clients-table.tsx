@@ -21,16 +21,42 @@ function getClientDisplay(c: ApiClient): string {
 	return c.ragione_sociale || `Cliente #${c.id}`;
 }
 
-/** Formatta indirizzo per la colonna Sede: indirizzo, CAP citta (provincia) */
+/**
+ * Formatta indirizzo per la colonna Sede: indirizzo, CAP citta (provincia).
+ * Ignora campi null/undefined per evitare stringhe "null" in output (es. "test, null null, (test)").
+ */
 function formatAddress(addr: ApiClientAddress | null | undefined): string {
 	if (!addr) {
 		return "";
 	}
-	const parts = [addr.indirizzo, `${addr.CAP} ${addr.citta}`.trim()];
-	if (addr.provincia) {
-		parts.push(`(${addr.provincia})`);
+	const parts: string[] = [];
+	const indirizzo =
+		addr.indirizzo != null && String(addr.indirizzo).trim() !== ""
+			? String(addr.indirizzo).trim()
+			: null;
+	const cap =
+		addr.CAP != null && String(addr.CAP).trim() !== ""
+			? String(addr.CAP).trim()
+			: null;
+	const citta =
+		addr.citta != null && String(addr.citta).trim() !== ""
+			? String(addr.citta).trim()
+			: null;
+	const provincia =
+		addr.provincia != null && String(addr.provincia).trim() !== ""
+			? String(addr.provincia).trim()
+			: null;
+	if (indirizzo) {
+		parts.push(indirizzo);
 	}
-	return parts.filter(Boolean).join(", ");
+	const capCitta = [cap, citta].filter(Boolean).join(" ").trim();
+	if (capCitta) {
+		parts.push(capCitta);
+	}
+	if (provincia) {
+		parts.push(`(${provincia})`);
+	}
+	return parts.join(", ");
 }
 
 export default function ClientsTable() {
@@ -83,7 +109,7 @@ export default function ClientsTable() {
 	/**
 	 * Local, defensive filtering so that the search input always works even if
 	 * the backend ignores or only partially supports the `search` query param.
-	 * Match by ragione sociale, email, P.IVA, telefono, indirizzo (case-insensitive).
+	 * Match by ragione sociale, email, P.IVA, telefono, tipologia, indirizzo (case-insensitive).
 	 */
 	const normalizedSearch = debouncedSearch.toLowerCase();
 	const visibleClients =
@@ -93,12 +119,14 @@ export default function ClientsTable() {
 					const pIva = client.p_iva?.toLowerCase() ?? "";
 					const email = client.email?.toLowerCase() ?? "";
 					const telefono = client.telefono ?? "";
+					const tipologia = client.tipologia?.toLowerCase() ?? "";
 					const sede = formatAddress(client.address).toLowerCase();
 					return (
 						name.includes(normalizedSearch) ||
 						pIva.includes(normalizedSearch) ||
 						email.includes(normalizedSearch) ||
 						telefono.includes(normalizedSearch) ||
+						tipologia.includes(normalizedSearch) ||
 						sede.includes(normalizedSearch)
 					);
 				})
@@ -133,7 +161,7 @@ export default function ClientsTable() {
 							onBlur={() => setIsSearchFocused(false)}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							onFocus={() => setIsSearchFocused(true)}
-							placeholder="Cerca per nome, email, P.IVA, telefono, sede..."
+							placeholder="Cerca per nome, email, P.IVA, telefono, tipologia, sede..."
 							value={searchTerm}
 						/>
 						<Search className="size-4 shrink-0 text-search-placeholder" />
@@ -182,11 +210,12 @@ export default function ClientsTable() {
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
 					{/* Header: align background with table container using the same CSS variable */}
 					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
-						<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(200px,1.5fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
+						<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(240px,1.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
 							<div>Ragione sociale</div>
 							<div>Email</div>
 							<div>P.IVA</div>
 							<div>Telefono</div>
+							<div>Tipologia</div>
 							<div>Sede</div>
 						</div>
 					</div>
@@ -216,7 +245,7 @@ export default function ClientsTable() {
 									className="w-full border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
 									key={c.id}
 								>
-									<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(200px,1.5fr)] items-center gap-4 text-base">
+									<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(240px,1.9fr)] items-center gap-4 text-base">
 										<div className="truncate">{getClientDisplay(c)}</div>
 										<div className="truncate">
 											{c.email ? (
@@ -240,6 +269,18 @@ export default function ClientsTable() {
 											)}
 										</div>
 										<div className="truncate">
+											{c.tipologia ? (
+												c.tipologia
+											) : (
+												<span className="text-stats-title">—</span>
+											)}
+										</div>
+										<div
+											className="truncate"
+											title={
+												formatAddress(c.address) || undefined
+											}
+										>
 											{formatAddress(c.address) || (
 												<span className="text-stats-title">—</span>
 											)}

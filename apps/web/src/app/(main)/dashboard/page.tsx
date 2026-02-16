@@ -10,37 +10,61 @@ import {
 	SpancoDonutChartSkeleton,
 } from "@/components/spanco-donut-chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getNegotiationsSpancoStatistics } from "@/lib/api/client";
-import type { SpancoStage, SpancoStatistics } from "@/lib/api/types";
+import {
+	getNegotiationsSpancoStatistics,
+	getNegotiationsStatistics,
+} from "@/lib/api/client";
+import type {
+	NegotiationsMonthlyComparison,
+	NegotiationsStatistics,
+	SpancoStatistics,
+} from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
+import { cn } from "@/lib/utils";
 
-/** Trattative aperte: section linked from each SPANCO card. */
+/** Trattative aperte: section linked from dashboard summary cards. */
 const TRATTATIVE_APERTE_HREF = "/trattative/aperte" as const;
 
-/** Labels and colors for the 6 SPANCO stages (from API). Used for cards and visual consistency. */
-const SPANCO_STAGE_CONFIG: {
-	stage: SpancoStage;
-	label: string;
-	/** Background color for the small status dot (e.g. bg-chart-1). */
-	dotClassName: string;
-}[] = [
-	{ stage: "S", label: "Fase Suspect", dotClassName: "bg-chart-1" },
-	{ stage: "P", label: "Fase Prospect", dotClassName: "bg-chart-4" },
-	{ stage: "A", label: "Fase Approach", dotClassName: "bg-chart-5" },
-	{ stage: "N", label: "Fase Negotiation", dotClassName: "bg-chart-2" },
-	{ stage: "C", label: "Fase Closing", dotClassName: "bg-chart-3" },
-	{ stage: "O", label: "Fase Order", dotClassName: "bg-muted-foreground" },
-];
+/** Format amount as EUR (Italian locale) for dashboard cards. */
+function formatCurrency(value: number): string {
+	return new Intl.NumberFormat("it-IT", {
+		style: "currency",
+		currency: "EUR",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(value);
+}
 
-interface DashboardCard {
+/** Format comparison percentage only (e.g. "+66.7%" or "−50.0%"). */
+function formatComparisonPercentage(comp: NegotiationsMonthlyComparison): string {
+	return comp.percentage >= 0
+		? `+${comp.percentage.toFixed(1)}%`
+		: `${comp.percentage.toFixed(1)}%`;
+}
+
+/** Suffix shown after percentage for comparison cards. */
+const COMPARISON_SUFFIX = "rispetto al mese scorso" as const;
+
+/** Single card in the dashboard statistics grid (from GET /api/statistics/negotiations). */
+interface NegotiationsStatsCard {
 	id: string;
-	/** Label with acronym, e.g. "S Suspect". */
 	title: string;
 	value: ReactNode;
-	dotClassName: string;
-	/** Link to section (trattative aperte) for the card. */
-	href: typeof TRATTATIVE_APERTE_HREF;
+	/** Optional subtitle (e.g. trend vs previous month). */
+	subtitle?: ReactNode;
+	/** Color for subtitle: green if positive, red if negative. */
+	subtitleColor?: "negative" | "positive";
 }
+
+/** Stable keys for the 6 skeleton cards (avoids array index as key). */
+const STATS_CARD_IDS = [
+	"total-open",
+	"conclusion-pct",
+	"average-amount",
+	"total-open-amount",
+	"opened-comparison",
+	"concluded-comparison",
+] as const;
 
 /** Role-specific dashboard content (Admin / Director / Seller). */
 function RoleDashboard({ role }: { role: "admin" | "director" | "seller" }) {
@@ -108,6 +132,14 @@ export default function DashboardPage() {
 	const [spancoError, setSpancoError] = useState<string | null>(null);
 	const [isSpancoLoading, setIsSpancoLoading] = useState(false);
 
+	// Stato per la griglia statistiche trattative (GET /api/statistics/negotiations).
+	const [negotiationsStats, setNegotiationsStats] =
+		useState<NegotiationsStatistics | null>(null);
+	const [negotiationsError, setNegotiationsError] = useState<string | null>(
+		null
+	);
+	const [isNegotiationsLoading, setIsNegotiationsLoading] = useState(false);
+
 	// Hydration guard: vogliamo rendere l'UI dipendente dall'autenticazione
 	// (come il pannello ruolo) solo *dopo* il primo pass di hydration lato client.
 	const [hasHydrated, setHasHydrated] = useState(false);
@@ -150,6 +182,41 @@ export default function DashboardPage() {
 		};
 	}, [auth?.token]);
 
+	// Carica le statistiche trattative (total_open, conclusion %, amounts, confronti mensili)
+	// per popolare la griglia delle card sotto il grafico SPANCO.
+	useEffect(() => {
+		if (!auth?.token) {
+			setNegotiationsStats(null);
+			setNegotiationsError(null);
+			setIsNegotiationsLoading(false);
+			return;
+		}
+
+		let isCancelled = false;
+
+		setIsNegotiationsLoading(true);
+		setNegotiationsError(null);
+
+		getNegotiationsStatistics(auth.token).then((result) => {
+			if (isCancelled) {
+				return;
+			}
+
+			if ("error" in result) {
+				setNegotiationsStats(null);
+				setNegotiationsError(result.error);
+			} else {
+				setNegotiationsStats(result.data);
+				setNegotiationsError(null);
+			}
+			setIsNegotiationsLoading(false);
+		});
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [auth?.token]);
+
 	// Show loader until we know auth state; then nothing while redirecting.
 	if (!(mounted && isLoaded)) {
 		return <Loader />;
@@ -158,31 +225,64 @@ export default function DashboardPage() {
 		return null; // Redirecting to login
 	}
 
-	// Show card skeletons when data is loading or pending (has token but no response yet).
-	const showCardSkeletons =
-		isSpancoLoading ||
-		(Boolean(auth?.token) && spancoStats === null && !spancoError);
+	// Show card skeletons when negotiations stats are loading or pending.
+	const showStatsCardSkeletons =
+		isNegotiationsLoading ||
+		(Boolean(auth?.token) && negotiationsStats === null && !negotiationsError);
 
-	// Format value for display: null/error → "Nessun dato", 0 → "0", else number.
-	// (When loading we render skeleton cards instead, so we never show "Nessun dato" during load.)
-	function formatCardValue(value: number | null): ReactNode {
-		if (value === null) {
-			return "Nessun dato";
-		}
-		return String(value);
-	}
-
-	// Build 6 cards from API SPANCO fields (S, P, A, N, C, O); each card links to trattative aperte.
-	const dashboardCards: DashboardCard[] = SPANCO_STAGE_CONFIG.map((config) => ({
-		id: config.stage,
-		title: `${config.stage} ${config.label}`,
-		value: formatCardValue(spancoStats?.[config.stage] ?? null),
-		dotClassName: config.dotClassName,
-		href: TRATTATIVE_APERTE_HREF,
-	}));
+	// Build 6 cards from GET /api/statistics/negotiations for the summary grid.
+	const statsCards: NegotiationsStatsCard[] = negotiationsStats
+		? [
+				{
+					id: "total-open",
+					title: "Trattative aperte",
+					value: negotiationsStats.total_open_negotiations,
+				},
+				{
+					id: "conclusion-pct",
+					title: "% Conclusione",
+					value: `${negotiationsStats.conclusion_percentage.toFixed(1)}%`,
+				},
+				{
+					id: "average-amount",
+					title: "Importo medio",
+					value: formatCurrency(negotiationsStats.average_amount),
+				},
+				{
+					id: "total-open-amount",
+					title: "Totale importo aperto",
+					value: formatCurrency(negotiationsStats.total_open_amount),
+				},
+				{
+					id: "opened-comparison",
+					title: "Aperte questo mese",
+					value: negotiationsStats.opened_negotiations_comparison.current_month,
+					subtitle: formatComparisonPercentage(
+						negotiationsStats.opened_negotiations_comparison
+					),
+					subtitleColor:
+						negotiationsStats.opened_negotiations_comparison.percentage >= 0
+							? "positive"
+							: "negative",
+				},
+				{
+					id: "concluded-comparison",
+					title: "Concluse questo mese",
+					value:
+						negotiationsStats.concluded_negotiations_comparison.current_month,
+					subtitle: formatComparisonPercentage(
+						negotiationsStats.concluded_negotiations_comparison
+					),
+					subtitleColor:
+						negotiationsStats.concluded_negotiations_comparison.percentage >= 0
+							? "positive"
+							: "negative",
+				},
+			]
+		: [];
 
 	return (
-		<main className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pt-6 font-medium">
+		<main className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pb-10 pt-6 font-medium">
 			{/* Header */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
@@ -221,67 +321,72 @@ export default function DashboardPage() {
 				return null;
 			})()}
 
-			{/* Summary cards - skeleton grid when loading, otherwise cards with drill-down links.
-			    We gate the skeletons vs links switch behind hasHydrated to avoid hydration mismatch:
-			    auth/loading state can differ between server and client, so we render a stable
-			    placeholder (skeletons) until hydration completes, then switch based on real state. */}
+			{/* Summary cards from GET /api/statistics/negotiations — skeleton when loading. */}
 			<section
 				aria-labelledby="practices-overview"
 				className="flex flex-col gap-3"
 			>
 				<h2 className="sr-only" id="practices-overview">
-					Riepilogo
+					Statistiche trattative
 				</h2>
+				{negotiationsError && (
+					<p className="text-destructive text-sm" role="alert">
+						{negotiationsError}
+					</p>
+				)}
 				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-					{/* Before hydration: always show skeletons so server and client markup match */}
-					{!hasHydrated || showCardSkeletons
-						? SPANCO_STAGE_CONFIG.map((config) => (
+					{!hasHydrated || showStatsCardSkeletons
+						? STATS_CARD_IDS.map((id) => (
 								<div
 									aria-hidden
 									className="flex flex-col gap-5 rounded-4xl bg-background px-7 py-7"
-									key={config.stage}
+									key={id}
 								>
 									<div className="flex items-center justify-between gap-3">
-										<div className="flex min-w-0 items-center gap-2">
-											<Skeleton className="size-6 shrink-0 rounded-full" />
-											<Skeleton className="h-4 w-20" />
-										</div>
+										<Skeleton className="h-4 w-32" />
 									</div>
 									<div className="flex items-baseline gap-2">
-										<Skeleton className="h-12 w-16" />
+										<Skeleton className="h-12 w-24" />
 									</div>
 								</div>
 							))
-						: dashboardCards.map((card) => (
+						: statsCards.map((card) => (
 								<Link
-									aria-label={`${card.title}, vai a trattative aperte`}
-									className="group relative flex flex-col gap-5 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-									href={card.href}
+									aria-label={`${card.title}: ${card.value}${card.subtitle ? `, ${card.subtitle} ${COMPARISON_SUFFIX}` : ""}, vai a trattative aperte`}
+									className="group relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+									href={TRATTATIVE_APERTE_HREF}
 									key={card.id}
 								>
-									{/* Top row: acronym in circle (bright) + full label, arrow on right */}
-									<div className="flex items-center justify-between gap-3">
-										<div className="flex min-w-0 items-center gap-2">
-											<span
-												aria-hidden="true"
-												className={`flex size-6 shrink-0 items-center justify-center rounded-full font-semibold text-[10px] text-white ${card.dotClassName}`}
-											>
-												{card.id}
-											</span>
-											<span className="truncate font-medium text-muted-foreground text-sm">
-												{SPANCO_STAGE_CONFIG.find((c) => c.stage === card.id)
-													?.label ?? card.title}
-											</span>
-										</div>
-										<ArrowUpRight
-											aria-hidden="true"
-											className="absolute top-6 right-3 shrink-0 text-foreground opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
-											size={28}
-										/>
-									</div>
+									<span className="truncate font-medium text-muted-foreground text-sm">
+										{card.title}
+									</span>
 									<div className="flex items-baseline gap-2">
 										<span className="font-semibold text-5xl">{card.value}</span>
+										{card.subtitle && (
+											<>
+												<span
+													className={cn(
+														"text-sm",
+														card.subtitleColor === "negative" &&
+															"text-destructive",
+														card.subtitleColor === "positive" &&
+															"text-emerald-600 dark:text-emerald-400"
+													)}
+												>
+													{card.subtitle}
+												</span>
+												<span className="text-muted-foreground text-sm">
+													{" "}
+													{COMPARISON_SUFFIX}
+												</span>
+											</>
+										)}
 									</div>
+									<ArrowUpRight
+										aria-hidden="true"
+										className="absolute top-6 right-3 shrink-0 text-foreground opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
+										size={28}
+									/>
 								</Link>
 							))}
 				</div>
