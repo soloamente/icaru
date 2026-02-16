@@ -1,3 +1,9 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./table.css";
+@import "./checkbox.css";
+@import "./cmdk.css";
+
 /* Rich colors (DARK MODE / Dataweb): variante scura specifica per Dataweb.
    Selettore più specifico (html.dark[...]) in coda al file così i valori dark vincono
    rispetto alla variante light quando la classe .dark è presente sul root. */
@@ -27,11 +33,6 @@ html.dark[data-color-scheme="rich"] {
 	--sidebar-secondary: oklch(0.82 0.025 255);
 	--sidebar-accent-foreground: oklch(0.97 0 0);
 }
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "./table.css";
-@import "./checkbox.css";
-@import "./cmdk.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -550,6 +551,20 @@ html[data-font="rounded"] {
 		background: transparent;
 		border: none;
 		color: transparent;
+	}
+
+	/* Number input (Importo): spin buttons always visible and easier to use (larger hit area, no opacity fade). */
+	#update-importo::-webkit-inner-spin-button,
+	#update-importo::-webkit-outer-spin-button {
+		opacity: 1;
+		height: 1.5rem;
+		width: 1.25rem;
+		min-height: 1.5rem;
+		min-width: 1rem;
+		cursor: pointer;
+	}
+	#update-importo::-webkit-outer-spin-button {
+		margin-right: 0.25rem;
 	}
 }
 

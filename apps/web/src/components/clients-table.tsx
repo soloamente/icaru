@@ -277,9 +277,7 @@ export default function ClientsTable() {
 										</div>
 										<div
 											className="truncate"
-											title={
-												formatAddress(c.address) || undefined
-											}
+											title={formatAddress(c.address) || undefined}
 										>
 											{formatAddress(c.address) || (
 												<span className="text-stats-title">—</span>

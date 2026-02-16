@@ -36,7 +36,9 @@ function formatCurrency(value: number): string {
 }
 
 /** Format comparison percentage only (e.g. "+66.7%" or "−50.0%"). */
-function formatComparisonPercentage(comp: NegotiationsMonthlyComparison): string {
+function formatComparisonPercentage(
+	comp: NegotiationsMonthlyComparison
+): string {
 	return comp.percentage >= 0
 		? `+${comp.percentage.toFixed(1)}%`
 		: `${comp.percentage.toFixed(1)}%`;
@@ -282,7 +284,7 @@ export default function DashboardPage() {
 		: [];
 
 	return (
-		<main className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pb-10 pt-6 font-medium">
+		<main className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pt-6 pb-10 font-medium">
 			{/* Header */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">

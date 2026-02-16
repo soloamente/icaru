@@ -135,6 +135,14 @@ export interface ApiNegotiationClient {
 	[key: string]: unknown;
 }
 
+/** File attachment returned with negotiation (e.g. GET /negotiations/{id}) */
+export interface ApiNegotiationFile {
+	id: number;
+	/** Original filename when present */
+	filename?: string | null;
+	[key: string]: unknown;
+}
+
 export interface ApiNegotiation {
 	id: number;
 	client_id: number;
@@ -149,6 +157,8 @@ export interface ApiNegotiation {
 	updated_at?: string;
 	/** Client relation when included */
 	client?: ApiNegotiationClient;
+	/** File attachments when included in response */
+	files?: ApiNegotiationFile[];
 }
 
 export interface CreateNegotiationBody {
