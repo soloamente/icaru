@@ -118,7 +118,7 @@ const SECTION_CARD_CLASSES =
 
 /** Text styling for field labels inside pills. */
 const DIALOG_FIELD_LABEL_TEXT_CLASSES =
-	"w-fit flex-0 whitespace-nowrap text-base flex font-medium items-center text-stats-title leading-none";
+	"w-fit flex-0 whitespace-nowrap text-base flex font-medium items-start text-stats-title leading-none";
 
 /** Base classes for text/number inputs: flat, right-aligned. Includes visible focus ring for accessibility (WCAG 2.4.7). */
 const DIALOG_FIELD_INPUT_BASE_CLASSES =
@@ -133,12 +133,20 @@ export type TrattativeStato = "aperte" | "concluse" | "abbandonate";
 /** Form id for external submit button (e.g. in page header). Use with form="..." on a submit button. */
 export const UPDATE_NEGOTIATION_FORM_ID = "update-negotiation-form";
 
-/** Read-only block: Ragione sociale, Referente, Note. Same card container as Allegati and Stato e avanzamento. */
+/** Dati trattativa: Ragione sociale read-only; Referente and Note editable. Same card container as Allegati and Stato e avanzamento. */
 function DatiTrattativaSection({
 	negotiation,
+	referente,
+	note,
+	onReferenteChange,
+	onNoteChange,
 	sectionClassName,
 }: {
 	negotiation: ApiNegotiation;
+	referente: string;
+	note: string;
+	onReferenteChange: (value: string) => void;
+	onNoteChange: (value: string) => void;
 	/** When provided (e.g. from parent with isMobile), overrides SECTION_CARD_CLASSES for the section wrapper. */
 	sectionClassName?: string;
 }) {
@@ -153,6 +161,7 @@ function DatiTrattativaSection({
 				</h2>
 			</div>
 			<div className="flex w-full min-w-0 flex-col gap-2">
+				{/* Ragione sociale: read-only (client is fixed for this negotiation). */}
 				<div className={DIALOG_FIELD_CONTAINER_CLASSES}>
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 						Ragione sociale
@@ -162,20 +171,41 @@ function DatiTrattativaSection({
 							`Cliente #${negotiation.client_id}`}
 					</span>
 				</div>
-				<div className={DIALOG_FIELD_CONTAINER_CLASSES}>
+				{/* Referente: editable text input. */}
+				<label
+					className={DIALOG_FIELD_CONTAINER_CLASSES}
+					htmlFor="update-referente"
+				>
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Referente</span>
-					<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
-						{negotiation.referente}
-					</span>
+					<input
+						className={DIALOG_FIELD_INPUT_BASE_CLASSES}
+						id="update-referente"
+						name="referente"
+						onChange={(e) => onReferenteChange(e.target.value)}
+						type="text"
+						value={referente}
+					/>
+				</label>
+				{/* Note: editable textarea; always shown so user can add note if empty. */}
+				<div className={cn(DIALOG_FIELD_CONTAINER_CLASSES, "items-stretch")}>
+					<label
+						className={cn(DIALOG_FIELD_LABEL_TEXT_CLASSES, "")}
+						htmlFor="update-note"
+					>
+						Note
+					</label>
+					<textarea
+						className={cn(
+							DIALOG_FIELD_INPUT_BASE_CLASSES,
+							"min-h-20 resize-y text-left"
+						)}
+						id="update-note"
+						name="note"
+						onChange={(e) => onNoteChange(e.target.value)}
+						rows={3}
+						value={note}
+					/>
 				</div>
-				{negotiation.note != null && negotiation.note !== "" && (
-					<div className={cn(DIALOG_FIELD_CONTAINER_CLASSES, "items-stretch")}>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Note</span>
-						<p className="wrap-break-word flex min-w-0 flex-1 justify-end whitespace-pre-wrap text-left font-medium text-base">
-							{negotiation.note}
-						</p>
-					</div>
-				)}
 			</div>
 		</section>
 	);
@@ -266,6 +296,35 @@ function AllegatiSection({
 	);
 }
 
+/** Build initial/synced form state from negotiation (used for useState and useEffect sync). */
+function negotiationToFormBody(
+	negotiation: ApiNegotiation
+): UpdateNegotiationBody {
+	return {
+		spanco: negotiation.spanco,
+		percentuale: negotiation.percentuale,
+		importo: negotiation.importo,
+		abbandonata: negotiation.abbandonata,
+		referente: negotiation.referente,
+		note: negotiation.note ?? "",
+	};
+}
+
+/** Returns true if any editable form field differs from the initial negotiation (used for header actions visibility). */
+function isUpdateFormDirty(
+	form: UpdateNegotiationBody,
+	negotiation: ApiNegotiation
+): boolean {
+	return (
+		form.spanco !== negotiation.spanco ||
+		form.percentuale !== negotiation.percentuale ||
+		(form.importo ?? 0) !== (negotiation.importo ?? 0) ||
+		form.abbandonata !== negotiation.abbandonata ||
+		(form.referente ?? negotiation.referente) !== negotiation.referente ||
+		(form.note ?? "") !== (negotiation.note ?? "")
+	);
+}
+
 interface UpdateNegotiationFormProps {
 	negotiation: ApiNegotiation;
 	stato: TrattativeStato;
@@ -300,30 +359,18 @@ export default function UpdateNegotiationForm({
 	const [importoError, setImportoError] = useState<string | null>(null);
 	const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
-	const [form, setForm] = useState<UpdateNegotiationBody>({
-		spanco: negotiation.spanco,
-		percentuale: negotiation.percentuale,
-		importo: negotiation.importo,
-		abbandonata: negotiation.abbandonata,
-	});
+	const [form, setForm] = useState<UpdateNegotiationBody>(() =>
+		negotiationToFormBody(negotiation)
+	);
 
 	// Sync form when negotiation changes (e.g. after fetch)
 	useEffect(() => {
-		setForm({
-			spanco: negotiation.spanco,
-			percentuale: negotiation.percentuale,
-			importo: negotiation.importo,
-			abbandonata: negotiation.abbandonata,
-		});
+		setForm(negotiationToFormBody(negotiation));
 	}, [negotiation]);
 
 	// Notify parent when form has unsaved changes (for header actions: show only when dirty).
 	// When the user reverts all fields to the initial values, isDirty becomes false and the actions hide.
-	const isDirty =
-		form.spanco !== negotiation.spanco ||
-		form.percentuale !== negotiation.percentuale ||
-		(form.importo ?? 0) !== (negotiation.importo ?? 0) ||
-		form.abbandonata !== negotiation.abbandonata;
+	const isDirty = isUpdateFormDirty(form, negotiation);
 	useEffect(() => {
 		onDirtyChange?.(isDirty);
 	}, [isDirty, onDirtyChange]);
@@ -497,6 +544,14 @@ export default function UpdateNegotiationForm({
 			>
 				<DatiTrattativaSection
 					negotiation={negotiation}
+					note={form.note ?? negotiation.note ?? ""}
+					onNoteChange={(value) =>
+						setForm((prev) => ({ ...prev, note: value }))
+					}
+					onReferenteChange={(value) =>
+						setForm((prev) => ({ ...prev, referente: value }))
+					}
+					referente={form.referente ?? negotiation.referente}
 					sectionClassName={sectionCardClasses}
 				/>
 				<AllegatiSection

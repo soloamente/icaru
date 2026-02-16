@@ -176,6 +176,10 @@ export interface UpdateNegotiationBody {
 	percentuale?: number;
 	importo?: number;
 	abbandonata?: boolean;
+	/** Referente (contact person) — editable on update */
+	referente?: string;
+	/** Note — editable on update */
+	note?: string | null;
 }
 
 // --- Import API (Excel/CSV clients) ---
