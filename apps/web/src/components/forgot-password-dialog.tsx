@@ -96,7 +96,8 @@ export function ForgotPasswordDialog({
 			transition={{ duration: 0.2 }}
 		>
 			<header className="mb-4">
-				<h2 className="font-semibold text-foreground text-lg">
+				{/* text-card-foreground so title is readable in dataweb light (dialog uses bg-card). */}
+				<h2 className="font-semibold text-card-foreground text-lg">
 					Password dimenticata?
 				</h2>
 				<p className="mt-1 text-muted-foreground text-sm">
@@ -108,7 +109,7 @@ export function ForgotPasswordDialog({
 			<form className="space-y-4" onSubmit={handleSubmit}>
 				<div>
 					<label
-						className="mb-1 block font-medium text-foreground text-sm"
+						className="mb-1 block font-medium text-card-foreground text-sm"
 						htmlFor="forgot-password-email"
 					>
 						Email
@@ -153,7 +154,7 @@ export function ForgotPasswordDialog({
 
 				<div className="flex justify-end gap-2 pt-2">
 					<button
-						className="rounded-xl border border-border px-3.5 py-2 font-medium text-foreground text-sm transition-colors hover:bg-muted"
+						className="rounded-xl border border-border px-3.5 py-2 font-medium text-card-foreground text-sm transition-colors hover:bg-muted"
 						onClick={() => onOpenChange(false)}
 						type="button"
 					>

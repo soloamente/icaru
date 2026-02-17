@@ -7,7 +7,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { CheckboxNative } from "@/components/ui/checkbox-native";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	getFileDownload,
@@ -31,6 +30,41 @@ const SPANCO_LABELS: Record<SpancoStage, string> = {
 	N: "N",
 	C: "C",
 	O: "O",
+};
+
+/** Base pill classes for SPANCO trigger (matches table cell pills). */
+const SPANCO_PILL_CLASSES =
+	"inline-flex min-w-[2.75rem] items-center justify-center rounded-full px-3 py-1 text-sm font-semibold tabular-nums";
+
+/** Per-stage colors for SPANCO pills (same as trattative-table). */
+const SPANCO_STAGE_COLORS: Record<
+	SpancoStage,
+	{ main: string; softBg: string }
+> = {
+	P: {
+		main: "oklch(0.6994 0.1754 51.79)",
+		softBg: "oklch(0.6994 0.1754 51.79 / 0.12)",
+	},
+	S: {
+		main: "oklch(0.5575 0.0165 244.89)",
+		softBg: "oklch(0.5575 0.0165 244.89 / 0.12)",
+	},
+	A: {
+		main: "oklch(0.8114 0.1654 84.92)",
+		softBg: "oklch(0.8114 0.1654 84.92 / 0.12)",
+	},
+	C: {
+		main: "oklch(0.5915 0.202 21.24)",
+		softBg: "oklch(0.5915 0.202 21.24 / 0.12)",
+	},
+	O: {
+		main: "oklch(0.5315 0.1179 157.23)",
+		softBg: "oklch(0.5315 0.1179 157.23 / 0.12)",
+	},
+	N: {
+		main: "oklch(0.5782 0.2282 260.03)",
+		softBg: "oklch(0.5782 0.2282 260.03 / 0.12)",
+	},
 };
 
 /** Valid percentuale values: 0–100 in 20% steps */
@@ -63,7 +97,7 @@ function getAbbandonataHelperText(
 	return null;
 }
 
-/** Abbandonata checkbox row with optional helper text. Uses native checkbox + checkbox.css for consistent styling. */
+/** Abbandonata row: label on the left, switch (No | Sì) on the right, with optional helper text. */
 function AbbandonataCheckboxRow({
 	stato,
 	checked,
@@ -76,25 +110,55 @@ function AbbandonataCheckboxRow({
 	const helperText = getAbbandonataHelperText(stato, checked);
 	return (
 		<div className="flex flex-col gap-1">
+			{/* Reduced py (py-2.5) so the switch row isn’t overly tall vs the switch height. */}
 			<div
 				className={cn(
 					"flex items-center gap-2",
-					DIALOG_FIELD_CONTAINER_CLASSES
+					DIALOG_FIELD_CONTAINER_CLASSES,
+					"py-2.5"
 				)}
 			>
-				<CheckboxNative
+				<label
+					className={cn(DIALOG_FIELD_LABEL_TEXT_CLASSES, "flex-1")}
+					htmlFor="update-abbandonata-no"
+				>
+					Abbandonata
+				</label>
+				{/* Switch: No (left) / Sì (right); selected segment is highlighted. Focus ring uses box-shadow for radius (accessibility). */}
+				<div
 					aria-describedby={
 						helperText ? "update-abbandonata-helper" : undefined
 					}
-					aria-label="Abbandonata"
-					checked={checked}
-					id="update-abbandonata"
-					label="Abbandonata"
-					labelClassName={cn(DIALOG_FIELD_LABEL_TEXT_CLASSES, "flex-1")}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						onCheckedChange(e.target.checked)
-					}
-				/>
+					className="flex shrink-0 overflow-hidden rounded-xl border border-border bg-muted/50"
+				>
+					<button
+						aria-pressed={!checked}
+						className={cn(
+							"min-w-14 px-3 py-2 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+							checked
+								? "text-muted-foreground hover:text-foreground"
+								: "bg-primary text-primary-foreground"
+						)}
+						id="update-abbandonata-no"
+						onClick={() => onCheckedChange(false)}
+						type="button"
+					>
+						No
+					</button>
+					<button
+						aria-pressed={checked}
+						className={cn(
+							"min-w-14 px-3 py-2 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+							checked
+								? "bg-primary text-primary-foreground"
+								: "text-muted-foreground hover:text-foreground"
+						)}
+						onClick={() => onCheckedChange(true)}
+						type="button"
+					>
+						Sì
+					</button>
+				</div>
 			</div>
 			{helperText && (
 				<p
@@ -123,10 +187,6 @@ const DIALOG_FIELD_LABEL_TEXT_CLASSES =
 /** Base classes for text/number inputs: flat, right-aligned. Includes visible focus ring for accessibility (WCAG 2.4.7). */
 const DIALOG_FIELD_INPUT_BASE_CLASSES =
 	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
-
-/** Base classes for select inside pills. Includes visible focus ring for accessibility (WCAG 2.4.7). */
-const DIALOG_FIELD_SELECT_BASE_CLASSES =
-	"flex-1 w-full cursor-pointer appearance-none border-none bg-transparent py-0 pl-0 text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded";
 
 export type TrattativeStato = "aperte" | "concluse" | "abbandonate";
 
@@ -197,7 +257,7 @@ function DatiTrattativaSection({
 					<textarea
 						className={cn(
 							DIALOG_FIELD_INPUT_BASE_CLASSES,
-							"min-h-20 resize-y text-left"
+							"min-h-20 resize-y text-end"
 						)}
 						id="update-note"
 						name="note"
@@ -310,18 +370,23 @@ function negotiationToFormBody(
 	};
 }
 
-/** Returns true if any editable form field differs from the initial negotiation (used for header actions visibility). */
+/** Returns true if any editable form field differs from the initial negotiation (used for header actions visibility).
+ *  Normalizes empty string and null/undefined so manually reverting a field to its initial value clears dirty state. */
 function isUpdateFormDirty(
 	form: UpdateNegotiationBody,
 	negotiation: ApiNegotiation
 ): boolean {
+	const refForm = (form.referente ?? "").trim();
+	const refInitial = (negotiation.referente ?? "").trim();
+	const noteForm = (form.note ?? "").trim();
+	const noteInitial = (negotiation.note ?? "").trim();
 	return (
 		form.spanco !== negotiation.spanco ||
 		form.percentuale !== negotiation.percentuale ||
 		(form.importo ?? 0) !== (negotiation.importo ?? 0) ||
 		form.abbandonata !== negotiation.abbandonata ||
-		(form.referente ?? negotiation.referente) !== negotiation.referente ||
-		(form.note ?? "") !== (negotiation.note ?? "")
+		refForm !== refInitial ||
+		noteForm !== noteInitial
 	);
 }
 
@@ -338,6 +403,8 @@ interface UpdateNegotiationFormProps {
 	onSubmittingChange?: (submitting: boolean) => void;
 	/** Notify parent when form has unsaved changes (any editable field differs from initial negotiation). Used to show header actions only when user has edited. */
 	onDirtyChange?: (dirty: boolean) => void;
+	/** When this value changes, form state is reset to the current negotiation (e.g. parent increments when user clicks "Annulla" to discard unsaved edits). */
+	resetTrigger?: number;
 }
 
 /**
@@ -352,6 +419,7 @@ export default function UpdateNegotiationForm({
 	renderActionsInHeader = false,
 	onSubmittingChange,
 	onDirtyChange,
+	resetTrigger,
 }: UpdateNegotiationFormProps) {
 	const { token } = useAuth();
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -363,10 +431,10 @@ export default function UpdateNegotiationForm({
 		negotiationToFormBody(negotiation)
 	);
 
-	// Sync form when negotiation changes (e.g. after fetch)
+	// Sync form when negotiation changes (e.g. after fetch) or when parent requests reset (Annulla = discard unsaved changes).
 	useEffect(() => {
 		setForm(negotiationToFormBody(negotiation));
-	}, [negotiation]);
+	}, [negotiation, resetTrigger]);
 
 	// Notify parent when form has unsaved changes (for header actions: show only when dirty).
 	// When the user reverts all fields to the initial values, isDirty becomes false and the actions hide.
@@ -590,16 +658,24 @@ export default function UpdateNegotiationForm({
 							>
 								<Select.Trigger
 									className={cn(
-										DIALOG_FIELD_SELECT_BASE_CLASSES,
-										"flex w-fit flex-none items-center justify-end gap-2 leading-none"
+										SPANCO_PILL_CLASSES,
+										"w-fit flex-none gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 									)}
 									id="update-spanco"
+									style={{
+										backgroundColor: SPANCO_STAGE_COLORS[form.spanco].softBg,
+										color: SPANCO_STAGE_COLORS[form.spanco].main,
+									}}
 								>
-									<Select.Value className="min-w-0 flex-1 text-right">
+									<Select.Value className="min-w-0">
 										{(value: SpancoStage) => SPANCO_LABELS[value]}
 									</Select.Value>
-									<Select.Icon className="text-muted-foreground">
-										<ChevronDown aria-hidden className="size-4" />
+									<Select.Icon
+										aria-hidden
+										className="opacity-70"
+										style={{ color: "inherit" }}
+									>
+										<ChevronDown className="size-4" />
 									</Select.Icon>
 								</Select.Trigger>
 								<Select.Portal>
@@ -613,7 +689,7 @@ export default function UpdateNegotiationForm({
 												{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
 													(stage) => (
 														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 															key={stage}
 															value={stage}
 														>
@@ -641,14 +717,22 @@ export default function UpdateNegotiationForm({
 								onPointerUp={handlePercentTrackPointerUp}
 								ref={percentTrackRef}
 							>
+								{/* Track: soft spanco tint (matches table progress bar). */}
 								<div
 									aria-hidden
-									className="absolute inset-0 rounded-2xl bg-white/3 transition-colors duration-150 group-hover:bg-white/5 group-active:bg-white/7"
+									className="absolute inset-0 rounded-2xl transition-opacity duration-150 group-hover:opacity-90 group-active:opacity-85"
+									style={{
+										backgroundColor: SPANCO_STAGE_COLORS[form.spanco].softBg,
+									}}
 								/>
+								{/* Fill: spanco main color up to percentuale (matches table). */}
 								<div
 									aria-hidden
-									className="absolute inset-0 left-0 rounded-2xl bg-white/14 transition-[width,background-color] duration-150 group-hover:bg-white/18 group-active:bg-white/22"
-									style={{ width: `${form.percentuale}%` }}
+									className="absolute inset-0 left-0 rounded-2xl transition-[width] duration-150"
+									style={{
+										width: `${form.percentuale}%`,
+										backgroundColor: SPANCO_STAGE_COLORS[form.spanco].main,
+									}}
 								/>
 								<div className="pointer-events-none absolute inset-y-2 right-0 left-0 z-10 flex items-center justify-between opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-active:opacity-100">
 									{PERCENTUALE_HASH_TICKS.map((tick) => (
@@ -678,11 +762,19 @@ export default function UpdateNegotiationForm({
 									}}
 								/>
 								<div className="pointer-events-none relative z-10 flex w-full items-center">
-									<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
+									{/* Use text-card-foreground so the label stays readable on all SPANCO
+									 * track/fill colors (e.g. S has a blue-gray tint where text-stats-title
+									 * lacks contrast). */}
+									<span
+										className={cn(
+											DIALOG_FIELD_LABEL_TEXT_CLASSES,
+											"text-card-foreground"
+										)}
+									>
 										Percentuale avanzamento
 									</span>
 								</div>
-								<span className="pointer-events-none absolute inset-y-0 right-3.75 flex items-center text-right font-medium text-base text-foreground tabular-nums leading-none">
+								<span className="pointer-events-none absolute inset-y-0 right-3.75 flex items-center text-right font-medium text-base text-card-foreground tabular-nums leading-none">
 									{form.percentuale}%
 								</span>
 								<input
@@ -772,12 +864,12 @@ export default function UpdateNegotiationForm({
 			{!renderActionsInHeader && (
 				<div className="flex justify-between gap-3 pt-2">
 					{isSubmitting ? (
-						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-background font-medium text-sm opacity-50">
+						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
 							Annulla
 						</span>
 					) : (
 						<Link
-							className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-background font-medium text-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							href={backHref as Parameters<typeof Link>[0]["href"]}
 						>
 							Annulla

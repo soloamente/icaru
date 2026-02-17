@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Drawer } from "vaul";
-import { CheckIcon } from "@/components/icons";
+import { CheckIcon, IconCirclePlusFilled } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -151,7 +151,7 @@ const isNegotiationOpen = (negotiation: ApiNegotiation): boolean =>
 function getNegotiationStatusUi(negotiation: ApiNegotiation): {
 	classes: string;
 	label: string;
-	icon: "check" | "close";
+	icon: "check" | "close" | "circle-plus";
 } {
 	if (isNegotiationAbandoned(negotiation)) {
 		return {
@@ -170,7 +170,7 @@ function getNegotiationStatusUi(negotiation: ApiNegotiation): {
 	return {
 		classes: OPEN_STATUS_CLASSES,
 		label: "Aperta",
-		icon: "check",
+		icon: "circle-plus",
 	};
 }
 
@@ -498,8 +498,9 @@ function CreateNegotiationDialog({
 		return (
 			<>
 				<div className="flex items-center justify-between gap-3 pb-6">
+					{/* text-card-foreground so dialog title is readable in dataweb light (card is light there). */}
 					<h2
-						className="font-bold text-2xl text-foreground tracking-tight"
+						className="font-bold text-2xl text-card-foreground tracking-tight"
 						id="create-negotiation-title"
 					>
 						Nuova trattativa
@@ -636,7 +637,7 @@ function CreateNegotiationDialog({
 													) : (
 														filteredClients.map((client) => (
 															<Select.Item
-																className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 																key={client.id}
 																value={String(client.id)}
 															>
@@ -687,18 +688,26 @@ function CreateNegotiationDialog({
 						>
 							<Select.Trigger
 								className={cn(
-									DIALOG_FIELD_SELECT_BASE_CLASSES,
+									SPANCO_PILL_CLASSES,
 									// Make the trigger shrink to fit its content instead of
 									// stretching across the whole pill, mirroring table filters.
-									"flex h-9 w-fit flex-none items-center justify-end gap-2"
+									"flex h-9 w-fit flex-none items-center justify-end gap-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 								)}
 								id="create-spanco"
+								style={{
+									backgroundColor: SPANCO_STAGE_COLORS[form.spanco].softBg,
+									color: SPANCO_STAGE_COLORS[form.spanco].main,
+								}}
 							>
 								<Select.Value className="min-w-0 flex-1 text-right">
 									{(value: SpancoStage) => SPANCO_LABELS[value]}
 								</Select.Value>
-								<Select.Icon className="shrink-0 text-muted-foreground">
-									<ChevronDown aria-hidden className="size-4" />
+								<Select.Icon
+									aria-hidden
+									className="shrink-0 opacity-70"
+									style={{ color: "inherit" }}
+								>
+									<ChevronDown className="size-4" />
 								</Select.Icon>
 							</Select.Trigger>
 							<Select.Portal>
@@ -712,7 +721,7 @@ function CreateNegotiationDialog({
 											{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
 												(stage) => (
 													<Select.Item
-														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 														key={stage}
 														value={stage}
 													>
@@ -771,25 +780,24 @@ function CreateNegotiationDialog({
 							onPointerUp={handlePercentTrackPointerUp}
 							ref={percentTrackRef}
 						>
-							{/* Static track: keep the base pill background and overlay a slightly
-							 * brighter neutral wash so the control feels like "una versione più
-							 * luminosa" dello sfondo invece di introdurre un colore forte
-							 * scollegato dal resto del dialog.
+							{/* Track: soft spanco tint (matches table progress bar and update form).
+							 * Uses SPANCO colors so the fill is visible in dataweb light theme
+							 * where neutral white overlays (bg-white/*) blend with the light background.
 							 */}
 							<div
 								aria-hidden
-								className="absolute inset-0 rounded-2xl bg-white/3 transition-colors duration-150 group-hover:bg-white/5 group-active:bg-white/7"
+								className="absolute inset-0 rounded-2xl transition-opacity duration-150 group-hover:opacity-90 group-active:opacity-85"
+								style={{
+									backgroundColor: SPANCO_STAGE_COLORS[form.spanco].softBg,
+								}}
 							/>
-							{/* Dynamic fill: a brighter pass of the same neutral overlay that
-							 * simply aumenta la luminosità del background man mano che si
-							 * avanza con la percentuale, senza cambiare tinta rispetto al
-							 * contesto del dialog.
-							 */}
+							{/* Fill: spanco main color up to percentuale (matches table and update form). */}
 							<div
 								aria-hidden
-								className="absolute inset-0 left-0 rounded-2xl bg-white/14 transition-[width,background-color] duration-150 group-hover:bg-white/18 group-active:bg-white/22"
+								className="absolute inset-0 left-0 rounded-2xl transition-[width] duration-150"
 								style={{
 									width: `${form.percentuale}%`,
+									backgroundColor: SPANCO_STAGE_COLORS[form.spanco].main,
 								}}
 							/>
 							{/* Hash marks: show a set of subtle ticks only on hover/drag to give
@@ -844,11 +852,20 @@ function CreateNegotiationDialog({
 							 * thumb position.
 							 */}
 							<div className="pointer-events-none relative z-10 flex w-full items-center">
-								<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
+								{/* Use text-card-foreground so the label stays readable on all SPANCO
+								 * track/fill colors (e.g. S has a blue-gray tint where text-stats-title
+								 * lacks contrast). */}
+								<span
+									className={cn(
+										DIALOG_FIELD_LABEL_TEXT_CLASSES,
+										"text-card-foreground"
+									)}
+								>
 									Percentuale avanzamento
 								</span>
 							</div>
-							<span className="pointer-events-none absolute inset-y-0 right-3.75 flex items-center text-right font-mono font-semibold text-base text-foreground tabular-nums">
+							{/* Use card-foreground so the percentage is readable on the light track in dataweb light theme (text-foreground is light there and would be unreadable). */}
+							<span className="pointer-events-none absolute inset-y-0 right-3.75 flex items-center text-right font-mono font-semibold text-base text-card-foreground tabular-nums">
 								{form.percentuale}%
 							</span>
 							{/* Range input: visually transparent, but covers the whole pill so the
@@ -964,8 +981,9 @@ function CreateNegotiationDialog({
 					)}
 					{/* Actions: cancel left, primary submit right; rounded and larger to match dialog design (rounded-2xl fields, text-base). */}
 					<div className="col-span-2 mt-6 flex justify-between gap-3">
+						{/* Muted/secondary look on card so in dataweb light Annulla doesn’t look like the primary button (outline would use bg-background = blue). */}
 						<Button
-							className="h-10 min-w-26 rounded-xl text-sm"
+							className="h-10 min-w-26 rounded-xl border-border bg-muted text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
 							disabled={isSubmitting}
 							onClick={() => onOpenChange(false)}
 							type="button"
@@ -1443,7 +1461,7 @@ export default function TrattativeTable({
 												<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
 													<Select.List className="flex h-fit flex-col gap-1">
 														<Select.Item
-															className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 															value={null}
 														>
 															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -1456,7 +1474,7 @@ export default function TrattativeTable({
 														{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
 															(stage) => (
 																<Select.Item
-																	className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																	className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 																	key={stage}
 																	value={stage}
 																>
@@ -1525,7 +1543,7 @@ export default function TrattativeTable({
 												<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
 													<Select.List className="flex h-fit flex-col gap-1">
 														<Select.Item
-															className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 															value={null}
 														>
 															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -1534,7 +1552,7 @@ export default function TrattativeTable({
 															<Select.ItemText>Tutti gli stati</Select.ItemText>
 														</Select.Item>
 														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 															value="aperta"
 														>
 															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -1543,7 +1561,7 @@ export default function TrattativeTable({
 															<Select.ItemText>Solo Aperte</Select.ItemText>
 														</Select.Item>
 														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 															value="conclusa"
 														>
 															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -1552,7 +1570,7 @@ export default function TrattativeTable({
 															<Select.ItemText>Solo Concluse</Select.ItemText>
 														</Select.Item>
 														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 															value="abbandonata"
 														>
 															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -1723,7 +1741,7 @@ export default function TrattativeTable({
 									<button
 										aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
 										/* Row hover uses dedicated table hover token */
-										className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium transition-colors last:border-b-0 hover:bg-table-hover"
+										className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
 										key={n.id}
 										onClick={() => handleOpenUpdate(n)}
 										type="button"
@@ -1766,7 +1784,8 @@ export default function TrattativeTable({
 																SPANCO_STAGE_COLORS[n.spanco].main,
 														}}
 													/>
-													<span className="relative z-10 block w-full px-2 text-center font-medium text-foreground text-xs tabular-nums">
+													{/* Use card-foreground so the percentage is readable on the light track in dataweb light theme (text-foreground is light there and would be unreadable). */}
+													<span className="relative z-10 block w-full px-2 text-center font-medium text-card-foreground text-xs tabular-nums">
 														{clampedPercent}%
 													</span>
 												</div>
@@ -1790,10 +1809,14 @@ export default function TrattativeTable({
 														statusUi.classes
 													)}
 												>
-													{statusUi.icon === "close" ? (
-														<CircleXmarkFilled aria-hidden size={16} />
-													) : (
-														<CheckIcon aria-hidden size={16} />
+													{statusUi.icon === "close" && (
+														<CircleXmarkFilled aria-hidden size={18} />
+													)}
+													{statusUi.icon === "circle-plus" && (
+														<IconCirclePlusFilled aria-hidden size={18} />
+													)}
+													{statusUi.icon === "check" && (
+														<CheckIcon aria-hidden size={18} />
 													)}
 													{statusUi.label}
 												</span>

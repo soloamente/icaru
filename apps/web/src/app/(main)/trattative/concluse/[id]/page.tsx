@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { IconUTurnToLeft } from "@/components/icons";
 import Loader from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import UpdateNegotiationForm, {
@@ -32,6 +32,7 @@ export default function TrattativeConcluseEditPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isDirty, setIsDirty] = useState(false);
+	const [resetTrigger, setResetTrigger] = useState(0);
 
 	const fetchNegotiation = useCallback(async () => {
 		if (!token || Number.isNaN(id)) {
@@ -87,7 +88,11 @@ export default function TrattativeConcluseEditPage() {
 								"/trattative/concluse" as Parameters<typeof Link>[0]["href"]
 							}
 						>
-							<ChevronLeft aria-hidden className="size-5 shrink-0" />
+							<IconUTurnToLeft
+								aria-hidden
+								className="size-5 shrink-0"
+								size={20}
+							/>
 						</Link>
 					</div>
 				</div>
@@ -113,10 +118,14 @@ export default function TrattativeConcluseEditPage() {
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							href={backHref}
 						>
-							<ChevronLeft aria-hidden className="size-5 shrink-0" />
+							<IconUTurnToLeft
+								aria-hidden
+								className="size-5 shrink-0"
+								size={20}
+							/>
 						</Link>
 						<h1
-							className="min-w-0 truncate font-medium text-foreground text-xl tracking-tight"
+							className="min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
 							id="update-negotiation-title"
 						>
 							Aggiorna trattativa di{" "}
@@ -134,17 +143,18 @@ export default function TrattativeConcluseEditPage() {
 						}
 					>
 						{isSubmitting ? (
-							<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-background font-medium text-sm opacity-50">
+							<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
 								Annulla
 							</span>
 						) : (
-							<Link
-								className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-background font-medium text-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								href={backHref}
+							<button
+								className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								onClick={() => setResetTrigger((c) => c + 1)}
 								tabIndex={isDirty ? 0 : -1}
+								type="button"
 							>
 								Annulla
-							</Link>
+							</button>
 						)}
 						<Button
 							className="h-10 min-w-26 rounded-xl text-sm"
@@ -167,6 +177,7 @@ export default function TrattativeConcluseEditPage() {
 					onSubmittingChange={setIsSubmitting}
 					onSuccess={handleSuccess}
 					renderActionsInHeader
+					resetTrigger={resetTrigger}
 					stato="concluse"
 				/>
 			</div>

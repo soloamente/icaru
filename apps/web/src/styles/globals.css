@@ -19,6 +19,10 @@ html.dark[data-color-scheme="rich"] {
 	--table-buttons: oklch(0.29 0.08 252);
 	--table-hover: oklch(0.255 0.07 252);
 
+	/* Secondary (pulsanti Scarica, Annulla, outline): più chiaro di card/header per contrasto visibile. */
+	--secondary: oklch(0.38 0.09 252);
+	--secondary-foreground: oklch(0.97 0 0);
+
 	/* Sidebar / navbar: blu più profondo dello sfondo per enfatizzare la navigazione. */
 	--sidebar: oklch(0.18 0.08 250);
 	--sidebar-accent: oklch(0.3 0.1 255);
@@ -354,6 +358,10 @@ html.dark[data-color-scheme="rich"] {
 	--table-buttons: oklch(0.29 0.08 252);
 	--table-hover: oklch(0.255 0.07 252);
 
+	/* Secondary (pulsanti Scarica, Annulla, outline): più chiaro di card/header per contrasto visibile. */
+	--secondary: oklch(0.38 0.09 252);
+	--secondary-foreground: oklch(0.97 0 0);
+
 	/* Sidebar / navbar: blu più profondo dello sfondo per enfatizzare la navigazione. */
 	--sidebar: oklch(0.18 0.08 250);
 	--sidebar-accent: oklch(0.3 0.1 255);
@@ -379,6 +387,11 @@ html.dark[data-color-scheme="rich"] {
 	--table-buttons: oklch(0.96 0.025 250);
 	--table-hover: oklch(0.96 0.025 250);
 
+	/* Foreground on blue (body, outline buttons): light for contrast. Card content keeps dark text. */
+	--foreground: oklch(0.98 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+
 	/* Sidebar / navbar: colori forniti (light mode) */
 	--sidebar: oklch(0.4371 0.1471 255.88);
 	--sidebar-accent: oklch(0.5591 0.1086 257.13);
@@ -392,6 +405,23 @@ html.dark[data-color-scheme="rich"] {
 	/* Non-active nav items color in rich theme */
 	--sidebar-secondary: oklch(0.8544 0.0376 254.58);
 	--sidebar-accent-foreground: oklch(0.98 0 0);
+}
+
+/* Dataweb light: content on card/table-container uses dark text for readability. */
+[data-color-scheme="rich"] .bg-card,
+[data-color-scheme="rich"] .table-container-bg {
+	color: var(--card-foreground);
+}
+
+/* Dataweb dark: override rich light's dark --card-foreground so table/card content stays light on dark. */
+html.dark[data-color-scheme="rich"] {
+	--foreground: oklch(0.97 0 0);
+	--card-foreground: oklch(0.97 0 0);
+}
+
+/* Dataweb light: outline-style buttons (e.g. Aggiungi allegati) use light text on blue; on hover bg becomes muted (light) so switch text to dark for contrast. */
+[data-color-scheme="rich"] .bg-background.hover\:bg-muted:hover {
+	color: var(--card-foreground);
 }
 
 /* Font style: default = Inter, rounded = SF Pro Rounded (via class on html from layout). */

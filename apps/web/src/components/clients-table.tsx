@@ -340,7 +340,8 @@ export default function ClientsTable() {
 								)}
 							>
 								<div className="flex items-center justify-between gap-3 pb-6">
-									<h2 className="font-bold text-2xl text-foreground tracking-tight">
+									{/* Use card-foreground so dialog title is readable in dataweb light (card is light, foreground is light there). */}
+									<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
 										Aggiungi cliente
 									</h2>
 									<Dialog.Close

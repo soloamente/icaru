@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
-import { ArrowUpRight, DashboardIcon } from "@/components/icons";
+import {
+	ArrowUpRight,
+	CheckIcon,
+	DashboardIcon,
+	IconCirclePlusFilled,
+	IconCurrencyExchangeFill18,
+	IconFilePlusFill18,
+	IconVault3Fill18,
+	IconWipFill18,
+} from "@/components/icons";
 import Loader from "@/components/loader";
 import {
 	SpancoDonutChart,
@@ -359,11 +368,59 @@ export default function DashboardPage() {
 									href={TRATTATIVE_APERTE_HREF}
 									key={card.id}
 								>
+									{/* Background icons per card — decorative, right-aligned, low opacity. Match sidebar icon for "Trattative aperte" (Aperte). */}
+									{card.id === "total-open" && (
+										<IconFilePlusFill18
+											aria-hidden="true"
+											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
+											size={96}
+										/>
+									)}
+									{card.id === "conclusion-pct" && (
+										<IconWipFill18
+											aria-hidden="true"
+											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
+											size={96}
+										/>
+									)}
+									{card.id === "average-amount" && (
+										<IconCurrencyExchangeFill18
+											aria-hidden="true"
+											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
+											size={96}
+										/>
+									)}
+									{card.id === "total-open-amount" && (
+										<IconVault3Fill18
+											aria-hidden="true"
+											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
+											size={96}
+										/>
+									)}
+									{card.id === "opened-comparison" && (
+										<IconCirclePlusFilled
+											aria-hidden="true"
+											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
+											size={96}
+										/>
+									)}
+									{card.id === "concluded-comparison" && (
+										<CheckIcon
+											aria-hidden="true"
+											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
+											size={96}
+										/>
+									)}
 									<span className="truncate font-medium text-muted-foreground text-sm">
 										{card.title}
 									</span>
 									<div className="flex items-baseline gap-2">
-										<span className="font-semibold text-5xl">{card.value}</span>
+										{/* text-foreground: in dataweb light le card hanno bg-background (blu)
+										    e richiedono testo chiaro come la freccia; negli altri temi
+										    text-foreground garantisce sempre contrasto corretto. */}
+										<span className="font-semibold text-5xl text-foreground">
+											{card.value}
+										</span>
 										{card.subtitle && (
 											<>
 												<span

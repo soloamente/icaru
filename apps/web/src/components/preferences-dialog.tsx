@@ -29,7 +29,7 @@ export function PreferencesDialog({
 						{/* Drag handle for accessibility / affordance */}
 						<div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
 						<div className="overflow-y-auto p-6 pb-8">
-							<h2 className="mb-6 font-semibold text-foreground text-xl">
+							<h2 className="mb-6 font-semibold text-card-foreground text-xl">
 								Preferenze
 							</h2>
 							<p className="sr-only">
@@ -62,7 +62,7 @@ export function PreferencesDialog({
 					>
 						<div className="max-h-[85vh] overflow-y-auto p-6">
 							<h2
-								className="mb-6 font-semibold text-foreground text-xl"
+								className="mb-6 font-semibold text-card-foreground text-xl"
 								id="preferences-dialog-title"
 							>
 								Preferenze

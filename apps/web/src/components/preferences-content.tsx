@@ -54,7 +54,7 @@ export function PreferencesContent() {
 			{/* Theme (Color mode) */}
 			<section aria-labelledby="theme-heading" className="mb-8">
 				<h3
-					className="mb-1 font-medium text-base text-foreground"
+					className="mb-1 font-medium text-base text-card-foreground"
 					id="theme-heading"
 				>
 					Tema
@@ -93,7 +93,7 @@ export function PreferencesContent() {
 										width={1000}
 									/>
 								</div>
-								<span className="font-medium text-foreground text-sm">
+								<span className="font-medium text-card-foreground text-sm">
 									{opt.label}
 								</span>
 								{/* {isSelected && (
@@ -111,7 +111,7 @@ export function PreferencesContent() {
 			{/* Palette: Predefinito vs Rich colors (sidebar/navbar colorati) */}
 			<section aria-labelledby="color-scheme-heading" className="mb-8">
 				<h3
-					className="mb-1 font-medium text-base text-foreground"
+					className="mb-1 font-medium text-base text-card-foreground"
 					id="color-scheme-heading"
 				>
 					Tema
@@ -127,7 +127,7 @@ export function PreferencesContent() {
 										"flex flex-1 items-center justify-center rounded-lg border-2 py-3 font-medium text-sm transition-colors",
 										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 										isSelected
-											? "border-primary bg-primary/5 text-foreground"
+											? "border-primary bg-primary/5 text-card-foreground"
 											: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
 									)}
 									key={opt.id}
@@ -145,7 +145,7 @@ export function PreferencesContent() {
 			{/* Accent color */}
 			<section aria-labelledby="accent-heading" className="mb-8">
 				<h3
-					className="mb-4 font-medium text-base text-foreground"
+					className="mb-4 font-medium text-base text-card-foreground"
 					id="accent-heading"
 				>
 					Colore di accento
@@ -183,7 +183,7 @@ export function PreferencesContent() {
 			{/* Navigation position: sidebar left/right, top bar, bottom navbar */}
 			<section aria-labelledby="nav-position-heading" className="mb-8">
 				<h3
-					className="mb-1 font-medium text-base text-foreground"
+					className="mb-1 font-medium text-base text-card-foreground"
 					id="nav-position-heading"
 				>
 					Posizione navigazione
@@ -199,7 +199,7 @@ export function PreferencesContent() {
 										"flex items-center justify-center rounded-lg border-2 py-3 font-medium text-sm transition-colors",
 										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 										isSelected
-											? "border-primary bg-primary/5 text-foreground"
+											? "border-primary bg-primary/5 text-card-foreground"
 											: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
 									)}
 									key={opt.id}
@@ -217,7 +217,7 @@ export function PreferencesContent() {
 			{/* Font style */}
 			<section aria-labelledby="font-heading" className="mb-2">
 				<h3
-					className="mb-1 font-medium text-base text-foreground"
+					className="mb-1 font-medium text-base text-card-foreground"
 					id="font-heading"
 				>
 					Stile carattere
@@ -235,7 +235,7 @@ export function PreferencesContent() {
 									"flex flex-1 items-center justify-center rounded-lg border-2 py-4 font-medium text-lg transition-colors",
 									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 									isSelected
-										? "border-primary bg-primary/5 text-foreground"
+										? "border-primary bg-primary/5 text-card-foreground"
 										: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
 								)}
 								key={opt.id}

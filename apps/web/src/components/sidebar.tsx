@@ -28,7 +28,8 @@ import { useSidebarOpen } from "@/lib/sidebar/sidebar-open-context";
 import { cn } from "@/lib/utils";
 import FileXmark from "./file-xmark";
 import FolderOpen from "./folder-open";
-import AwardCertificate from "./icons/award-certificate";
+import { IconFileCheckFill18 } from "./icons/icon-file-check-fill-18";
+import { IconFilePlusFill18 } from "./icons/icon-file-plus-fill-18";
 import { SignatureIcon } from "./icons/signature-icon";
 import { UserGroupIcon } from "./icons/user-group";
 import { PreferencesDialog } from "./preferences-dialog";
@@ -126,14 +127,12 @@ export default function Sidebar({
 				href: "/trattative/tutte",
 			},
 			{
-				// Per le trattative aperte riutilizziamo l'icona cartella aperta
-				// per coerenza visiva con "Tutte".
-				icon: FolderOpen,
+				icon: IconFilePlusFill18 as IconComponent,
 				label: "Aperte",
 				href: "/trattative/aperte",
 			},
 			{
-				icon: AwardCertificate,
+				icon: IconFileCheckFill18 as IconComponent,
 				label: "Concluse",
 				href: "/trattative/concluse",
 			},

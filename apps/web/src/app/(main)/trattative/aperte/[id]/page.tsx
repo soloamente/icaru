@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { IconUTurnToLeft } from "@/components/icons";
 import Loader from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import UpdateNegotiationForm, {
@@ -12,10 +12,7 @@ import UpdateNegotiationForm, {
 import { getNegotiation } from "@/lib/api/client";
 import type { ApiNegotiation } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
-import {
-	getNegotiationStatoSegment,
-	STATO_LABELS,
-} from "@/lib/trattative-utils";
+import { STATO_LABELS } from "@/lib/trattative-utils";
 
 /**
  * Edit page for an open negotiation (trattative aperte).
@@ -32,6 +29,7 @@ export default function TrattativeAperteEditPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isDirty, setIsDirty] = useState(false);
+	const [resetTrigger, setResetTrigger] = useState(0);
 
 	const fetchNegotiation = useCallback(async () => {
 		if (!token || Number.isNaN(id)) {
@@ -61,15 +59,10 @@ export default function TrattativeAperteEditPage() {
 		fetchNegotiation().catch(() => undefined);
 	}, [fetchNegotiation]);
 
-	const handleSuccess = useCallback(
-		(updated: ApiNegotiation) => {
-			// Redirect to the list that now contains this negotiation
-			// (state may have changed, e.g. marked abbandonata → abbandonate)
-			const stato = getNegotiationStatoSegment(updated);
-			router.push(`/trattative/${stato}`);
-		},
-		[router]
-	);
+	const handleSuccess = useCallback((updated: ApiNegotiation) => {
+		// Stay on the edit page after save; update local state so the form and header reflect saved data
+		setNegotiation(updated);
+	}, []);
 
 	if (!(isLoaded && user)) {
 		return <Loader />;
@@ -87,7 +80,11 @@ export default function TrattativeAperteEditPage() {
 							className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							href={"/trattative/aperte" as Parameters<typeof Link>[0]["href"]}
 						>
-							<ChevronLeft aria-hidden className="size-5 shrink-0" />
+							<IconUTurnToLeft
+								aria-hidden
+								className="size-5 shrink-0"
+								size={20}
+							/>
 						</Link>
 					</div>
 				</div>
@@ -107,16 +104,20 @@ export default function TrattativeAperteEditPage() {
 			{/* Header: back + title on left, Annulla + Salva on right (same line as list page "Aggiungi") */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					<div className="flex min-w-0 flex-1 items-center justify-start gap-2.5">
+					<div className="flex min-w-0 flex-1 items-center justify-start gap-1">
 						<Link
 							aria-label={`Torna a ${STATO_LABELS.aperte}`}
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							href={backHref}
 						>
-							<ChevronLeft aria-hidden className="size-5 shrink-0" />
+							<IconUTurnToLeft
+								aria-hidden
+								className="size-5 shrink-0"
+								size={20}
+							/>
 						</Link>
 						<h1
-							className="min-w-0 truncate font-medium text-foreground text-xl tracking-tight"
+							className="min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
 							id="update-negotiation-title"
 						>
 							Aggiorna trattativa di{" "}
@@ -134,17 +135,18 @@ export default function TrattativeAperteEditPage() {
 						}
 					>
 						{isSubmitting ? (
-							<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-background font-medium text-sm opacity-50">
+							<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
 								Annulla
 							</span>
 						) : (
-							<Link
-								className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-background font-medium text-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								href={backHref}
+							<button
+								className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								onClick={() => setResetTrigger((c) => c + 1)}
 								tabIndex={isDirty ? 0 : -1}
+								type="button"
 							>
 								Annulla
-							</Link>
+							</button>
 						)}
 						<Button
 							className="h-10 min-w-26 rounded-xl text-sm"
@@ -167,6 +169,7 @@ export default function TrattativeAperteEditPage() {
 					onSubmittingChange={setIsSubmitting}
 					onSuccess={handleSuccess}
 					renderActionsInHeader
+					resetTrigger={resetTrigger}
 					stato="aperte"
 				/>
 			</div>

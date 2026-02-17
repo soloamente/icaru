@@ -245,9 +245,11 @@ export function SpancoDonutChart({
 					</PieChart>
 				</ResponsiveContainer>
 
-				{/* Centrale: totale più grande e label "Trattative attive" più leggibile. */}
+				{/* Centrale: totale più grande e label "Trattative attive" più leggibile.
+				    Usa text-card-foreground così in dataweb light (sfondo card chiaro) il testo
+				    resta scuro e leggibile; in dataweb dark il testo resta chiaro. */}
 				<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-					<span className="font-semibold text-5xl text-foreground sm:text-6xl md:text-7xl">
+					<span className="font-semibold text-5xl text-card-foreground sm:text-6xl md:text-7xl">
 						{total}
 					</span>
 					<span className="mt-1.5 text-muted-foreground text-sm sm:text-base md:text-lg">

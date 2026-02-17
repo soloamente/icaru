@@ -270,7 +270,7 @@ export function ImportClientsDialog({
 							) : (
 								<>
 									<Upload className="size-10 text-muted-foreground" />
-									<span className="font-medium text-foreground text-sm">
+									<span className="font-medium text-card-foreground text-sm">
 										Trascina il file qui o clicca per scegliere
 									</span>
 									<span className="text-muted-foreground text-xs">
@@ -310,7 +310,7 @@ export function ImportClientsDialog({
 						{/* Matched columns: read-only list */}
 						{analysis.matched_columns.length > 0 && (
 							<div>
-								<h3 className="mb-2 font-medium text-foreground text-sm">
+								<h3 className="mb-2 font-medium text-card-foreground text-sm">
 									Colonne riconosciute
 								</h3>
 								<ul className="space-y-1.5">
@@ -322,7 +322,9 @@ export function ImportClientsDialog({
 											key={m.excel_column}
 											transition={{ delay: i * 0.03, duration: 0.15 }}
 										>
-											<span className="text-foreground">{m.excel_column}</span>
+											<span className="text-table-header-foreground">
+												{m.excel_column}
+											</span>
 											<span className="flex items-center gap-1.5 text-muted-foreground">
 												<CheckIcon className="size-3.5 text-green-500" />
 												{DB_COLUMN_LABELS[m.db_column] ?? m.db_column}
@@ -336,7 +338,7 @@ export function ImportClientsDialog({
 						{/* Unmatched: dropdown per column */}
 						{analysis.unmatched_excel_columns.length > 0 && (
 							<div>
-								<h3 className="mb-2 font-medium text-foreground text-sm">
+								<h3 className="mb-2 font-medium text-card-foreground text-sm">
 									Altre colonne da associare
 								</h3>
 								<ul className="space-y-2">
@@ -351,7 +353,7 @@ export function ImportClientsDialog({
 												duration: 0.15,
 											}}
 										>
-											<span className="min-w-[120px] truncate text-foreground text-sm">
+											<span className="min-w-[120px] truncate text-card-foreground text-sm">
 												{excelCol}
 											</span>
 											<Select.Root
@@ -362,7 +364,7 @@ export function ImportClientsDialog({
 											>
 												<Select.Trigger
 													className={cn(
-														"flex min-h-12 flex-1 cursor-pointer items-center justify-between rounded-xl border-none bg-table-buttons px-3 py-3 font-medium text-foreground text-sm shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														"flex min-h-12 flex-1 cursor-pointer items-center justify-between rounded-xl border-none bg-table-buttons px-3 py-3 font-medium text-card-foreground text-sm shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 													)}
 												>
 													<Select.Value>
@@ -385,7 +387,7 @@ export function ImportClientsDialog({
 														<Select.Popup className="max-h-60 overflow-y-auto rounded-2xl bg-popover p-1 text-popover-foreground">
 															<Select.List className="flex flex-col gap-0.5">
 																<Select.Item
-																	className="relative flex min-h-11 cursor-pointer select-none items-center rounded-xl py-3 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																	className="relative flex min-h-11 cursor-pointer select-none items-center rounded-xl py-3 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 																	value=""
 																>
 																	<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
@@ -397,7 +399,7 @@ export function ImportClientsDialog({
 																</Select.Item>
 																{analysis.all_db_columns.map((dbCol) => (
 																	<Select.Item
-																		className="relative flex min-h-11 cursor-pointer select-none items-center rounded-xl py-3 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-foreground data-selected:text-foreground"
+																		className="relative flex min-h-11 cursor-pointer select-none items-center rounded-xl py-3 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
 																		key={dbCol}
 																		value={dbCol}
 																	>
@@ -431,8 +433,9 @@ export function ImportClientsDialog({
 						)}
 
 						<div className="mt-6 flex justify-between gap-3">
+							{/* Muted/secondary look on card so in dataweb light it doesn’t look like the primary button (outline would use bg-background = blue). */}
 							<Button
-								className="h-10 min-w-26 rounded-xl text-sm"
+								className="h-10 min-w-26 rounded-xl border-border bg-muted text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
 								onClick={() => {
 									setStep("upload");
 									setConfirmError(null);
@@ -471,7 +474,7 @@ export function ImportClientsDialog({
 					>
 						<motion.p
 							animate={{ opacity: 1, scale: 1 }}
-							className="flex items-center gap-2 font-medium text-foreground text-xl tabular-nums"
+							className="flex items-center gap-2 font-medium text-card-foreground text-xl tabular-nums"
 							initial={{ opacity: 0, scale: 0.95 }}
 							transition={{ delay: 0.1, duration: 0.2 }}
 						>
@@ -547,7 +550,8 @@ export function ImportClientsDialog({
 							}
 						>
 							<div className="flex items-center justify-between gap-3">
-								<h2 className="font-bold text-2xl text-foreground tracking-tight">
+								{/* text-card-foreground so title is readable in dataweb light (card is light there). */}
+								<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
 									{dialogTitleByStep}
 								</h2>
 								<Dialog.Close
