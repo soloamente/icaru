@@ -16,7 +16,6 @@ import {
 	IconFilePlusFill18,
 	IconVault3Fill18,
 	IconWipFill18,
-	UserGroupIcon,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +38,7 @@ import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 import CircleXmarkFilled from "./icons/circle-xmark-filled";
 import IconDeleteLeftFill18 from "./icons/delete-left-fill-18";
+import { IconCircleInfoSparkle } from "./icons/icon-circle-info-sparkle";
 import { SignatureIcon } from "./icons/signature-icon";
 
 /** Spanco stage display labels */
@@ -266,10 +266,12 @@ function getClientDisplay(n: ApiNegotiation): string {
 	return n.client?.ragione_sociale ?? `Cliente #${n.client_id}`;
 }
 
-interface CreateNegotiationDialogProps {
+export interface CreateNegotiationDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSuccess: () => void;
+	/** When set, the Cliente field is pre-selected to this client (e.g. when opening from /clienti row "Aggiungi"). */
+	initialClientId?: number;
 }
 
 /** Breakpoint for drawer vs dialog (match useIsMobile). */
@@ -279,10 +281,11 @@ const CREATE_NEGOTIATION_MOBILE_BREAKPOINT_PX = 768;
  * "Nuova trattativa": on mobile Vaul Drawer (styled like Aggiungi cliente sheet), on desktop Base UI Dialog.
  * layoutReady + isDesktop ensure we never mount Dialog on mobile (no dialog under drawer).
  */
-function CreateNegotiationDialog({
+export function CreateNegotiationDialog({
 	open,
 	onOpenChange,
 	onSuccess,
+	initialClientId,
 }: CreateNegotiationDialogProps) {
 	const [layoutReady, setLayoutReady] = useState(false);
 	const [isDesktop, setIsDesktop] = useState(false);
@@ -325,6 +328,7 @@ function CreateNegotiationDialog({
 	const [clientSearchQuery, setClientSearchQuery] = useState("");
 
 	// When dialog opens, fetch clients without negotiations and reset allegati + client search.
+	// If initialClientId is provided (e.g. from /clienti row "Aggiungi"), pre-select that client once the list loads.
 	useEffect(() => {
 		if (!(open && token)) {
 			return;
@@ -333,6 +337,10 @@ function CreateNegotiationDialog({
 		setClientSearchQuery("");
 		setClientsLoading(true);
 		setClientsError(null);
+		// Optimistically pre-select the client when opening from clienti page so the form shows the right value as soon as possible.
+		if (initialClientId != null && initialClientId > 0) {
+			setForm((prev) => ({ ...prev, client_id: initialClientId }));
+		}
 		listClientsWithoutNegotiations(token)
 			.then((result) => {
 				if ("error" in result) {
@@ -342,17 +350,23 @@ function CreateNegotiationDialog({
 				}
 				setClientsWithoutNegotiations(result.data);
 				setClientsError(null);
-				// Default to first client so the select has a valid value.
+				// Use initialClientId if provided and present in the list; otherwise first client or keep previous.
+				const ids = result.data.map((c) => c.id);
+				let defaultId = 0;
+				if (initialClientId != null && ids.includes(initialClientId)) {
+					defaultId = initialClientId;
+				} else if (result.data.length > 0) {
+					defaultId = result.data[0].id;
+				}
 				setForm((prev) => ({
 					...prev,
-					client_id:
-						result.data.length > 0 ? result.data[0].id : prev.client_id,
+					client_id: defaultId,
 				}));
 			})
 			.finally(() => {
 				setClientsLoading(false);
 			});
-	}, [open, token]);
+	}, [open, token, initialClientId]);
 
 	// Track + input refs for the "Percentuale avanzamento" slider so we can
 	// translate pointer movements on the decorative handle into a concrete
@@ -441,6 +455,8 @@ function CreateNegotiationDialog({
 		clampedHandlePercent <= SLIDER_HANDLE_SHRINK_NEAR_LEFT_PERCENT;
 	const isHandleNearRight =
 		clampedHandlePercent >= SLIDER_HANDLE_SHRINK_NEAR_RIGHT_PERCENT;
+	// When SPANCO is "O" (Ordine), percentuale is fixed at 100% and the slider is read-only (same as negotiation detail page).
+	const isSpancoConcluded = form.spanco === "O";
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -592,11 +608,12 @@ function CreateNegotiationDialog({
 									<Select.Trigger
 										className={cn(
 											DIALOG_FIELD_SELECT_BASE_CLASSES,
-											"flex h-9 w-fit flex-none items-center justify-end gap-2"
+											// min-w-0 so the trigger can shrink inside the flex container and the value truncates instead of overflowing.
+											"flex h-9 min-w-0 items-center justify-end gap-2 overflow-hidden"
 										)}
 										id="create-cliente"
 									>
-										<Select.Value className="min-w-0 flex-1 text-right">
+										<Select.Value className="min-w-0 flex-1 truncate text-right">
 											{(value: string) => {
 												const client = clientsWithoutNegotiations.find(
 													(c) => String(c.id) === value
@@ -689,7 +706,13 @@ function CreateNegotiationDialog({
 						<Select.Root
 							onValueChange={(value) => {
 								if (value !== null) {
-									setForm((prev) => ({ ...prev, spanco: value }));
+									// When SPANCO is set to "O" (Ordine), force percentuale to 100%
+									// and treat the slider as read-only, matching the negotiation detail page.
+									setForm((prev) => ({
+										...prev,
+										spanco: value,
+										percentuale: value === "O" ? 100 : prev.percentuale,
+									}));
 								}
 							}}
 							value={form.spanco}
@@ -782,10 +805,22 @@ function CreateNegotiationDialog({
 						 */}
 						{/* Taller pill (py-3.5) so the slider track has more vertical presence. */}
 						<div
-							className="group relative flex w-full cursor-grab items-center overflow-hidden rounded-2xl bg-table-header px-3.75 py-3.5 active:cursor-grabbing"
-							onPointerDown={handlePercentTrackPointerDown}
-							onPointerMove={handlePercentTrackPointerMove}
-							onPointerUp={handlePercentTrackPointerUp}
+							aria-disabled={isSpancoConcluded}
+							className={cn(
+								"group relative flex w-full items-center overflow-hidden rounded-2xl bg-table-header px-3.75 py-3.5",
+								isSpancoConcluded
+									? "cursor-default"
+									: "cursor-grab active:cursor-grabbing"
+							)}
+							onPointerDown={
+								isSpancoConcluded ? undefined : handlePercentTrackPointerDown
+							}
+							onPointerMove={
+								isSpancoConcluded ? undefined : handlePercentTrackPointerMove
+							}
+							onPointerUp={
+								isSpancoConcluded ? undefined : handlePercentTrackPointerUp
+							}
 							ref={percentTrackRef}
 						>
 							{/* Track: soft spanco tint (matches table progress bar and update form).
@@ -883,6 +918,7 @@ function CreateNegotiationDialog({
 							<input
 								aria-label="Percentuale avanzamento trattativa"
 								className="pointer-events-none relative z-8 h-8 w-full appearance-none bg-transparent focus-visible:outline-none focus-visible:ring-0"
+								disabled={isSpancoConcluded}
 								id="create-percentuale"
 								max={100}
 								min={0}
@@ -897,10 +933,24 @@ function CreateNegotiationDialog({
 								ref={percentInputRef}
 								step={20}
 								type="range"
-								value={form.percentuale}
+								value={form.spanco === "O" ? 100 : form.percentuale}
 							/>
 						</div>
 					</label>
+					{/* Spiega all'utente perché con Spanco O la percentuale è 100% e non è modificabile. */}
+					{isSpancoConcluded && (
+						<div className="col-span-2 flex items-start gap-2 text-muted-foreground text-sm">
+							<IconCircleInfoSparkle
+								aria-hidden
+								className="mt-0.5 shrink-0 text-blue-600"
+								size={18}
+							/>
+							<p>
+								Con Spanco su Ordine (O) la trattativa è considerata conclusa:
+								la percentuale resta al 100% e non è modificabile.
+							</p>
+						</div>
+					)}
 					{/* Note field: solo textarea a tutta larghezza, senza label visibile. */}
 					<div className="col-span-2 rounded-2xl bg-table-header px-3.75 py-2.25">
 						<textarea
@@ -1110,10 +1160,22 @@ export type TrattativeFilter = "all" | "concluse" | "abbandonate" | "aperte";
 interface TrattativeTableProps {
 	/** When set, filter displayed negotiations by status (concluse = spanco C, abbandonate = abbandonata). */
 	filter?: TrattativeFilter;
+	/**
+	 * When true, opens "Nuova trattativa" dialog on mount (e.g. from cmdk selecting
+	 * a client without negotiations). Used with initialClientIdForNewNegotiation.
+	 */
+	openCreateDialogInitially?: boolean;
+	/**
+	 * When openCreateDialogInitially is true, pre-selects this client in the
+	 * CreateNegotiationDialog (same as "Aggiungi" on clients table).
+	 */
+	initialClientIdForNewNegotiation?: number;
 }
 
 export default function TrattativeTable({
 	filter = "all",
+	openCreateDialogInitially = false,
+	initialClientIdForNewNegotiation,
 }: TrattativeTableProps) {
 	const { token, role } = useAuth();
 	const [negotiations, setNegotiations] = useState<ApiNegotiation[]>([]);
@@ -1133,6 +1195,31 @@ export default function TrattativeTable({
 	>("all");
 	const router = useRouter();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+	// Captured initialClientId when opening from URL params; cleared when dialog closes.
+	// Keeps the value stable after parent clears URL params so CreateNegotiationDialog
+	// form doesn't reset.
+	const [capturedInitialClientId, setCapturedInitialClientId] = useState<
+		number | null
+	>(null);
+	// Open "Nuova trattativa" dialog on mount when arriving via URL params
+	// (e.g. cmdk "Clienti senza trattative" → /trattative/aperte?new_negotiation=1&client_id=X)
+	const hasOpenedFromInitialRef = useRef(false);
+	useEffect(() => {
+		if (hasOpenedFromInitialRef.current) {
+			return;
+		}
+		if (openCreateDialogInitially && initialClientIdForNewNegotiation != null) {
+			hasOpenedFromInitialRef.current = true;
+			setCapturedInitialClientId(initialClientIdForNewNegotiation);
+			setIsCreateDialogOpen(true);
+		}
+	}, [openCreateDialogInitially, initialClientIdForNewNegotiation]);
+	const handleCreateDialogOpenChange = useCallback((open: boolean) => {
+		setIsCreateDialogOpen(open);
+		if (!open) {
+			setCapturedInitialClientId(null);
+		}
+	}, []);
 	const [sortState, setSortState] = useState<{
 		column: SortColumn;
 		direction: "asc" | "desc";
@@ -1238,10 +1325,6 @@ export default function TrattativeTable({
 	// Stats derivate dalla tabella filtrata: importi e clienti unici per ogni pagina con tabella.
 	const totalImporto = useMemo(
 		() => filteredNegotiations.reduce((sum, n) => sum + n.importo, 0),
-		[filteredNegotiations]
-	);
-	const uniqueClientIds = useMemo(
-		() => new Set(filteredNegotiations.map((n) => n.client_id)),
 		[filteredNegotiations]
 	);
 	const averageImporto =
@@ -1739,21 +1822,6 @@ export default function TrattativeTable({
 							</span>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<UserGroupIcon
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Clienti coinvolti
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
-								{uniqueClientIds.size}
-							</AnimateNumber>
-						</div>
-					</div>
 				</div>
 
 				{/* Table */}
@@ -1953,7 +2021,12 @@ export default function TrattativeTable({
 			</div>
 
 			<CreateNegotiationDialog
-				onOpenChange={setIsCreateDialogOpen}
+				initialClientId={
+					capturedInitialClientId ??
+					initialClientIdForNewNegotiation ??
+					undefined
+				}
+				onOpenChange={handleCreateDialogOpenChange}
 				onSuccess={fetchNegotiations}
 				open={isCreateDialogOpen}
 			/>

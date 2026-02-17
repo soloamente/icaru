@@ -21,6 +21,7 @@ import Download4 from "./icons/download-4";
 import IconEyeFill12 from "./icons/icon-eye-fill-12";
 import { UserGroupIcon } from "./icons/user-group";
 import { ImportClientsDialog } from "./import-clients-dialog";
+import { CreateNegotiationDialog } from "./trattative-table";
 
 /** Debounce delay (ms) for search input before calling API */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -78,6 +79,10 @@ export default function ClientsTable() {
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 	/** Opens dialog to add a single client. */
 	const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
+	/** When set, "Nuova trattativa" dialog is open with this client pre-selected (from row "Aggiungi"). */
+	const [clientIdForNewNegotiation, setClientIdForNewNegotiation] = useState<
+		number | null
+	>(null);
 	// Controls animated width of the search pill (expand on focus, like trattative page).
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
 	/**
@@ -451,18 +456,14 @@ export default function ClientsTable() {
 											<div className="flex items-center justify-start">
 												{hasNoNegotiations ? (
 													<button
-														// CTA: porta l'utente direttamente alla vista "Trattative aperte"
-														// così può creare una nuova trattativa per questo cliente.
+														// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
+														// invece di navigare a /trattative/aperte.
 														// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
 														// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
 														className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
 														onClick={(event) => {
-															// Impediamo che il click sul bottone inneschi anche
-															// il click della riga (navigazione al dettaglio cliente).
 															event.stopPropagation();
-															router.push(
-																`/trattative/aperte?client_id=${c.id}`
-															);
+															setClientIdForNewNegotiation(c.id);
 														}}
 														type="button"
 													>
@@ -524,6 +525,21 @@ export default function ClientsTable() {
 					fetchClientsWithoutNegotiations();
 				}}
 				open={isAddClientDialogOpen}
+			/>
+
+			{/* "Nuova trattativa" dialog opened from row "Aggiungi": client is pre-selected so user stays on /clienti. */}
+			<CreateNegotiationDialog
+				initialClientId={clientIdForNewNegotiation ?? undefined}
+				onOpenChange={(open: boolean) => {
+					if (!open) {
+						setClientIdForNewNegotiation(null);
+					}
+				}}
+				onSuccess={() => {
+					fetchClientsWithoutNegotiations();
+					setClientIdForNewNegotiation(null);
+				}}
+				open={clientIdForNewNegotiation != null}
 			/>
 		</main>
 	);

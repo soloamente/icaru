@@ -29,18 +29,30 @@ interface SpancoChartDatum {
 }
 
 /**
+ * Colori SPANCO allineati alle pill della tabella trattative (trattative-table.tsx:
+ * SPANCO_STAGE_COLORS). Stesso ordine e stessi valori main per coerenza visiva.
+ */
+const SPANCO_CHART_COLORS: Record<SpancoStage, string> = {
+	S: "oklch(0.5575 0.0165 244.89)", // Suspect
+	P: "oklch(0.6994 0.1754 51.79)", // Prospect
+	A: "oklch(0.8114 0.1654 84.92)", // Approach
+	N: "oklch(0.5782 0.2282 260.03)", // Negotiation
+	C: "oklch(0.5915 0.202 21.24)", // Closing
+	O: "oklch(0.5315 0.1179 157.23)", // Order
+};
+
+/**
  * Configurazione statica per ogni lettera SPANCO:
- * - label descrittiva (utile per la legenda)
- * - colore associato (usa i token chart-* definiti in globals.css).
+ * - label in italiano (legenda e tooltip)
+ * - colore uguale a quello delle pill spanco in tabella e form.
  */
 const STAGE_CONFIG: { stage: SpancoStage; label: string; color: string }[] = [
-	{ stage: "S", label: "Suspect", color: "var(--chart-1)" },
-	{ stage: "P", label: "Prospect", color: "var(--chart-4)" },
-	{ stage: "A", label: "Approach", color: "var(--chart-5)" },
-	{ stage: "N", label: "Negotiation", color: "var(--chart-2)" },
-	{ stage: "C", label: "Closing", color: "var(--chart-3)" },
-	// Per lo stato "O" usiamo un colore più neutro per richiamare la chiusura.
-	{ stage: "O", label: "Order", color: "var(--muted-foreground)" },
+	{ stage: "S", label: "Sospetto", color: SPANCO_CHART_COLORS.S },
+	{ stage: "P", label: "Prospetto", color: SPANCO_CHART_COLORS.P },
+	{ stage: "A", label: "Approccio", color: SPANCO_CHART_COLORS.A },
+	{ stage: "N", label: "Negoziazione", color: SPANCO_CHART_COLORS.N },
+	{ stage: "C", label: "Chiusura", color: SPANCO_CHART_COLORS.C },
+	{ stage: "O", label: "Ordine", color: SPANCO_CHART_COLORS.O },
 ];
 
 function buildChartData(stats: SpancoStatistics | null): SpancoChartDatum[] {
@@ -82,7 +94,7 @@ type SpancoTooltipProps = TooltipProps<number, string> & {
  * Tooltip personalizzato per il grafico SPANCO.
  *
  * Mostra:
- * - lettera e label descrittiva (es. "S · Suspect")
+ * - lettera e label in italiano (es. "S · Sospetto")
  * - numero di trattative per quello stato.
  */
 function SpancoTooltip({

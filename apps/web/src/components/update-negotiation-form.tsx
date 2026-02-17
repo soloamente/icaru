@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckIcon, IconDownload4, IconTrashFill18 } from "@/components/icons";
+import { IconCircleInfoSparkle } from "@/components/icons/icon-circle-info-sparkle";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
@@ -734,6 +735,20 @@ function StatoEAvanzamentoSection({
 						/>
 					</div>
 				</label>
+				{/* Spiega all'utente perché con Spanco O la percentuale è 100% e non è modificabile. */}
+				{isSpancoConcluded && (
+					<div className="flex items-start gap-2 text-muted-foreground text-sm">
+						<IconCircleInfoSparkle
+							aria-hidden
+							className="mt-0.5 shrink-0 text-blue-600"
+							size={18}
+						/>
+						<p>
+							Con Spanco su Ordine (O) la trattativa è considerata conclusa: la
+							percentuale resta al 100% e non è modificabile.
+						</p>
+					</div>
+				)}
 				<div className="flex flex-col gap-1">
 					<label
 						className={cn(

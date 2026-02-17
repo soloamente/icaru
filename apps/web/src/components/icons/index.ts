@@ -8,6 +8,7 @@ export { DashboardIcon } from "./dashboard-icon";
 export { FileTextIcon } from "./file-text-icon";
 export { GearIcon } from "./gear-icon";
 export { HelpIcon } from "./help-icon";
+export { IconCircleInfoSparkle } from "./icon-circle-info-sparkle";
 export { IconCirclePlusFilled } from "./icon-circle-plus-filled";
 export { IconCurrencyExchangeFill18 } from "./icon-currency-exchange-fill-18";
 export { IconDownload4 } from "./icon-download-4";

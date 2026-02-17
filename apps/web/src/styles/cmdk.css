@@ -1,10 +1,13 @@
 /* Global search command palette (cmdk). Uses Base UI Dialog (not Radix).
    Styles target .global-search-overlay, .global-search-dialog and cmdk internal parts. */
 
-/* Overlay: dimmed background (Base UI Dialog.Backdrop) */
+/* Overlay: dimmed background (Base UI Dialog.Backdrop).
+   z-index must be high enough to cover content panel (z-10) and sidebar (z-0);
+   otherwise the content area on the right remains un-dimmed due to stacking context. */
 .global-search-overlay {
 	position: fixed;
 	inset: 0;
+	z-index: 50;
 	background: oklch(0 0 0 / 0.5);
 	animation: cmdk-overlay-in 150ms ease;
 }

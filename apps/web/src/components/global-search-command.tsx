@@ -27,6 +27,7 @@ import type {
 } from "@/lib/api/types";
 import { roleFromApi } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
+import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -88,6 +89,10 @@ export default function GlobalSearchCommand() {
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
+	// Keep latest results in ref so handlers get current data even when setOpen(false)
+	// triggers useEffect that clears results before navigation completes.
+	const resultsRef = useRef<SearchResponse | null>(null);
+	resultsRef.current = results;
 
 	// Allow other components (e.g. Sidebar "Ricerca rapida" button) to open the
 	// command palette programmatically by dispatching a custom DOM event.
@@ -222,7 +227,7 @@ export default function GlobalSearchCommand() {
 		setOpen(next);
 	}, []);
 
-	// Navigate to negotiation detail; detail page redirects to correct stato (aperte/concluse/abbandonate)
+	// Navigate to negotiation detail (referente = trattativa; aperte route works for any stato)
 	const handleSelectReferent = useCallback(
 		(r: SearchReferentResult) => {
 			setOpen(false);
@@ -231,11 +236,56 @@ export default function GlobalSearchCommand() {
 		[router]
 	);
 
-	// Navigate to clienti list (no client detail route yet)
-	const handleSelectClient = useCallback(
-		(_c: SearchClientResult) => {
+	// Clienti con trattative: go to negotiation detail. First try to find a referent
+	// in search results (works when empty search or when referent matches query).
+	// When searching, the API may filter referents by query so the client appears
+	// in clients_with_negotiations but no matching referent exists — in that case
+	// we fetch negotiations for that client via listNegotiations(client_id).
+	const handleSelectClientWithNegotiations = useCallback(
+		async (c: SearchClientResult) => {
+			if (!(token && auth)) {
+				return;
+			}
 			setOpen(false);
-			router.push("/clienti");
+
+			// 1. Try referent from search results (fast path)
+			const currentResults = resultsRef.current;
+			const firstReferent =
+				currentResults?.referents.find((r) => r.client_id === c.id) ?? null;
+
+			if (firstReferent) {
+				router.push(`/trattative/aperte/${firstReferent.id}`);
+				return;
+			}
+
+			// 2. No referent in results (e.g. search filtered referents by query) —
+			// fetch negotiations for this client and navigate to the first one.
+			const role = roleFromApi(auth.user?.role);
+			const listNegotiations =
+				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
+			const result = await listNegotiations(token, { client_id: c.id });
+			if ("error" in result) {
+				// Fallback: navigate to trattative list filtered by client so user can inspect
+				router.push(`/trattative/aperte?client_id=${c.id}`);
+				return;
+			}
+			const [first] = result.data;
+			if (!first) {
+				router.push(`/trattative/aperte?client_id=${c.id}`);
+				return;
+			}
+			const stato = getNegotiationStatoSegment(first);
+			router.push(`/trattative/${stato}/${first.id}`);
+		},
+		[auth, router, token]
+	);
+
+	// Clienti senza trattative: go to trattative section and open "Nuova trattativa"
+	// modal with this client pre-selected (same as "Aggiungi" on clients table)
+	const handleSelectClientWithoutNegotiations = useCallback(
+		(c: SearchClientResult) => {
+			setOpen(false);
+			router.push(`/trattative/aperte?new_negotiation=1&client_id=${c.id}`);
 		},
 		[router]
 	);
@@ -341,7 +391,9 @@ export default function GlobalSearchCommand() {
 													<Command.Item
 														className="global-search-item"
 														key={`client-with-${c.id}`}
-														onSelect={() => handleSelectClient(c)}
+														onSelect={() =>
+															handleSelectClientWithNegotiations(c)
+														}
 														value={`client-with-${c.id}-${c.ragione_sociale}`}
 													>
 														<span className="font-medium">
@@ -389,7 +441,9 @@ export default function GlobalSearchCommand() {
 													<Command.Item
 														className="global-search-item"
 														key={`client-no-${c.id}`}
-														onSelect={() => handleSelectClient(c)}
+														onSelect={() =>
+															handleSelectClientWithoutNegotiations(c)
+														}
 														value={`client-no-${c.id}-${c.ragione_sociale}`}
 													>
 														<span className="font-medium">
