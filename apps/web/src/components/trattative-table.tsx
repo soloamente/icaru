@@ -9,7 +9,15 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Drawer } from "vaul";
-import { CheckIcon, IconCirclePlusFilled } from "@/components/icons";
+import {
+	CheckIcon,
+	IconCirclePlusFilled,
+	IconCurrencyExchangeFill18,
+	IconFilePlusFill18,
+	IconVault3Fill18,
+	IconWipFill18,
+	UserGroupIcon,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -1226,6 +1234,28 @@ export default function TrattativeTable({
 	const completedCount = filteredNegotiations.filter((n) =>
 		isNegotiationCompleted(n)
 	).length;
+
+	// Stats derivate dalla tabella filtrata: importi e clienti unici per ogni pagina con tabella.
+	const totalImporto = useMemo(
+		() => filteredNegotiations.reduce((sum, n) => sum + n.importo, 0),
+		[filteredNegotiations]
+	);
+	const uniqueClientIds = useMemo(
+		() => new Set(filteredNegotiations.map((n) => n.client_id)),
+		[filteredNegotiations]
+	);
+	const averageImporto =
+		filteredNegotiations.length > 0
+			? Math.round(totalImporto / filteredNegotiations.length)
+			: 0;
+	const averagePercentuale =
+		filteredNegotiations.length > 0
+			? Math.round(
+					filteredNegotiations.reduce((sum, n) => sum + n.percentuale, 0) /
+						filteredNegotiations.length
+				)
+			: 0;
+
 	const handleToggleSort = useCallback((column: SortColumn) => {
 		setSortState((previous) => {
 			if (!previous || previous.column !== column) {
@@ -1602,9 +1632,15 @@ export default function TrattativeTable({
 				 * We wrap every value in AnimateNumber so all counters share the same
 				 * subtle entrance animation instead of only the last one.
 				 */}
-				<div className="flex items-start gap-3.75">
+				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità). */}
+				<div className="flex flex-wrap items-start gap-3.75">
 					{(filter === "all" || filter === "aperte") && (
-						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+							<IconFilePlusFill18
+								aria-hidden
+								className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+								size={56}
+							/>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative aperte
 							</h3>
@@ -1616,7 +1652,12 @@ export default function TrattativeTable({
 						</div>
 					)}
 					{(filter === "all" || filter === "concluse") && (
-						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+							<CheckIcon
+								aria-hidden
+								className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+								size={56}
+							/>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative concluse
 							</h3>
@@ -1628,7 +1669,12 @@ export default function TrattativeTable({
 						</div>
 					)}
 					{(filter === "all" || filter === "abbandonate") && (
-						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+							<CircleXmarkFilled
+								aria-hidden
+								className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+								size={56}
+							/>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative abbandonate
 							</h3>
@@ -1639,6 +1685,75 @@ export default function TrattativeTable({
 							</div>
 						</div>
 					)}
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<IconVault3Fill18
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
+						<h3 className="font-medium text-sm text-stats-title leading-none">
+							Totale importo
+						</h3>
+						<div className="flex items-center justify-start">
+							<AnimateNumber className="text-xl tabular-nums leading-none">
+								{totalImporto}
+							</AnimateNumber>
+							<span className="ml-0.5 text-stats-title text-xl leading-none">
+								€
+							</span>
+						</div>
+					</div>
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<IconCurrencyExchangeFill18
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
+						<h3 className="font-medium text-sm text-stats-title leading-none">
+							Importo medio
+						</h3>
+						<div className="flex items-center justify-start">
+							<AnimateNumber className="text-xl tabular-nums leading-none">
+								{averageImporto}
+							</AnimateNumber>
+							<span className="ml-0.5 text-stats-title text-xl leading-none">
+								€
+							</span>
+						</div>
+					</div>
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<IconWipFill18
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
+						<h3 className="font-medium text-sm text-stats-title leading-none">
+							Percentuale media
+						</h3>
+						<div className="flex items-center justify-start">
+							<AnimateNumber className="text-xl tabular-nums leading-none">
+								{averagePercentuale}
+							</AnimateNumber>
+							<span className="ml-0.5 text-stats-title text-xl leading-none">
+								%
+							</span>
+						</div>
+					</div>
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<UserGroupIcon
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
+						<h3 className="font-medium text-sm text-stats-title leading-none">
+							Clienti coinvolti
+						</h3>
+						<div className="flex items-center justify-start">
+							<AnimateNumber className="text-xl tabular-nums leading-none">
+								{uniqueClientIds.size}
+							</AnimateNumber>
+						</div>
+					</div>
 				</div>
 
 				{/* Table */}
@@ -1738,13 +1853,21 @@ export default function TrattativeTable({
 								// Clamp percentuale defensively to keep the progress "slider" within 0-100%
 								const clampedPercent = clampPercentuale(n.percentuale);
 								return (
-									<button
+									// biome-ignore lint/a11y/useSemanticElements: div + role="button" avoids native button active/press animation on the row while keeping keyboard access.
+									<div
 										aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
-										/* Row hover uses dedicated table hover token */
+										/* Row hover uses dedicated table hover token; row is clickable but not a native button so it doesn't animate on press. */
 										className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
 										key={n.id}
 										onClick={() => handleOpenUpdate(n)}
-										type="button"
+										onKeyDown={(event) => {
+											if (event.key === "Enter" || event.key === " ") {
+												event.preventDefault();
+												handleOpenUpdate(n);
+											}
+										}}
+										role="button"
+										tabIndex={0}
 									>
 										<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(140px,1.2fr)_minmax(100px,0.8fr)] items-center gap-4 text-base">
 											<div className="truncate">{getClientDisplay(n)}</div>
@@ -1822,7 +1945,7 @@ export default function TrattativeTable({
 												</span>
 											</div>
 										</div>
-									</button>
+									</div>
 								);
 							})}
 					</div>

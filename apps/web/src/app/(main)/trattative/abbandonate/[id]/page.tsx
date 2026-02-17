@@ -1,8 +1,12 @@
 "use client";
 
+import { Dialog } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { Drawer } from "vaul";
 import { IconUTurnToLeft } from "@/components/icons";
 import Loader from "@/components/loader";
 import { Button } from "@/components/ui/button";
@@ -16,6 +20,7 @@ import {
 	getNegotiationStatoSegment,
 	STATO_LABELS,
 } from "@/lib/trattative-utils";
+import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 
 /**
  * Edit page for an abandoned negotiation (trattative abbandonate).
@@ -32,6 +37,13 @@ export default function TrattativeAbbandonateEditPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isDirty, setIsDirty] = useState(false);
+	// Track whether the "leave without saving" confirmation dialog is open.
+	const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+	// Layout flags for the leave dialog: use Vaul Drawer on mobile, Base UI Dialog on desktop.
+	const [leaveDialogLayoutReady, setLeaveDialogLayoutReady] = useState(false);
+	const [leaveDialogIsDesktop, setLeaveDialogIsDesktop] = useState(false);
+	// Target dinamico per la navigazione dopo conferma (sidebar nav, ecc.).
+	const [pendingHref, setPendingHref] = useState<string | null>(null);
 	const [resetTrigger, setResetTrigger] = useState(0);
 
 	const fetchNegotiation = useCallback(async () => {
@@ -62,15 +74,110 @@ export default function TrattativeAbbandonateEditPage() {
 		fetchNegotiation().catch(() => undefined);
 	}, [fetchNegotiation]);
 
+	// Detect layout for the leave confirmation: align breakpoint with other drawers/dialogs (768px).
+	// This ensures we use a Vaul Drawer on phone-sized viewports and a centered dialog on desktop.
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		const mql = window.matchMedia("(max-width: 767px)");
+		const handleChange = () => {
+			setLeaveDialogIsDesktop(!mql.matches);
+		};
+		handleChange();
+		setLeaveDialogLayoutReady(true);
+		mql.addEventListener("change", handleChange);
+		return () => {
+			mql.removeEventListener("change", handleChange);
+		};
+	}, []);
+
 	const handleSuccess = useCallback(
 		(updated: ApiNegotiation) => {
 			// Redirect to the list that now contains this negotiation
 			// (state may have changed, e.g. marked abbandonata → abbandonate)
 			const stato = getNegotiationStatoSegment(updated);
-			router.push(`/trattative/${stato}`);
+			router.push(`/trattative/${stato}` as Parameters<typeof Link>[0]["href"]);
 		},
 		[router]
 	);
+
+	const backHref = "/trattative/abbandonate";
+
+	// When the user confirms they want to leave without saving, close the dialog and navigate back.
+	const handleConfirmLeave = useCallback(() => {
+		const targetHref = (pendingHref ?? backHref) as Parameters<
+			typeof Link
+		>[0]["href"];
+		setIsLeaveDialogOpen(false);
+		setPendingHref(null);
+		router.push(targetHref);
+	}, [backHref, pendingHref, router]);
+
+	// Handle click on the "Torna indietro" button:
+	// - if there are unsaved changes and we are not currently submitting, show confirmation
+	// - otherwise, navigate back immediately.
+	const handleBackClick = useCallback(() => {
+		if (isDirty && !isSubmitting) {
+			setIsLeaveDialogOpen(true);
+			return;
+		}
+		router.push(backHref as Parameters<typeof Link>[0]["href"]);
+	}, [backHref, isDirty, isSubmitting, router]);
+
+	// Reindirizza anche le navigazioni globali (es. click sulla Sidebar) verso lo stesso
+	// flusso di conferma: se il form è sporco apriamo il dialog con l'href richiesto,
+	// altrimenti navighiamo subito.
+	useEffect(() => {
+		const unregister = registerUnsavedNavigationListener(({ href }) => {
+			if (isDirty && !isSubmitting) {
+				setPendingHref(href);
+				setIsLeaveDialogOpen(true);
+				return true;
+			}
+			router.push(href as Parameters<typeof Link>[0]["href"]);
+			return true;
+		});
+		return unregister;
+	}, [isDirty, isSubmitting, router]);
+
+	// Shared content for the "leave without saving" dialog, used by both Drawer (mobile)
+	// and Dialog (desktop) so the experience is visually consistent with "Aggiungi cliente".
+	function renderLeaveDialogContent(closeButton: ReactNode) {
+		return (
+			<>
+				<div className="flex items-center justify-between gap-3 pb-6">
+					{/* Use card-foreground so the dialog title is readable across themes and color schemes. */}
+					<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
+						Modifiche non salvate
+					</h2>
+					{closeButton}
+				</div>
+				<p className="text-muted-foreground text-sm">
+					Hai apportato modifiche a questa trattativa che non sono ancora state
+					salvate. Sei sicuro di voler uscire senza salvare le modifiche?
+				</p>
+				<div className="mt-6 flex justify-between gap-3">
+					<Button
+						className="h-10 min-w-26 rounded-xl border-border bg-muted text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
+						onClick={() => setIsLeaveDialogOpen(false)}
+						type="button"
+						variant="outline"
+					>
+						Resta sulla pagina
+					</Button>
+					<Button
+						className="h-10 min-w-32 rounded-xl text-sm"
+						onClick={handleConfirmLeave}
+						type="button"
+						variant="destructive"
+					>
+						Esci senza salvare
+					</Button>
+				</div>
+			</>
+		);
+	}
 
 	if (!(isLoaded && user)) {
 		return <Loader />;
@@ -107,27 +214,24 @@ export default function TrattativeAbbandonateEditPage() {
 		);
 	}
 
-	const backHref = "/trattative/abbandonate" as Parameters<
-		typeof Link
-	>[0]["href"];
-
 	return (
 		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
 			{/* Header: back + title on left, Annulla + Salva on right (same line as list page "Aggiungi") */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
 					<div className="flex min-w-0 flex-1 items-center justify-start gap-2.5">
-						<Link
+						<button
 							aria-label={`Torna a ${STATO_LABELS.abbandonate}`}
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							href={backHref}
+							onClick={handleBackClick}
+							type="button"
 						>
 							<IconUTurnToLeft
 								aria-hidden
 								className="size-5 shrink-0"
 								size={20}
 							/>
-						</Link>
+						</button>
 						<h1
 							className="min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
 							id="update-negotiation-title"
@@ -172,6 +276,81 @@ export default function TrattativeAbbandonateEditPage() {
 					</div>
 				</div>
 			</div>
+			{/* Leave-without-saving confirmation: Vaul Drawer on mobile, Base UI Dialog on desktop. */}
+			{leaveDialogLayoutReady &&
+				(leaveDialogIsDesktop ? (
+					<Dialog.Root
+						disablePointerDismissal={false}
+						onOpenChange={setIsLeaveDialogOpen}
+						open={isLeaveDialogOpen}
+					>
+						<Dialog.Portal>
+							<Dialog.Backdrop
+								aria-hidden
+								className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
+							/>
+							<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+								<Dialog.Popup
+									aria-describedby="leave-without-save-desc"
+									aria-labelledby="leave-without-save-title"
+									className="data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-card px-6 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in"
+								>
+									<Dialog.Title
+										className="sr-only"
+										id="leave-without-save-title"
+									>
+										Modifiche non salvate
+									</Dialog.Title>
+									<p className="sr-only" id="leave-without-save-desc">
+										Conferma se vuoi uscire dalla pagina senza salvare le
+										modifiche della trattativa.
+									</p>
+									<div className="overflow-y-auto">
+										{renderLeaveDialogContent(
+											<Dialog.Close
+												aria-label="Chiudi"
+												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+											>
+												<X aria-hidden className="size-4" />
+											</Dialog.Close>
+										)}
+									</div>
+								</Dialog.Popup>
+							</div>
+						</Dialog.Portal>
+					</Dialog.Root>
+				) : (
+					<Drawer.Root
+						onOpenChange={setIsLeaveDialogOpen}
+						open={isLeaveDialogOpen}
+					>
+						<Drawer.Portal>
+							<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
+							<Drawer.Content className="fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]">
+								<Drawer.Title className="sr-only">
+									Modifiche non salvate
+								</Drawer.Title>
+								<Drawer.Description className="sr-only">
+									Conferma se vuoi uscire dalla pagina senza salvare le
+									modifiche della trattativa.
+								</Drawer.Description>
+								<div className="mx-auto mt-0.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
+								<div className="min-h-0 flex-1 overflow-y-auto pt-2">
+									{renderLeaveDialogContent(
+										<button
+											aria-label="Chiudi"
+											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+											onClick={() => setIsLeaveDialogOpen(false)}
+											type="button"
+										>
+											<X aria-hidden className="size-4" />
+										</button>
+									)}
+								</div>
+							</Drawer.Content>
+						</Drawer.Portal>
+					</Drawer.Root>
+				))}
 			{/* Inner body: table-container-bg takes all remaining space (like list page); form fills and scrolls inside. */}
 			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
 				<UpdateNegotiationForm

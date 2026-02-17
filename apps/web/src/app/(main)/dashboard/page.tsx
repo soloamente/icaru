@@ -33,6 +33,10 @@ import { cn } from "@/lib/utils";
 
 /** Trattative aperte: section linked from dashboard summary cards. */
 const TRATTATIVE_APERTE_HREF = "/trattative/aperte" as const;
+/** Trattative concluse: linked from % Conclusione and "Concluse questo mese" cards. */
+const TRATTATIVE_CONCLUSE_HREF = "/trattative/concluse" as const;
+/** Tutte le trattative: linked from Importo medio card. */
+const TRATTATIVE_TUTTE_HREF = "/trattative/tutte" as const;
 
 /** Format amount as EUR (Italian locale) for dashboard cards. */
 function formatCurrency(value: number): string {
@@ -65,6 +69,8 @@ interface NegotiationsStatsCard {
 	subtitle?: ReactNode;
 	/** Color for subtitle: green if positive, red if negative. */
 	subtitleColor?: "negative" | "positive";
+	/** Destination for the card link (e.g. /trattative/aperte, /trattative/concluse). */
+	href: string;
 }
 
 /** Stable keys for the 6 skeleton cards (avoids array index as key). */
@@ -242,27 +248,32 @@ export default function DashboardPage() {
 		(Boolean(auth?.token) && negotiationsStats === null && !negotiationsError);
 
 	// Build 6 cards from GET /api/statistics/negotiations for the summary grid.
+	// Each card links to the relevant trattative list (aperte, concluse, tutte).
 	const statsCards: NegotiationsStatsCard[] = negotiationsStats
 		? [
 				{
 					id: "total-open",
 					title: "Trattative aperte",
 					value: negotiationsStats.total_open_negotiations,
+					href: TRATTATIVE_APERTE_HREF,
 				},
 				{
 					id: "conclusion-pct",
 					title: "% Conclusione",
 					value: `${negotiationsStats.conclusion_percentage.toFixed(1)}%`,
+					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 				{
 					id: "average-amount",
 					title: "Importo medio",
 					value: formatCurrency(negotiationsStats.average_amount),
+					href: TRATTATIVE_TUTTE_HREF,
 				},
 				{
 					id: "total-open-amount",
 					title: "Totale importo aperto",
 					value: formatCurrency(negotiationsStats.total_open_amount),
+					href: TRATTATIVE_APERTE_HREF,
 				},
 				{
 					id: "opened-comparison",
@@ -275,6 +286,7 @@ export default function DashboardPage() {
 						negotiationsStats.opened_negotiations_comparison.percentage >= 0
 							? "positive"
 							: "negative",
+					href: TRATTATIVE_APERTE_HREF,
 				},
 				{
 					id: "concluded-comparison",
@@ -288,6 +300,7 @@ export default function DashboardPage() {
 						negotiationsStats.concluded_negotiations_comparison.percentage >= 0
 							? "positive"
 							: "negative",
+					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 			]
 		: [];
@@ -361,93 +374,101 @@ export default function DashboardPage() {
 									</div>
 								</div>
 							))
-						: statsCards.map((card) => (
-								<Link
-									aria-label={`${card.title}: ${card.value}${card.subtitle ? `, ${card.subtitle} ${COMPARISON_SUFFIX}` : ""}, vai a trattative aperte`}
-									className="group relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-									href={TRATTATIVE_APERTE_HREF}
-									key={card.id}
-								>
-									{/* Background icons per card — decorative, right-aligned, low opacity. Match sidebar icon for "Trattative aperte" (Aperte). */}
-									{card.id === "total-open" && (
-										<IconFilePlusFill18
-											aria-hidden="true"
-											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
-											size={96}
-										/>
-									)}
-									{card.id === "conclusion-pct" && (
-										<IconWipFill18
-											aria-hidden="true"
-											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
-											size={96}
-										/>
-									)}
-									{card.id === "average-amount" && (
-										<IconCurrencyExchangeFill18
-											aria-hidden="true"
-											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
-											size={96}
-										/>
-									)}
-									{card.id === "total-open-amount" && (
-										<IconVault3Fill18
-											aria-hidden="true"
-											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
-											size={96}
-										/>
-									)}
-									{card.id === "opened-comparison" && (
-										<IconCirclePlusFilled
-											aria-hidden="true"
-											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
-											size={96}
-										/>
-									)}
-									{card.id === "concluded-comparison" && (
-										<CheckIcon
-											aria-hidden="true"
-											className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-foreground opacity-[0.07]"
-											size={96}
-										/>
-									)}
-									<span className="truncate font-medium text-muted-foreground text-sm">
-										{card.title}
-									</span>
-									<div className="flex items-baseline gap-2">
-										{/* text-foreground: in dataweb light le card hanno bg-background (blu)
+						: statsCards.map((card) => {
+								let destinationLabel = "trattative aperte";
+								if (card.href === TRATTATIVE_CONCLUSE_HREF) {
+									destinationLabel = "trattative concluse";
+								} else if (card.href === TRATTATIVE_TUTTE_HREF) {
+									destinationLabel = "tutte le trattative";
+								}
+								return (
+									<Link
+										aria-label={`${card.title}: ${card.value}${card.subtitle ? `, ${card.subtitle} ${COMPARISON_SUFFIX}` : ""}, vai a ${destinationLabel}`}
+										className="group relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										href={card.href as Parameters<typeof Link>[0]["href"]}
+										key={card.id}
+									>
+										{/* Background icons per card — decorative, right-aligned, low opacity. Match sidebar icon for "Trattative aperte" (Aperte). */}
+										{card.id === "total-open" && (
+											<IconFilePlusFill18
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												size={96}
+											/>
+										)}
+										{card.id === "conclusion-pct" && (
+											<IconWipFill18
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												size={96}
+											/>
+										)}
+										{card.id === "average-amount" && (
+											<IconCurrencyExchangeFill18
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												size={96}
+											/>
+										)}
+										{card.id === "total-open-amount" && (
+											<IconVault3Fill18
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												size={96}
+											/>
+										)}
+										{card.id === "opened-comparison" && (
+											<IconCirclePlusFilled
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												size={96}
+											/>
+										)}
+										{card.id === "concluded-comparison" && (
+											<CheckIcon
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												size={96}
+											/>
+										)}
+										<span className="truncate font-medium text-muted-foreground text-sm">
+											{card.title}
+										</span>
+										<div className="flex items-baseline gap-2">
+											{/* text-foreground: in dataweb light le card hanno bg-background (blu)
 										    e richiedono testo chiaro come la freccia; negli altri temi
 										    text-foreground garantisce sempre contrasto corretto. */}
-										<span className="font-semibold text-5xl text-foreground">
-											{card.value}
-										</span>
-										{card.subtitle && (
-											<>
-												<span
-													className={cn(
-														"text-sm",
-														card.subtitleColor === "negative" &&
-															"text-destructive",
-														card.subtitleColor === "positive" &&
-															"text-emerald-600 dark:text-emerald-400"
-													)}
-												>
-													{card.subtitle}
-												</span>
-												<span className="text-muted-foreground text-sm">
-													{" "}
-													{COMPARISON_SUFFIX}
-												</span>
-											</>
-										)}
-									</div>
-									<ArrowUpRight
-										aria-hidden="true"
-										className="absolute top-6 right-3 shrink-0 text-foreground opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
-										size={28}
-									/>
-								</Link>
-							))}
+											<span className="font-semibold text-5xl text-foreground">
+												{card.value}
+											</span>
+											{card.subtitle && (
+												<>
+													<span
+														className={cn(
+															"text-sm",
+															card.subtitleColor === "negative" &&
+																"text-destructive",
+															card.subtitleColor === "positive" &&
+																"text-emerald-600 dark:text-emerald-400"
+														)}
+													>
+														{card.subtitle}
+													</span>
+													<span className="text-muted-foreground text-sm">
+														{" "}
+														{COMPARISON_SUFFIX}
+													</span>
+												</>
+											)}
+										</div>
+										<ArrowUpRight
+											aria-hidden="true"
+											className="absolute top-6 right-3 shrink-0 text-foreground opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
+											size={28}
+										/>
+									</Link>
+								);
+							})}
 				</div>
 			</section>
 		</main>

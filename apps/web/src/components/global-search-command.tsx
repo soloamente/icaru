@@ -57,7 +57,12 @@ function buildSearchResponseFromLists(
 		id: n.id,
 		referente: n.referente,
 		client_id: n.client_id,
-		data_apertura: n.created_at ?? "",
+		// Usiamo `data_apertura` della trattativa quando presente, con fallback su `created_at`
+		// per mantenere coerenza tra risultati di ricerca e dettaglio trattativa.
+		data_apertura:
+			(n as ApiNegotiation & { data_apertura?: string }).data_apertura ??
+			n.created_at ??
+			"",
 		spanco: n.spanco,
 		client: {
 			ragione_sociale: n.client?.ragione_sociale ?? "",
@@ -83,6 +88,21 @@ export default function GlobalSearchCommand() {
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
+
+	// Allow other components (e.g. Sidebar "Ricerca rapida" button) to open the
+	// command palette programmatically by dispatching a custom DOM event.
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		const handleExternalOpen = () => {
+			setOpen(true);
+		};
+		window.addEventListener("icr-global-search-open", handleExternalOpen);
+		return () => {
+			window.removeEventListener("icr-global-search-open", handleExternalOpen);
+		};
+	}, []);
 
 	// Toggle command palette on ⌘K / Ctrl+K
 	useEffect(() => {

@@ -8,6 +8,7 @@ import type {
 	ApiClient,
 	ApiClientWithoutNegotiation,
 	ApiNegotiation,
+	CreateClientBody,
 	CreateNegotiationBody,
 	ImportCheckResponse,
 	ImportConfirmResponse,
@@ -15,6 +16,7 @@ import type {
 	NegotiationsStatistics,
 	SearchResponse,
 	SpancoStatistics,
+	UpdateClientBody,
 	UpdateNegotiationBody,
 } from "./types";
 
@@ -119,11 +121,30 @@ export async function logout(accessToken: string): Promise<void> {
 }
 
 // --- Clients API ---
-// Doc: Venditore/Direttore (propri) → GET /api/clients/me; Direttore (azienda) → GET /api/clients/company
+// Endpoint base: /api/clients
+// A. Venditore/Direttore Vendite (propri): GET /api/clients/me — clienti assegnati all'utente (ordinati per ragione sociale)
+// B. Direttore Vendite (azienda): GET /api/clients/company — tutti i clienti dell'azienda
+// Struttura risposta: ogni cliente include sempre l'oggetto address.
 
 /**
- * GET /clients/me — List clients assigned to the logged-in user (Venditore/Direttore Vendite).
- * Ordered by ragione_sociale. Query: ?search= for name or P.IVA if backend supports it.
+ * Estrae l'array clienti dalla risposta GET /api/clients/me o /api/clients/company.
+ * Accetta sia risposta come array diretto sia come oggetto { data: ApiClient[] }.
+ */
+function parseClientsResponse(
+	json: ApiClient[] | { data?: ApiClient[]; message?: string }
+): ApiClient[] {
+	if (Array.isArray(json)) {
+		return json;
+	}
+	if (json && Array.isArray((json as { data?: ApiClient[] }).data)) {
+		return (json as { data: ApiClient[] }).data;
+	}
+	return [];
+}
+
+/**
+ * GET /api/clients/me — List clients assigned to the logged-in user (Venditore/Direttore Vendite).
+ * Tutti i clienti dell'utente, ordinati per ragione sociale. Query: ?search= opzionale.
  */
 export async function listClientsMe(
 	accessToken: string,
@@ -139,7 +160,9 @@ export async function listClientsMe(
 			method: "GET",
 			headers: getAuthHeaders(accessToken),
 		});
-		const json = (await res.json()) as ApiClient[] | { message?: string };
+		const json = (await res.json()) as
+			| ApiClient[]
+			| { data?: ApiClient[]; message?: string };
 		if (!res.ok) {
 			const msg =
 				typeof (json as { message?: string }).message === "string"
@@ -147,7 +170,7 @@ export async function listClientsMe(
 					: "Errore nel caricamento dei clienti";
 			return { error: msg };
 		}
-		return { data: json as ApiClient[] };
+		return { data: parseClientsResponse(json) };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
@@ -155,7 +178,8 @@ export async function listClientsMe(
 }
 
 /**
- * GET /clients/company — List all company clients (solo Direttore Vendite).
+ * GET /api/clients/company — List all company clients (solo Direttore Vendite).
+ * Tutti i clienti dell'azienda.
  */
 export async function listClientsCompany(
 	accessToken: string,
@@ -171,7 +195,9 @@ export async function listClientsCompany(
 			method: "GET",
 			headers: getAuthHeaders(accessToken),
 		});
-		const json = (await res.json()) as ApiClient[] | { message?: string };
+		const json = (await res.json()) as
+			| ApiClient[]
+			| { data?: ApiClient[]; message?: string };
 		if (!res.ok) {
 			const msg =
 				typeof (json as { message?: string }).message === "string"
@@ -179,7 +205,7 @@ export async function listClientsCompany(
 					: "Errore nel caricamento dei clienti";
 			return { error: msg };
 		}
-		return { data: json as ApiClient[] };
+		return { data: parseClientsResponse(json) };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
@@ -219,17 +245,109 @@ export async function listClientsWithoutNegotiations(
  * List clients: defaults to "me" (Venditore/Direttore propri).
  * Use listClientsMe or listClientsCompany for explicit scope.
  */
-export async function listClients(
+export function listClients(
 	accessToken: string,
 	params?: { search?: string }
 ): Promise<{ data: ApiClient[] } | { error: string }> {
 	return listClientsMe(accessToken, params);
 }
 
+/**
+ * GET /clients/{id} — Dettaglio di un singolo cliente.
+ * Usa lo stesso tipo `ApiClient` delle liste, incluso l'oggetto `address`.
+ */
+export async function getClient(
+	accessToken: string,
+	id: number
+): Promise<{ data: ApiClient } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/clients/${id}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiClient | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Cliente non trovato";
+			return { error: msg };
+		}
+		return { data: json as ApiClient };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * PUT /clients/{id} — Aggiorna i dati anagrafici del cliente e,
+ * opzionalmente, i campi di indirizzo associati. Il backend penserà
+ * ad allineare la tabella `addresses` in base ai campi inviati.
+ */
+export async function updateClient(
+	accessToken: string,
+	id: number,
+	body: UpdateClientBody
+): Promise<{ data: ApiClient } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/clients/${id}`, {
+			method: "PUT",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiClient | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nell'aggiornamento del cliente";
+			return { error: msg };
+		}
+		return { data: json as ApiClient };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * POST /clients — Crea un nuovo cliente.
+ * Body: ragione_sociale (obbligatorio), p_iva, email, telefono, tipologia,
+ * indirizzo, citta, cap, provincia, regione (tutti opzionali).
+ * Il backend crea/associa l'indirizzo nella tabella addresses.
+ */
+export async function createClient(
+	accessToken: string,
+	body: CreateClientBody
+): Promise<{ data: ApiClient } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/clients`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiClient | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nella creazione del cliente";
+			return { error: msg };
+		}
+		return { data: json as ApiClient };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
 // --- Negotiations API ---
 // Doc: Venditore/Direttore (proprie) → /me, /me/open, /me/abandoned, /me/concluded; Direttore (azienda) → /company
 
-type NegotiationsListParams = { client_id?: number };
+interface NegotiationsListParams {
+	client_id?: number;
+}
 
 function buildNegotiationsQuery(params?: NegotiationsListParams): string {
 	const searchParams = new URLSearchParams();
@@ -385,7 +503,7 @@ export async function listNegotiationsCompany(
  * Prefer listNegotiationsMe, listNegotiationsMeOpen, listNegotiationsMeAbandoned,
  * listNegotiationsMeConcluded, or listNegotiationsCompany for explicit scope/filter.
  */
-export async function listNegotiations(
+export function listNegotiations(
 	accessToken: string,
 	params?: NegotiationsListParams
 ): Promise<{ data: ApiNegotiation[] } | { error: string }> {
@@ -540,6 +658,47 @@ export async function getFileDownload(
 		}
 		const blob = await res.blob();
 		return { data: blob };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * DELETE /files/{id} — Remove a file attached to a negotiation.
+ * This helper deletes both the database record and the physical file on storage.
+ * It returns a simple ok/error shape so the caller can show a clear toast message.
+ */
+export async function deleteNegotiationFile(
+	accessToken: string,
+	fileId: number
+): Promise<{ ok: true } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/files/${fileId}`, {
+			method: "DELETE",
+			headers: getAuthHeaders(accessToken),
+		});
+
+		if (!res.ok) {
+			// Backend may return JSON with a message or an empty/HTML body.
+			// Try to parse JSON first; if that fails or there is no message,
+			// fall back to a generic, user‑friendly error string.
+			let message = "Errore nell'eliminazione del file";
+			try {
+				const json = (await res.json()) as { message?: string };
+				if (
+					typeof json.message === "string" &&
+					json.message.trim().length > 0
+				) {
+					message = json.message;
+				}
+			} catch {
+				// Ignore JSON parse errors and keep the generic message.
+			}
+			return { error: message };
+		}
+
+		return { ok: true };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };

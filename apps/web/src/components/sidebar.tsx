@@ -9,7 +9,7 @@ import { type ComponentType, type SVGProps, useEffect, useState } from "react";
 import {
 	DashboardIcon,
 	GearIcon,
-	HelpIcon,
+	IconMagnifierSparkleFill18,
 	OpenRectArrowOutIcon,
 } from "@/components/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,6 +25,7 @@ import {
 	usePreferences,
 } from "@/lib/preferences/preferences-context";
 import { useSidebarOpen } from "@/lib/sidebar/sidebar-open-context";
+import { requestUnsavedNavigation } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
 import FileXmark from "./file-xmark";
 import FolderOpen from "./folder-open";
@@ -67,6 +68,8 @@ interface FooterItem {
 	icon: IconComponent;
 	label: string;
 	onClick?: () => void;
+	/** Optional: human‑readable keyboard shortcut to show in a tooltip (es. "⌘K" / "Ctrl+K"). */
+	shortcutHint?: string;
 }
 
 interface SidebarProps {
@@ -93,6 +96,16 @@ export default function Sidebar({
 	const { colorScheme } = usePreferences();
 	const user = userProp ?? auth?.user ?? null;
 	const isRichColors: boolean = colorScheme === "rich";
+
+	// Detect platform once on mount so we can show an appropriate shortcut
+	// hint (⌘K on macOS, Ctrl+K altrove) accanto al bottone "Ricerca rapida".
+	const [isMac, setIsMac] = useState(false);
+	useEffect(() => {
+		if (typeof navigator !== "undefined") {
+			const platform = navigator.platform.toLowerCase();
+			setIsMac(platform.includes("mac"));
+		}
+	}, []);
 
 	// Avoid hydration mismatch: auth user is restored from localStorage in useEffect,
 	// so server and first client paint can differ. Defer user-dependent avatar
@@ -162,10 +175,24 @@ export default function Sidebar({
 	// Preferences dialog: open from footer "Preferenze" button
 	const [preferencesOpen, setPreferencesOpen] = useState(false);
 
+	/** Open the global search command palette (cmdk) from the sidebar footer. */
+	const handleQuickSearchClick = () => {
+		if (typeof window !== "undefined") {
+			// Custom event handled inside GlobalSearchCommand.
+			window.dispatchEvent(new Event("icr-global-search-open"));
+		}
+		// On mobile, close the sidebar so the dialog is clearly visible.
+		if (sidebarOpen?.isMobile && sidebarOpen.isOpen) {
+			sidebarOpen.setOpen(false);
+		}
+	};
+
 	const navFooter: FooterItem[] = [
 		{
-			icon: HelpIcon as IconComponent,
-			label: "Supporto",
+			icon: IconMagnifierSparkleFill18 as IconComponent,
+			label: "Ricerca rapida",
+			onClick: handleQuickSearchClick,
+			shortcutHint: isMac ? "⌘K" : "Ctrl+K",
 		},
 		{
 			icon: GearIcon as IconComponent,
@@ -197,6 +224,33 @@ export default function Sidebar({
 
 	const sidebarOpen = useSidebarOpen();
 	const isHorizontal = variant === "top" || variant === "bottom";
+
+	/**
+	 * Gestisce il click su un link di navigazione dell'app (Dashboard, Clienti, Trattative, ecc.)
+	 * tenendo conto di eventuali modifiche non salvate in pagine di edit.
+	 *
+	 * - Se esiste un listener registrato (pagina di edit aperta) → delega a lui la decisione:
+	 *   apre il dialog "Modifiche non salvate" oppure naviga direttamente.
+	 * - Se non esiste alcun listener → il click procede normalmente (Link/router gestiscono la nav).
+	 */
+	function handleAppNavClick(
+		event: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
+		href: AppRoute
+	) {
+		const handled = requestUnsavedNavigation(href);
+		if (!handled) {
+			// Nessun listener registrato: lasciamo che sia Next Link a gestire la navigazione.
+			return;
+		}
+		// La richiesta è stata gestita dal listener (dialog o navigazione esplicita):
+		// blocchiamo la navigazione predefinita del Link per evitare doppi push.
+		event.preventDefault();
+		// Se siamo in modalità sidebar mobile e la sidebar è aperta, chiudiamola dopo il click
+		// così da non lasciare il menu aperto sopra la nuova pagina.
+		if (sidebarOpen?.isMobile && sidebarOpen.isOpen) {
+			sidebarOpen.setOpen(false);
+		}
+	}
 
 	// Horizontal bar (top or bottom): single row, compact nav with Trattative as dropdown
 	if (isHorizontal) {
@@ -269,7 +323,7 @@ export default function Sidebar({
 									? "text-red-500 hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
 									: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
 							)}
-							onClick={() => void auth?.logout?.()}
+							onClick={() => auth?.logout?.()}
 							type="button"
 						>
 							<OpenRectArrowOutIcon className="size-5" />
@@ -299,6 +353,7 @@ export default function Sidebar({
 									)}
 									href={item.href as Parameters<typeof Link>[0]["href"]}
 									key={item.href}
+									onClick={(event) => handleAppNavClick(event, item.href)}
 								>
 									<item.icon size={20} />
 									{item.label}
@@ -334,7 +389,14 @@ export default function Sidebar({
 												isActiveItem(child.href) && "bg-muted"
 											)}
 											key={child.href}
-											onClick={() => router.push(child.href)}
+											onClick={(event) => {
+												const handled = requestUnsavedNavigation(child.href);
+												if (handled) {
+													event.preventDefault();
+													return;
+												}
+												router.push(child.href);
+											}}
 										>
 											<child.icon size={18} />
 											{child.label}
@@ -345,24 +407,33 @@ export default function Sidebar({
 						)}
 					</nav>
 
-					{/* Footer actions in same row */}
+					{/* Footer actions in same row.
+					    Per "Ricerca rapida" usiamo un tooltip custom (stesso pattern della pill "Ha trattativa")
+					    così possiamo mostrare anche la scorciatoia (⌘K / Ctrl+K) senza affollare la riga. */}
 					<div className="flex items-center gap-1">
 						{navFooter.map((item) => (
-							<button
-								aria-label={item.label}
-								className={cn(
-									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2",
-									isRichColors
-										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
-										: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
+							<div className="group relative inline-flex" key={item.label}>
+								<button
+									aria-label={item.label}
+									className={cn(
+										"flex items-center gap-2 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2",
+										isRichColors
+											? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
+											: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
+									)}
+									onClick={item.onClick}
+									type="button"
+								>
+									{/* Usiamo una dimensione icona coerente con Gear/Help (20px) anche per Ricerca rapida. */}
+									<item.icon size={20} />
+									<span className="hidden sm:inline">{item.label}</span>
+								</button>
+								{item.shortcutHint && (
+									<span className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
+										Apri {item.label.toLowerCase()} ({item.shortcutHint})
+									</span>
 								)}
-								key={item.label}
-								onClick={item.onClick}
-								type="button"
-							>
-								<item.icon size={20} />
-								<span className="hidden sm:inline">{item.label}</span>
-							</button>
+							</div>
 						))}
 					</div>
 				</aside>
@@ -451,7 +522,7 @@ export default function Sidebar({
 								"flex shrink-0 items-center justify-center rounded-lg p-1.5 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
 								isRichColors ? "text-red-500" : "text-muted-foreground"
 							)}
-							onClick={() => void auth?.logout?.()}
+							onClick={() => auth?.logout?.()}
 							type="button"
 						>
 							<OpenRectArrowOutIcon className="size-5" />
@@ -472,6 +543,7 @@ export default function Sidebar({
 									)}
 									href={item.href as Parameters<typeof Link>[0]["href"]}
 									key={item.href}
+									onClick={(event) => handleAppNavClick(event, item.href)}
 								>
 									<item.icon size={24} />
 									{item.label}
@@ -534,6 +606,9 @@ export default function Sidebar({
 														href={
 															child.href as Parameters<typeof Link>[0]["href"]
 														}
+														onClick={(event) =>
+															handleAppNavClick(event, child.href)
+														}
 													>
 														<child.icon size={24} />
 														{child.label}
@@ -548,18 +623,27 @@ export default function Sidebar({
 					</div>
 				</div>
 
-				{/* Footer: Support, Preferenze */}
+				{/* Footer: Ricerca rapida, Preferenze.
+				    Per Ricerca rapida mostriamo una pill di tooltip custom con anche la scorciatoia,
+				    seguendo lo stesso pattern usato per la pill "Ha trattativa" in ClientsTable. */}
 				<div className="flex shrink-0 flex-col gap-2.5 pb-2">
 					{navFooter.map((item) => (
-						<button
-							className="flex cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
-							key={item.label}
-							onClick={item.onClick}
-							type="button"
-						>
-							<item.icon size={24} />
-							{item.label}
-						</button>
+						<div className="group relative inline-flex" key={item.label}>
+							<button
+								className="flex cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
+								onClick={item.onClick}
+								type="button"
+							>
+								{/* Icona 24px per allinearsi al Gear e alle altre voci di footer. */}
+								<item.icon size={24} />
+								{item.label}
+							</button>
+							{item.shortcutHint && (
+								<span className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
+									Apri {item.label.toLowerCase()} ({item.shortcutHint})
+								</span>
+							)}
+						</div>
 					))}
 				</div>
 			</div>

@@ -1,16 +1,24 @@
 "use client";
 
-import { Dialog } from "@base-ui/react/dialog";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { useIsMobile } from "@/hooks/use-is-mobile";
-import { listClientsCompany, listClientsMe } from "@/lib/api/client";
+import { CheckIcon, IconCirclePlusFilled } from "@/components/icons";
+import {
+	listClientsCompany,
+	listClientsMe,
+	listClientsWithoutNegotiations,
+	listNegotiationsCompany,
+	listNegotiationsMe,
+} from "@/lib/api/client";
 import type { ApiClient, ApiClientAddress } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
-import { cn } from "@/lib/utils";
+import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
+import { AddClientDialog } from "./add-client-dialog";
 import Download4 from "./icons/download-4";
+import IconEyeFill12 from "./icons/icon-eye-fill-12";
 import { UserGroupIcon } from "./icons/user-group";
 import { ImportClientsDialog } from "./import-clients-dialog";
 
@@ -61,17 +69,25 @@ function formatAddress(addr: ApiClientAddress | null | undefined): string {
 
 export default function ClientsTable() {
 	const { token, role } = useAuth();
+	const router = useRouter();
 	const [clients, setClients] = useState<ApiClient[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-	/** Opens dialog to add a single client (placeholder until AddClientDialog exists). */
+	/** Opens dialog to add a single client. */
 	const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
-	const isMobile = useIsMobile();
 	// Controls animated width of the search pill (expand on focus, like trattative page).
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
+	/**
+	 * Keep track of which clients currently have **no** negotiations using the
+	 * dedicated backend helper `/api/clients/without-negotiations`. We only
+	 * need the ids here so we can render a clear "Aggiungi trattativa" call‑to‑action
+	 * in the table when a client is still completely untouched.
+	 */
+	const [clientsWithoutNegotiationsIds, setClientsWithoutNegotiationsIds] =
+		useState<Set<number>>(new Set());
 
 	// Debounce search term before calling API
 	useEffect(() => {
@@ -81,7 +97,7 @@ export default function ClientsTable() {
 		return () => window.clearTimeout(timer);
 	}, [searchTerm]);
 
-	// Direttore Vendite: /company (tutta l'azienda). Venditore: /me (clienti assegnati).
+	// API Clienti: Direttore Vendite → GET /api/clients/company (tutta l'azienda); Venditore/Direttore → GET /api/clients/me (clienti assegnati, ordinati per ragione sociale).
 	const fetchClients = useCallback(async () => {
 		if (!token) {
 			return;
@@ -102,9 +118,88 @@ export default function ClientsTable() {
 		setClients(result.data);
 	}, [token, debouncedSearch, role]);
 
+	/**
+	 * Load once the list of clients that have **no** negotiations yet. We keep
+	 * this decoupled from the main clients fetch so search queries do not spam
+	 * the `/clients/without-negotiations` endpoint; the membership is global
+	 * for the current user/company, while the main list is filtered by search.
+	 */
+	const fetchClientsWithoutNegotiations = useCallback(async () => {
+		if (!token) {
+			return;
+		}
+		const result = await listClientsWithoutNegotiations(token);
+		if ("error" in result) {
+			// If this helper fails we silently fall back to treating all clients
+			// as "with potential trattative" so the main table keeps working.
+			return;
+		}
+		setClientsWithoutNegotiationsIds(
+			new Set(result.data.map((client) => client.id))
+		);
+	}, [token]);
+
+	/**
+	 * Naviga alla pagina di dettaglio del cliente `/clienti/[id]`.
+	 * Manteniamo questa funzione separata così da poterla riutilizzare sia
+	 * sul click della riga intera sia sul bottone "Ragione sociale" nella
+	 * prima colonna, riducendo duplicazioni e facilitando future modifiche
+	 * al percorso di routing.
+	 */
+	const handleOpenClientDetail = useCallback(
+		(clientId: number) => {
+			// biome-ignore lint/suspicious/noExplicitAny: cast string path su tipo Route interno di Next
+			router.push(`/clienti/${clientId}` as any);
+		},
+		[router]
+	);
+
+	/**
+	 * When a client already has at least one negotiation, clicking the
+	 * "Ha trattative" pill should take the user directly to a relevant
+	 * trattativa detail page. We:
+	 * - Fetch negotiations for that client (scoped to user or company).
+	 * - If at least one exists, derive the correct stato segment and route
+	 *   to `/trattative/{stato}/{id}` using the first match.
+	 * - If for any reason none are returned, fall back to the list view
+	 *   filtered by `client_id` so the user still lands in the right context.
+	 */
+	const handleOpenClientNegotiation = useCallback(
+		async (clientId: number) => {
+			if (!token) {
+				return;
+			}
+			const listNegotiations =
+				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
+			const result = await listNegotiations(token, { client_id: clientId });
+			if ("error" in result) {
+				// Reuse the table-level error surface so the user sees a clear message
+				// instead of failing silently when the navigation cannot be resolved.
+				setError(result.error);
+				return;
+			}
+			const [first] = result.data;
+			if (!first) {
+				// Defensive fallback: if no negotiations are found, send the user to
+				// the open negotiations list filtered by this client so they can
+				// create or inspect trattative in the right place.
+				router.push(`/trattative/aperte?client_id=${clientId}`);
+				return;
+			}
+			const stato = getNegotiationStatoSegment(first);
+			router.push(`/trattative/${stato}/${first.id}`);
+		},
+		[role, router, token]
+	);
+
 	useEffect(() => {
 		fetchClients();
 	}, [fetchClients]);
+
+	useEffect(() => {
+		// Fire-and-forget: we do not block the main table on this enrichment.
+		fetchClientsWithoutNegotiations();
+	}, [fetchClientsWithoutNegotiations]);
 
 	/**
 	 * Local, defensive filtering so that the search input always works even if
@@ -131,6 +226,12 @@ export default function ClientsTable() {
 					);
 				})
 			: clients;
+
+	// Stats per le card: totale visibili, senza trattativa (in lista without-negotiations), con almeno una trattativa.
+	const clientsWithoutCount = visibleClients.filter((c) =>
+		clientsWithoutNegotiationsIds.has(c.id)
+	).length;
+	const clientsWithCount = visibleClients.length - clientsWithoutCount;
 
 	return (
 		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
@@ -191,16 +292,50 @@ export default function ClientsTable() {
 
 			{/* Body: use table container background token for the shell */}
 			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
-				{/* Stats */}
-				<div className="flex items-start gap-3.75">
-					<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa), AnimateNumber per tutti i numeri. */}
+				<div className="flex flex-wrap items-start gap-3.75">
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<UserGroupIcon
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Totale clienti
 						</h3>
 						<div className="flex items-center justify-start">
-							{/* Animated counter so the total reacts smoothly to search changes */}
 							<AnimateNumber className="text-xl tabular-nums leading-none">
 								{visibleClients.length}
+							</AnimateNumber>
+						</div>
+					</div>
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<IconCirclePlusFilled
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
+						<h3 className="font-medium text-sm text-stats-title leading-none">
+							Clienti senza trattativa
+						</h3>
+						<div className="flex items-center justify-start">
+							<AnimateNumber className="text-xl tabular-nums leading-none">
+								{clientsWithoutCount}
+							</AnimateNumber>
+						</div>
+					</div>
+					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<CheckIcon
+							aria-hidden
+							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
+							size={56}
+						/>
+						<h3 className="font-medium text-sm text-stats-title leading-none">
+							Clienti con trattativa
+						</h3>
+						<div className="flex items-center justify-start">
+							<AnimateNumber className="text-xl tabular-nums leading-none">
+								{clientsWithCount}
 							</AnimateNumber>
 						</div>
 					</div>
@@ -210,13 +345,14 @@ export default function ClientsTable() {
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
 					{/* Header: align background with table container using the same CSS variable */}
 					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
-						<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(240px,1.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
+						<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
 							<div>Ragione sociale</div>
 							<div>Email</div>
 							<div>P.IVA</div>
 							<div>Telefono</div>
 							<div>Tipologia</div>
 							<div>Sede</div>
+							<div>Trattativa</div>
 						</div>
 					</div>
 					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-scroll">
@@ -239,53 +375,138 @@ export default function ClientsTable() {
 						)}
 						{!(loading || error) &&
 							visibleClients.length > 0 &&
-							visibleClients.map((c) => (
-								<div
-									/* Row hover uses dedicated table hover token */
-									className="w-full border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
-									key={c.id}
-								>
-									<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(240px,1.9fr)] items-center gap-4 text-base">
-										<div className="truncate">{getClientDisplay(c)}</div>
-										<div className="truncate">
-											{c.email ? (
-												c.email
-											) : (
-												<span className="text-stats-title">—</span>
-											)}
-										</div>
-										<div className="truncate tabular-nums">
-											{c.p_iva ? (
-												c.p_iva
-											) : (
-												<span className="text-stats-title">—</span>
-											)}
-										</div>
-										<div className="truncate tabular-nums">
-											{c.telefono ? (
-												c.telefono
-											) : (
-												<span className="text-stats-title">—</span>
-											)}
-										</div>
-										<div className="truncate">
-											{c.tipologia ? (
-												c.tipologia
-											) : (
-												<span className="text-stats-title">—</span>
-											)}
-										</div>
-										<div
-											className="truncate"
-											title={formatAddress(c.address) || undefined}
-										>
-											{formatAddress(c.address) || (
-												<span className="text-stats-title">—</span>
-											)}
+							visibleClients.map((c) => {
+								// A client is considered "senza trattative" when its id appears in the
+								// dedicated helper list. Everyone else is grouped under "ha almeno una
+								// trattativa" so we can show a simple, binary status pill.
+								const hasNoNegotiations =
+									clientsWithoutNegotiationsIds.size > 0 &&
+									clientsWithoutNegotiationsIds.has(c.id);
+
+								return (
+									// biome-ignore lint/a11y/useSemanticElements: row contains inner buttons (Aggiungi/Ha trattativa); native <button> would be invalid HTML (nested interactive).
+									<div
+										/* Riga tabellare con hover visivo; l'intera riga è cliccabile
+										   per aprire la pagina di dettaglio cliente. Non usiamo un
+										   `<button>` per la riga perché conterrebbe altri pulsanti
+										   (Aggiungi / Ha trattativa), nesting invalido in HTML che
+										   fa sì che il click sulla pill animi anche la riga. Qui
+										   usiamo div + role="button" + stopPropagation sui pulsanti
+										   della colonna "Trattativa" così solo la riga reagisce al
+										   click sulle celle, non sulle pill. */
+										className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
+										key={c.id}
+										onClick={() => handleOpenClientDetail(c.id)}
+										onKeyDown={(event) => {
+											if (event.key === "Enter" || event.key === " ") {
+												event.preventDefault();
+												handleOpenClientDetail(c.id);
+											}
+										}}
+										role="button"
+										tabIndex={0}
+									>
+										<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 text-base">
+											<div className="truncate">
+												<span className="w-full truncate text-left">
+													{getClientDisplay(c)}
+												</span>
+											</div>
+											<div className="truncate">
+												{c.email ? (
+													c.email
+												) : (
+													<span className="text-stats-title">—</span>
+												)}
+											</div>
+											<div className="truncate tabular-nums">
+												{c.p_iva ? (
+													c.p_iva
+												) : (
+													<span className="text-stats-title">—</span>
+												)}
+											</div>
+											<div className="truncate tabular-nums">
+												{c.telefono ? (
+													c.telefono
+												) : (
+													<span className="text-stats-title">—</span>
+												)}
+											</div>
+											<div className="truncate">
+												{c.tipologia ? (
+													c.tipologia
+												) : (
+													<span className="text-stats-title">—</span>
+												)}
+											</div>
+											<div
+												className="truncate"
+												title={formatAddress(c.address) || undefined}
+											>
+												{formatAddress(c.address) || (
+													<span className="text-stats-title">—</span>
+												)}
+											</div>
+											<div className="flex items-center justify-start">
+												{hasNoNegotiations ? (
+													<button
+														// CTA: porta l'utente direttamente alla vista "Trattative aperte"
+														// così può creare una nuova trattativa per questo cliente.
+														// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+														// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
+														className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
+														onClick={(event) => {
+															// Impediamo che il click sul bottone inneschi anche
+															// il click della riga (navigazione al dettaglio cliente).
+															event.stopPropagation();
+															router.push(
+																`/trattative/aperte?client_id=${c.id}`
+															);
+														}}
+														type="button"
+													>
+														{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
+														<IconCirclePlusFilled aria-hidden size={18} />
+														<span>Aggiungi</span>
+													</button>
+												) : (
+													// Wrapper "group" per mostrare un tooltip custom al passaggio del mouse sulla pill "Ha trattativa".
+													<div className="group relative inline-flex">
+														<button
+															// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+															// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+															// così che "Ha trattativa" appaia come uno stato concluso coerente.
+															className="inline-flex items-center justify-center gap-2 rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
+															// Manteniamo anche il title per avere un fallback nativo su browser/touch.
+															onClick={(event) => {
+																// Anche qui blocchiamo la propagazione per evitare
+																// che la riga cliccabile porti al dettaglio cliente
+																// quando l'utente vuole aprire direttamente la trattativa.
+																event.stopPropagation();
+																handleOpenClientNegotiation(c.id);
+															}}
+															title="Clicca per visualizzare la trattativa"
+															type="button"
+														>
+															{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
+															<IconEyeFill12 />
+															<span>Ha trattativa</span>
+														</button>
+														{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
+														<span
+															aria-live="polite"
+															className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
+														>
+															Clicca per visualizzare la trattativa
+														</span>
+													</div>
+												)}
+											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								);
+							})}
 					</div>
 				</div>
 			</div>
@@ -296,70 +517,14 @@ export default function ClientsTable() {
 				open={isImportDialogOpen}
 			/>
 
-			{/* Placeholder dialog "Aggiungi cliente": solo Base UI Dialog (come import-clients), stile bottom sheet su mobile e centrato su desktop. Nessun Radix/Vaul. */}
-			<Dialog.Root
-				disablePointerDismissal={false}
+			<AddClientDialog
 				onOpenChange={setIsAddClientDialogOpen}
+				onSuccess={() => {
+					fetchClients();
+					fetchClientsWithoutNegotiations();
+				}}
 				open={isAddClientDialogOpen}
-			>
-				<Dialog.Portal>
-					<Dialog.Backdrop
-						aria-hidden
-						className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
-					/>
-					<div
-						className={cn(
-							"fixed inset-0 z-50 flex p-4",
-							isMobile
-								? "items-end justify-center"
-								: "items-center justify-center"
-						)}
-					>
-						<Dialog.Popup
-							aria-describedby="add-client-dialog-desc"
-							aria-labelledby="add-client-dialog-title"
-							className={cn(
-								"flex max-h-[90vh] flex-col overflow-hidden bg-card shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in",
-								isMobile
-									? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-[10px] max-w-none rounded-[36px] px-6 py-5"
-									: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-md rounded-3xl px-6 py-5"
-							)}
-						>
-							<Dialog.Title className="sr-only" id="add-client-dialog-title">
-								Aggiungi cliente
-							</Dialog.Title>
-							<p className="sr-only" id="add-client-dialog-desc">
-								Funzionalità in arrivo. Qui sarà possibile inserire un nuovo
-								cliente manualmente.
-							</p>
-							<div
-								className={cn(
-									isMobile
-										? "min-h-0 flex-1 overflow-y-auto"
-										: "overflow-y-auto"
-								)}
-							>
-								<div className="flex items-center justify-between gap-3 pb-6">
-									{/* Use card-foreground so dialog title is readable in dataweb light (card is light, foreground is light there). */}
-									<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
-										Aggiungi cliente
-									</h2>
-									<Dialog.Close
-										aria-label="Chiudi"
-										className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
-									>
-										<X aria-hidden className="size-4" />
-									</Dialog.Close>
-								</div>
-								<p className="text-muted-foreground text-sm">
-									Funzionalità in arrivo. Qui sarà possibile inserire un nuovo
-									cliente manualmente.
-								</p>
-							</div>
-						</Dialog.Popup>
-					</div>
-				</Dialog.Portal>
-			</Dialog.Root>
+			/>
 		</main>
 	);
 }

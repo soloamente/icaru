@@ -71,7 +71,11 @@ export interface ApiClientWithoutNegotiation {
 	nome: string;
 }
 
-/** Client from GET /clients. Sellers see only own clients; Directors see all company clients. */
+/**
+ * Client from GET /api/clients/me or GET /api/clients/company.
+ * Venditore/Direttore: propri clienti (/me). Direttore Vendite: tutta l'azienda (/company).
+ * Ogni cliente include sempre l'oggetto address nella risposta API.
+ */
 export interface ApiClient {
 	id: number;
 	ragione_sociale: string;
@@ -82,9 +86,52 @@ export interface ApiClient {
 	tipologia?: string | null;
 	company_id?: number;
 	user_id?: number;
-	/** Ogni cliente include sempre l'oggetto address. */
+	/** Sempre presente nella risposta API (GET /api/clients). */
 	address?: ApiClientAddress | null;
 	[key: string]: unknown;
+}
+
+/**
+ * Payload per la creazione di un nuovo cliente tramite
+ * `POST /api/clients`. I campi dell'indirizzo sono "flattened"
+ * nel body come indicato dalla documentazione Laravel: il backend
+ * si occupa di creare/aggiornare la riga nella tabella `addresses`.
+ */
+export interface CreateClientBody {
+	ragione_sociale: string;
+	email?: string | null;
+	telefono?: string | null;
+	p_iva?: string | null;
+	/** Tipologia cliente (categoria/segmento) opzionale. */
+	tipologia?: string | null;
+	// Campi indirizzo opzionali ma raccomandati
+	indirizzo?: string | null;
+	citta?: string | null;
+	cap?: string | null;
+	provincia?: string | null;
+	regione?: string | null;
+}
+
+/**
+ * Payload per l'aggiornamento di un cliente esistente tramite
+ * `PUT /api/clients/{id}`. Tutti i campi sono opzionali così
+ * possiamo inviare solo quelli effettivamente modificati dal form.
+ *
+ * Come per `CreateClientBody`, i dati di indirizzo viaggiano nel
+ * body principale e il backend gestisce in autonomia la tabella
+ * `addresses` (creazione/aggiornamento).
+ */
+export interface UpdateClientBody {
+	ragione_sociale?: string;
+	email?: string | null;
+	telefono?: string | null;
+	p_iva?: string | null;
+	tipologia?: string | null;
+	indirizzo?: string | null;
+	citta?: string | null;
+	cap?: string | null;
+	provincia?: string | null;
+	regione?: string | null;
 }
 
 // --- Negotiations API ---
@@ -131,7 +178,10 @@ export type PercentualeAvanzamento = 0 | 20 | 40 | 60 | 80 | 100;
 
 export interface ApiNegotiationClient {
 	id: number;
+	/** Ragione sociale del cliente associato alla trattativa (quando incluso nella risposta). */
 	ragione_sociale?: string;
+	/** Telefono del cliente, se il backend lo include nella relazione `client` della trattativa. */
+	telefono?: string | null;
 	[key: string]: unknown;
 }
 
@@ -139,7 +189,7 @@ export interface ApiNegotiationClient {
 export interface ApiNegotiationFile {
 	id: number;
 	/** Original filename when present */
-	filename?: string | null;
+	file_name?: string | null;
 	[key: string]: unknown;
 }
 
@@ -153,6 +203,8 @@ export interface ApiNegotiation {
 	percentuale: number;
 	note: string | null;
 	abbandonata: boolean;
+	/** Data di apertura della trattativa (separata da created_at nell'API Laravel). */
+	data_apertura?: string;
 	created_at?: string;
 	updated_at?: string;
 	/** Client relation when included */
