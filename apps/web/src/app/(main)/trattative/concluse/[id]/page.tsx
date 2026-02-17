@@ -95,7 +95,9 @@ export default function TrattativeConcluseEditPage() {
 	const handleSuccess = useCallback(
 		(updated: ApiNegotiation) => {
 			const stato = getNegotiationStatoSegment(updated);
-			router.push(`/trattative/${stato}` as Parameters<typeof Link>[0]["href"]);
+			// Cast: dynamic path to router's Route type (same pattern as trattative/aperte/[id])
+			// biome-ignore lint/suspicious/noExplicitAny: bridge tra RouteImpl e string literal
+			router.push(`/trattative/${stato}` as any);
 		},
 		[router]
 	);
@@ -104,12 +106,11 @@ export default function TrattativeConcluseEditPage() {
 
 	// When the user confirms they want to leave without saving, close the dialog and navigate back.
 	const handleConfirmLeave = useCallback(() => {
-		const targetHref = (pendingHref ?? backHref) as Parameters<
-			typeof Link
-		>[0]["href"];
+		const targetHref = pendingHref ?? backHref;
 		setIsLeaveDialogOpen(false);
 		setPendingHref(null);
-		router.push(targetHref);
+		// biome-ignore lint/suspicious/noExplicitAny: bridge tra RouteImpl e string literal
+		router.push(targetHref as any);
 	}, [backHref, pendingHref, router]);
 
 	// Handle click on the "Torna indietro" button:
@@ -120,7 +121,8 @@ export default function TrattativeConcluseEditPage() {
 			setIsLeaveDialogOpen(true);
 			return;
 		}
-		router.push(backHref as Parameters<typeof Link>[0]["href"]);
+		// biome-ignore lint/suspicious/noExplicitAny: vedi nota in handleConfirmLeave
+		router.push(backHref as any);
 	}, [backHref, isDirty, isSubmitting, router]);
 
 	// Reindirizza anche le navigazioni globali (es. click sulla Sidebar) verso lo stesso
@@ -133,7 +135,8 @@ export default function TrattativeConcluseEditPage() {
 				setIsLeaveDialogOpen(true);
 				return true;
 			}
-			router.push(href as Parameters<typeof Link>[0]["href"]);
+			// biome-ignore lint/suspicious/noExplicitAny: vedi nota in handleConfirmLeave
+			router.push(href as any);
 			return true;
 		});
 		return unregister;
