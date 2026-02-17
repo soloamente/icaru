@@ -663,8 +663,10 @@ export default function UpdateNegotiationForm({
 									)}
 									id="update-spanco"
 									style={{
-										backgroundColor: SPANCO_STAGE_COLORS[form.spanco].softBg,
-										color: SPANCO_STAGE_COLORS[form.spanco].main,
+										// form.spanco is optional on UpdateNegotiationBody; fallback to S for index safety
+										backgroundColor:
+											SPANCO_STAGE_COLORS[form.spanco ?? "S"].softBg,
+										color: SPANCO_STAGE_COLORS[form.spanco ?? "S"].main,
 									}}
 								>
 									<Select.Value className="min-w-0">
@@ -722,7 +724,8 @@ export default function UpdateNegotiationForm({
 									aria-hidden
 									className="absolute inset-0 rounded-2xl transition-opacity duration-150 group-hover:opacity-90 group-active:opacity-85"
 									style={{
-										backgroundColor: SPANCO_STAGE_COLORS[form.spanco].softBg,
+										backgroundColor:
+											SPANCO_STAGE_COLORS[form.spanco ?? "S"].softBg,
 									}}
 								/>
 								{/* Fill: spanco main color up to percentuale (matches table). */}
@@ -731,7 +734,8 @@ export default function UpdateNegotiationForm({
 									className="absolute inset-0 left-0 rounded-2xl transition-[width] duration-150"
 									style={{
 										width: `${form.percentuale}%`,
-										backgroundColor: SPANCO_STAGE_COLORS[form.spanco].main,
+										backgroundColor:
+											SPANCO_STAGE_COLORS[form.spanco ?? "S"].main,
 									}}
 								/>
 								<div className="pointer-events-none absolute inset-y-2 right-0 left-0 z-10 flex items-center justify-between opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-active:opacity-100">
