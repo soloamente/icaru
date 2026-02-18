@@ -4,6 +4,7 @@ import { useDialKit } from "dialkit";
 import { Menu } from "lucide-react";
 import { motion } from "motion/react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import type { NavigationPositionId } from "@/lib/preferences/preferences-context";
 import { usePreferences } from "@/lib/preferences/preferences-context";
@@ -26,7 +27,7 @@ import Sidebar from "./sidebar";
  * ───────────────────────────────────────────────────────────────────────── */
 
 /** Single constant: sidebar width when open; the right-hand content container width = viewport minus this (scaled by font size). */
-const SIDEBAR_OPEN_WIDTH_PX = 238;
+const SIDEBAR_OPEN_WIDTH_PX = 245;
 
 /** Default spring for content panel (used when DialKit not available). */
 const CONTENT_PANEL_SPRING_DEFAULT = {
@@ -66,6 +67,14 @@ function SidebarLeftAnimatedLayout({
 	const sidebarOpen = useSidebarOpen();
 	const dialParams = useSidebarPanelDialKit();
 	const { fontSize } = usePreferences();
+	const [hasMounted, setHasMounted] = useState(false);
+
+	// Defer preference-based width until after mount to avoid hydration mismatch:
+	// fontSize comes from localStorage (via PreferencesProvider), which is only
+	// available on the client. Server uses default "medium"; client may have
+	// "large"/"small" persisted. Use default width on first render, then apply
+	// the real value after hydration.
+	useEffect(() => setHasMounted(true), []);
 
 	// Scale the open offset of the content panel based on the font size preference,
 	// so that when the user selects "Grande" the sidebar has more horizontal space
@@ -76,6 +85,11 @@ function SidebarLeftAnimatedLayout({
 	} else if (fontSize === "small") {
 		fontSizeScale = 0.875;
 	}
+
+	// Use default width (238px) until mounted to ensure server/client HTML match
+	const sidebarWidthPx = hasMounted
+		? SIDEBAR_OPEN_WIDTH_PX * fontSizeScale
+		: SIDEBAR_OPEN_WIDTH_PX;
 
 	if (!sidebarOpen) {
 		return (
@@ -88,8 +102,8 @@ function SidebarLeftAnimatedLayout({
 
 	const isOpen = sidebarOpen.isOpen;
 	const baseOpenLeft = dialParams?.content?.openLeft ?? SIDEBAR_OPEN_WIDTH_PX;
-	const openLeft = baseOpenLeft * fontSizeScale;
-	const sidebarWidthPx = SIDEBAR_OPEN_WIDTH_PX * fontSizeScale;
+	// Use default scale until mounted to keep server/client in sync (avoids hydration mismatch)
+	const openLeft = hasMounted ? baseOpenLeft * fontSizeScale : baseOpenLeft;
 	const spring = dialParams?.content?.spring ?? CONTENT_PANEL_SPRING_DEFAULT;
 
 	return (
