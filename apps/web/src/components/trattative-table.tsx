@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Select } from "@base-ui/react/select";
+import { format as formatDate } from "date-fns";
 import { ChevronDown, Paperclip, Plus, Search, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
@@ -154,44 +155,40 @@ const isNegotiationCompleted = (negotiation: ApiNegotiation): boolean =>
 const isNegotiationAbandoned = (negotiation: ApiNegotiation): boolean =>
 	negotiation.abbandonata;
 
-/** Verifica se la data rientra nel range (confronto solo la parte data, ora locale). */
+/** Estrae YYYY-MM-DD dalla stringa data (ISO o altro formato parseable) per confronto robusto. */
+function toDateOnlyString(dateStr: string | undefined): string | null {
+	if (!dateStr) {
+		return null;
+	}
+	const d = new Date(dateStr);
+	if (Number.isNaN(d.getTime())) {
+		return null;
+	}
+	return formatDate(d, "yyyy-MM-dd");
+}
+
+/** Verifica se la data rientra nel range (confronto solo la parte data, ora locale).
+ * Richiede ENTRAMBI from e to: se manca to, il filtro non viene applicato (ritorna false
+ * per evitare di mostrare date oltre il range quando il preset non ha impostato to). */
 function isDateInRange(
 	dateStr: string | undefined,
 	range: DayPickerDateRange | undefined
 ): boolean {
-	if (!range?.from) {
-		return true; // Nessun range = mostra tutto
+	if (!(range?.from && range?.to)) {
+		return true; // Range incompleto = nessun filtro date attivo
 	}
-	if (!dateStr) {
-		return false; // Data mancante con range attivo = escludi
+	const dateOnly = toDateOnlyString(dateStr);
+	if (!dateOnly) {
+		return false; // Data mancante o invalida con range attivo = escludi
 	}
-	const d = new Date(dateStr);
-	if (Number.isNaN(d.getTime())) {
-		return false;
-	}
-	const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-	const fromOnly = new Date(
-		range.from.getFullYear(),
-		range.from.getMonth(),
-		range.from.getDate()
-	);
-	if (dateOnly < fromOnly) {
-		return false;
-	}
-	if (range.to) {
-		const toOnly = new Date(
-			range.to.getFullYear(),
-			range.to.getMonth(),
-			range.to.getDate()
-		);
-		return dateOnly <= toOnly;
-	}
-	return true;
+	const fromStr = formatDate(range.from, "yyyy-MM-dd");
+	const toStr = formatDate(range.to, "yyyy-MM-dd");
+	return dateOnly >= fromStr && dateOnly <= toStr;
 }
 
 /** Verifica se la trattativa rientra nel range date.
- * Nelle viste concluse/abbandonate: match se apertura O chiusura/abbandono nel range.
- * Vista aperte e righe aperte in "all": solo apertura. */
+ * Vista "tutte" e "aperte": solo data apertura (la colonna mostra solo quella).
+ * Vista "concluse": apertura O chiusura. Vista "abbandonate": apertura O abbandono. */
 function negotiationMatchesDateRange(
 	n: ApiNegotiation,
 	filter: "all" | "aperte" | "concluse" | "abbandonate",
@@ -215,21 +212,7 @@ function negotiationMatchesDateRange(
 			isDateInRange(apertura, dateRange) || isDateInRange(abbandono, dateRange)
 		);
 	}
-	if (filter === "all") {
-		if (isNegotiationCompleted(n)) {
-			return (
-				isDateInRange(apertura, dateRange) || isDateInRange(chiusura, dateRange)
-			);
-		}
-		if (isNegotiationAbandoned(n)) {
-			return (
-				isDateInRange(apertura, dateRange) ||
-				isDateInRange(abbandono, dateRange)
-			);
-		}
-		return isDateInRange(apertura, dateRange);
-	}
-	// aperte: solo data apertura
+	// "all" e "aperte": solo data apertura (nella pagina "tutte" la colonna è solo apertura)
 	return isDateInRange(apertura, dateRange);
 }
 
@@ -1432,7 +1415,12 @@ export default function TrattativeTable({
 		if (!passesStatoFilter(n, statoFilter)) {
 			return false;
 		}
-		if (dateRange?.from && !negotiationMatchesDateRange(n, filter, dateRange)) {
+		// Filtro date: si applica solo con range completo (from E to). I preset impostano entrambi.
+		if (
+			dateRange?.from &&
+			dateRange?.to &&
+			!negotiationMatchesDateRange(n, filter, dateRange)
+		) {
 			return false;
 		}
 		return passesSearchFilter(n, searchTerm, getClientDisplay);

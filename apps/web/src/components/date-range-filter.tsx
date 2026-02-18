@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover } from "@base-ui/react/popover";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { Check, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -20,62 +20,59 @@ interface QuickPreset {
 
 const QUICK_DATE_PRESETS: QuickPreset[] = [
 	{
-		label: "7 giorni",
+		label: "Ultimi 7 giorni",
 		value: "last7days",
 		getDates: (): [Date, Date] => {
-			const end = new Date();
-			const start = new Date();
+			const today = startOfDay(new Date());
+			const start = new Date(today);
 			start.setDate(start.getDate() - 6);
-			return [start, end];
+			return [startOfDay(start), today];
 		},
 	},
 	{
-		label: "30 giorni",
+		label: "Ultimi 30 giorni",
 		value: "last30days",
 		getDates: (): [Date, Date] => {
-			const end = new Date();
-			const start = new Date();
+			const today = startOfDay(new Date());
+			const start = new Date(today);
 			start.setDate(start.getDate() - 29);
-			return [start, end];
+			return [startOfDay(start), today];
 		},
 	},
 	{
-		label: "3 mesi",
+		label: "Ultimi 3 mesi",
 		value: "last3months",
 		getDates: (): [Date, Date] => {
-			const now = new Date();
-			const end = new Date();
-			const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-			return [start, end];
+			const today = startOfDay(new Date());
+			const start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+			return [startOfDay(start), today];
 		},
 	},
 	{
-		label: "6 mesi",
+		label: "Ultimi 6 mesi",
 		value: "last6months",
 		getDates: (): [Date, Date] => {
-			const now = new Date();
-			const end = new Date();
-			const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-			return [start, end];
+			const today = startOfDay(new Date());
+			const start = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+			return [startOfDay(start), today];
 		},
 	},
 	{
-		label: "1 anno",
+		label: "Ultimi 12 mesi",
 		value: "last12months",
 		getDates: (): [Date, Date] => {
-			const now = new Date();
-			const end = new Date();
-			const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-			return [start, end];
+			const today = startOfDay(new Date());
+			const start = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+			return [startOfDay(start), today];
 		},
 	},
 	{
 		label: "Totale",
 		value: "total",
 		getDates: (): [Date, Date] => {
-			const end = new Date();
+			const today = startOfDay(new Date());
 			const start = new Date(1970, 0, 1);
-			return [start, end];
+			return [startOfDay(start), today];
 		},
 	},
 ];
@@ -172,6 +169,9 @@ export function DateRangeFilter({
 						aria-label={`Filtro data: ${triggerLabel}`}
 						className={cn(
 							"border-none bg-transparent px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+							variant === "table" && "text-stats-title",
+							// When filter is active, use full-bright primary color so the user clearly sees it's applied
+							hasRange && variant === "table" && "text-primary",
 							hasRange && variant === "default" && "text-primary"
 						)}
 					>
