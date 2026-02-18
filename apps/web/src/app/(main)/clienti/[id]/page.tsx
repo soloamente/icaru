@@ -140,6 +140,31 @@ export default function ClientiDettaglioPage() {
 		router.push(backHref as any);
 	}, [backHref, isDirty, isSubmitting, router]);
 
+	/**
+	 * Forza il submit del form di update cliente quando l'utente clicca
+	 * il pulsante "Salva" nell'header, usando `requestSubmit` sul form
+	 * identificato da `UPDATE_CLIENT_FORM_ID`. In questo modo non
+	 * dipendiamo dall'attributo HTML `form` propagato attraverso il
+	 * componente `Button` e siamo sicuri che `handleSubmit` venga
+	 * sempre eseguito e l'API `updateClient` venga chiamata.
+	 */
+	const handleSaveClick = useCallback(() => {
+		if (isSubmitting) {
+			return;
+		}
+		const formElement = document.getElementById(
+			UPDATE_CLIENT_FORM_ID
+		) as HTMLFormElement | null;
+		if (!formElement) {
+			return;
+		}
+		if (typeof formElement.requestSubmit === "function") {
+			formElement.requestSubmit();
+		} else {
+			formElement.submit();
+		}
+	}, [isSubmitting]);
+
 	// Integra la conferma "Modifiche non salvate" con la navigazione globale:
 	// quando la Sidebar (o altri componenti) chiamano requestUnsavedNavigation,
 	// questa pagina può bloccare la navigazione e mostrare prima il dialog.
@@ -283,9 +308,9 @@ export default function ClientiDettaglioPage() {
 						<Button
 							className="h-10 min-w-26 rounded-xl text-sm"
 							disabled={isSubmitting}
-							form={UPDATE_CLIENT_FORM_ID}
+							onClick={handleSaveClick}
 							tabIndex={isDirty || isSubmitting ? 0 : -1}
-							type="submit"
+							type="button"
 						>
 							{isSubmitting ? "Salvataggio…" : "Salva"}
 						</Button>

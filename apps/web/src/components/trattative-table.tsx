@@ -15,7 +15,6 @@ import {
 	IconCurrencyExchangeFill18,
 	IconFilePlusFill18,
 	IconVault3Fill18,
-	IconWipFill18,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1201,15 +1200,13 @@ export default function TrattativeTable({
 	const [capturedInitialClientId, setCapturedInitialClientId] = useState<
 		number | null
 	>(null);
-	// Open "Nuova trattativa" dialog on mount when arriving via URL params
-	// (e.g. cmdk "Clienti senza trattative" → /trattative/aperte?new_negotiation=1&client_id=X)
-	const hasOpenedFromInitialRef = useRef(false);
+	// Open "Nuova trattativa" dialog when URL params request it (e.g. cmdk "Clienti senza trattative"
+	// → /trattative/aperte?new_negotiation=1&client_id=X). We react every time these params are set,
+	// so that from the same page (e.g. già su trattative/aperte) selecting another client without
+	// negotiation in the CMDK opens the dialog again; we do not close the dialog when the parent
+	// clears the URL (replace), so no ref is needed.
 	useEffect(() => {
-		if (hasOpenedFromInitialRef.current) {
-			return;
-		}
 		if (openCreateDialogInitially && initialClientIdForNewNegotiation != null) {
-			hasOpenedFromInitialRef.current = true;
 			setCapturedInitialClientId(initialClientIdForNewNegotiation);
 			setIsCreateDialogOpen(true);
 		}
@@ -1331,14 +1328,6 @@ export default function TrattativeTable({
 		filteredNegotiations.length > 0
 			? Math.round(totalImporto / filteredNegotiations.length)
 			: 0;
-	const averagePercentuale =
-		filteredNegotiations.length > 0
-			? Math.round(
-					filteredNegotiations.reduce((sum, n) => sum + n.percentuale, 0) /
-						filteredNegotiations.length
-				)
-			: 0;
-
 	const handleToggleSort = useCallback((column: SortColumn) => {
 		setSortState((previous) => {
 			if (!previous || previous.column !== column) {
@@ -1801,24 +1790,6 @@ export default function TrattativeTable({
 							</AnimateNumber>
 							<span className="ml-0.5 text-stats-title text-xl leading-none">
 								€
-							</span>
-						</div>
-					</div>
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<IconWipFill18
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Percentuale media
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
-								{averagePercentuale}
-							</AnimateNumber>
-							<span className="ml-0.5 text-stats-title text-xl leading-none">
-								%
 							</span>
 						</div>
 					</div>

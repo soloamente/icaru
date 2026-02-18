@@ -392,42 +392,42 @@ export default function DashboardPage() {
 										{card.id === "total-open" && (
 											<IconFilePlusFill18
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sky-500/18 dark:text-sky-300/22"
 												size={96}
 											/>
 										)}
 										{card.id === "conclusion-pct" && (
 											<IconWipFill18
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-amber-500/18 dark:text-amber-300/22"
 												size={96}
 											/>
 										)}
 										{card.id === "average-amount" && (
 											<IconCurrencyExchangeFill18
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-emerald-500/18 dark:text-emerald-300/22"
 												size={96}
 											/>
 										)}
 										{card.id === "total-open-amount" && (
 											<IconVault3Fill18
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-indigo-500/18 dark:text-indigo-300/22"
 												size={96}
 											/>
 										)}
 										{card.id === "opened-comparison" && (
 											<IconCirclePlusFilled
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-teal-500/18 dark:text-teal-300/22"
 												size={96}
 											/>
 										)}
 										{card.id === "concluded-comparison" && (
 											<CheckIcon
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/[0.08] dark:text-white/[0.08]"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-emerald-500/18 dark:text-emerald-300/22"
 												size={96}
 											/>
 										)}

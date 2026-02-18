@@ -47,9 +47,13 @@ function clientToFormBody(client: ApiClient): UpdateClientBody {
 	};
 }
 
-/** Normalizza un campo stringa opzionale: trim e converte stringhe vuote in `null`. */
-function normalizeOptional(value: string | null | undefined): string | null {
-	const trimmed = (value ?? "").trim();
+/** Normalizza un campo opzionale (anche non-string): trim e converte valori "vuoti" in `null`. */
+function normalizeOptional(value: unknown): string | null {
+	if (value == null) {
+		return null;
+	}
+	const asString = typeof value === "string" ? value : String(value);
+	const trimmed = asString.trim();
 	return trimmed.length > 0 ? trimmed : null;
 }
 
