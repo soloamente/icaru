@@ -297,14 +297,19 @@ export default function ClientsTable() {
 
 			{/* Body: use table container background token for the shell */}
 			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
-				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa), AnimateNumber per tutti i numeri. */}
+				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
 				<div className="flex flex-wrap items-start gap-3.75">
 					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<UserGroupIcon
+						<div
 							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
+							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+						>
+							<UserGroupIcon
+								aria-hidden
+								className="text-black dark:text-white"
+								size={56}
+							/>
+						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Totale clienti
 						</h3>
@@ -315,11 +320,16 @@ export default function ClientsTable() {
 						</div>
 					</div>
 					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<IconCirclePlusFilled
+						<div
 							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
+							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+						>
+							<IconCirclePlusFilled
+								aria-hidden
+								className="text-black dark:text-white"
+								size={56}
+							/>
+						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Clienti senza trattativa
 						</h3>
@@ -330,11 +340,16 @@ export default function ClientsTable() {
 						</div>
 					</div>
 					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<CheckIcon
+						<div
 							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
+							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+						>
+							<CheckIcon
+								aria-hidden
+								className="text-black dark:text-white"
+								size={56}
+							/>
+						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Clienti con trattativa
 						</h3>

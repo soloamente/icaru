@@ -1704,15 +1704,20 @@ export default function TrattativeTable({
 				 * We wrap every value in AnimateNumber so all counters share the same
 				 * subtle entrance animation instead of only the last one.
 				 */}
-				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità). */}
+				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità, applicata sul wrapper div e non direttamente sull'icona). */}
 				<div className="flex flex-wrap items-start gap-3.75">
 					{(filter === "all" || filter === "aperte") && (
 						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-							<IconFilePlusFill18
+							<div
 								aria-hidden
-								className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-								size={56}
-							/>
+								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+							>
+								<IconFilePlusFill18
+									aria-hidden
+									className="text-black dark:text-white"
+									size={56}
+								/>
+							</div>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative aperte
 							</h3>
@@ -1725,11 +1730,16 @@ export default function TrattativeTable({
 					)}
 					{(filter === "all" || filter === "concluse") && (
 						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-							<CheckIcon
+							<div
 								aria-hidden
-								className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-								size={56}
-							/>
+								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+							>
+								<CheckIcon
+									aria-hidden
+									className="text-black dark:text-white"
+									size={56}
+								/>
+							</div>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative concluse
 							</h3>
@@ -1742,11 +1752,16 @@ export default function TrattativeTable({
 					)}
 					{(filter === "all" || filter === "abbandonate") && (
 						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-							<CircleXmarkFilled
+							<div
 								aria-hidden
-								className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-								size={56}
-							/>
+								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+							>
+								<CircleXmarkFilled
+									aria-hidden
+									className="text-black dark:text-white"
+									size={56}
+								/>
+							</div>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative abbandonate
 							</h3>
@@ -1758,11 +1773,16 @@ export default function TrattativeTable({
 						</div>
 					)}
 					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<IconVault3Fill18
+						<div
 							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
+							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+						>
+							<IconVault3Fill18
+								aria-hidden
+								className="text-black dark:text-white"
+								size={56}
+							/>
+						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Totale importo
 						</h3>
@@ -1776,11 +1796,16 @@ export default function TrattativeTable({
 						</div>
 					</div>
 					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-						<IconCurrencyExchangeFill18
+						<div
 							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 text-black/[0.08] dark:text-white/[0.08]"
-							size={56}
-						/>
+							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+						>
+							<IconCurrencyExchangeFill18
+								aria-hidden
+								className="text-black dark:text-white"
+								size={56}
+							/>
+						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Importo medio
 						</h3>
