@@ -269,6 +269,34 @@ export function SpancoDonutChart({
 					</span>
 				</div>
 			</div>
+
+			{/* Legenda: tutti gli stadi SPANCO con colore, label e conteggio per leggibilità e accessibilità. */}
+			<ul
+				aria-label="Stati SPANCO"
+				className="mt-4 flex w-full max-w-[580px] flex-wrap justify-center gap-x-6 gap-y-2 sm:max-w-[660px] md:max-w-[760px]"
+			>
+				{STAGE_CONFIG.map(({ stage, label, color }) => {
+					const count = stats?.[stage] ?? 0;
+					return (
+						<li
+							className="flex items-center gap-2 text-card-foreground text-sm"
+							key={stage}
+						>
+							<span
+								aria-hidden
+								className="inline-block size-3 shrink-0 rounded-full"
+								style={{ backgroundColor: color }}
+							/>
+							<span>
+								{stage} · {label}
+							</span>
+							<span className="text-muted-foreground tabular-nums">
+								({count})
+							</span>
+						</li>
+					);
+				})}
+			</ul>
 		</section>
 	);
 }
