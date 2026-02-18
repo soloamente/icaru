@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import {
 	ArrowUpRight,
-	CheckIcon,
 	DashboardIcon,
-	IconCirclePlusFilled,
-	IconCurrencyExchangeFill18,
-	IconFilePlusFill18,
+	IconChartBarTrendUp,
+	IconQuickstartFill18,
+	IconSackDollarFill18,
+	IconSuitcaseDollarFill18,
+	IconTarget,
 	IconVault3Fill18,
-	IconWipFill18,
 } from "@/components/icons";
 import Loader from "@/components/loader";
 import {
@@ -23,13 +23,8 @@ import {
 	getNegotiationsSpancoStatistics,
 	getNegotiationsStatistics,
 } from "@/lib/api/client";
-import type {
-	NegotiationsMonthlyComparison,
-	NegotiationsStatistics,
-	SpancoStatistics,
-} from "@/lib/api/types";
+import type { NegotiationsStatistics, SpancoStatistics } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
-import { cn } from "@/lib/utils";
 
 /** Trattative aperte: section linked from dashboard summary cards. */
 const TRATTATIVE_APERTE_HREF = "/trattative/aperte" as const;
@@ -48,18 +43,6 @@ function formatCurrency(value: number): string {
 	}).format(value);
 }
 
-/** Format comparison percentage only (e.g. "+66.7%" or "−50.0%"). */
-function formatComparisonPercentage(
-	comp: NegotiationsMonthlyComparison
-): string {
-	return comp.percentage >= 0
-		? `+${comp.percentage.toFixed(1)}%`
-		: `${comp.percentage.toFixed(1)}%`;
-}
-
-/** Suffix shown after percentage for comparison cards. */
-const COMPARISON_SUFFIX = "rispetto al mese scorso" as const;
-
 /** Single card in the dashboard statistics grid (from GET /api/statistics/negotiations). */
 interface NegotiationsStatsCard {
 	id: string;
@@ -76,11 +59,11 @@ interface NegotiationsStatsCard {
 /** Stable keys for the 6 skeleton cards (avoids array index as key). */
 const STATS_CARD_IDS = [
 	"total-open",
-	"conclusion-pct",
-	"average-amount",
 	"total-open-amount",
-	"opened-comparison",
-	"concluded-comparison",
+	"average-open-amount",
+	"conclusion-pct",
+	"average-concluded-amount",
+	"average-closing-days",
 ] as const;
 
 /** Role-specific dashboard content (Admin / Director / Seller). */
@@ -258,48 +241,33 @@ export default function DashboardPage() {
 					href: TRATTATIVE_APERTE_HREF,
 				},
 				{
+					id: "total-open-amount",
+					title: "Importo totale trattative aperte",
+					value: formatCurrency(Number(negotiationsStats.total_open_amount)),
+					href: TRATTATIVE_APERTE_HREF,
+				},
+				{
+					id: "average-open-amount",
+					title: "Importo medio trattative aperte",
+					value: formatCurrency(negotiationsStats.average_open_amount),
+					href: TRATTATIVE_APERTE_HREF,
+				},
+				{
 					id: "conclusion-pct",
-					title: "% Conclusione",
+					title: "Percentuale di conclusione",
 					value: `${negotiationsStats.conclusion_percentage.toFixed(1)}%`,
 					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 				{
-					id: "average-amount",
-					title: "Importo medio",
-					value: formatCurrency(negotiationsStats.average_amount),
-					href: TRATTATIVE_TUTTE_HREF,
+					id: "average-closing-days",
+					title: "Tempo medio chiusura",
+					value: negotiationsStats.average_closing_days,
+					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 				{
-					id: "total-open-amount",
-					title: "Totale importo aperto",
-					value: formatCurrency(negotiationsStats.total_open_amount),
-					href: TRATTATIVE_APERTE_HREF,
-				},
-				{
-					id: "opened-comparison",
-					title: "Aperte questo mese",
-					value: negotiationsStats.opened_negotiations_comparison.current_month,
-					subtitle: formatComparisonPercentage(
-						negotiationsStats.opened_negotiations_comparison
-					),
-					subtitleColor:
-						negotiationsStats.opened_negotiations_comparison.percentage >= 0
-							? "positive"
-							: "negative",
-					href: TRATTATIVE_APERTE_HREF,
-				},
-				{
-					id: "concluded-comparison",
-					title: "Concluse questo mese",
-					value:
-						negotiationsStats.concluded_negotiations_comparison.current_month,
-					subtitle: formatComparisonPercentage(
-						negotiationsStats.concluded_negotiations_comparison
-					),
-					subtitleColor:
-						negotiationsStats.concluded_negotiations_comparison.percentage >= 0
-							? "positive"
-							: "negative",
+					id: "average-concluded-amount",
+					title: "Importo medio trattative concluse",
+					value: formatCurrency(negotiationsStats.average_concluded_amount),
 					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 			]
@@ -383,53 +351,83 @@ export default function DashboardPage() {
 								}
 								return (
 									<Link
-										aria-label={`${card.title}: ${card.value}${card.subtitle ? `, ${card.subtitle} ${COMPARISON_SUFFIX}` : ""}, vai a ${destinationLabel}`}
+										aria-label={`${card.title}: ${card.value}, vai a ${destinationLabel}`}
 										className="group relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 										href={card.href as Parameters<typeof Link>[0]["href"]}
 										key={card.id}
 									>
-										{/* Background icons per card — decorative, right-aligned, low opacity. Match sidebar icon for "Trattative aperte" (Aperte). */}
+										{/* Background icons per card — decorative, right-aligned. Opacity on wrapper div, not on icon. No <title> in icons to avoid a11y name concatenation with link. */}
 										{card.id === "total-open" && (
-											<IconFilePlusFill18
+											<div
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sky-500/18 dark:text-sky-300/22"
-												size={96}
-											/>
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 opacity-[0.18] dark:opacity-[0.22]"
+											>
+												<IconSuitcaseDollarFill18
+													aria-hidden="true"
+													className="text-sky-500 dark:text-sky-300"
+													size={96}
+												/>
+											</div>
 										)}
 										{card.id === "conclusion-pct" && (
-											<IconWipFill18
+											<div
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-amber-500/18 dark:text-amber-300/22"
-												size={96}
-											/>
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 opacity-[0.18] dark:opacity-[0.22]"
+											>
+												<IconTarget
+													aria-hidden="true"
+													className="text-amber-500 dark:text-amber-300"
+													size={96}
+												/>
+											</div>
 										)}
-										{card.id === "average-amount" && (
-											<IconCurrencyExchangeFill18
+										{card.id === "average-open-amount" && (
+											<div
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-emerald-500/18 dark:text-emerald-300/22"
-												size={96}
-											/>
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 opacity-[0.18] dark:opacity-[0.22]"
+											>
+												<IconChartBarTrendUp
+													aria-hidden="true"
+													className="text-emerald-500 dark:text-emerald-300"
+													size={96}
+												/>
+											</div>
+										)}
+										{card.id === "average-concluded-amount" && (
+											<div
+												aria-hidden="true"
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 opacity-[0.18] dark:opacity-[0.22]"
+											>
+												<IconVault3Fill18
+													aria-hidden="true"
+													className="text-indigo-500 dark:text-indigo-300"
+													size={96}
+												/>
+											</div>
 										)}
 										{card.id === "total-open-amount" && (
-											<IconVault3Fill18
+											<div
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-indigo-500/18 dark:text-indigo-300/22"
-												size={96}
-											/>
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 opacity-[0.18] dark:opacity-[0.22]"
+											>
+												<IconSackDollarFill18
+													aria-hidden="true"
+													className="text-sky-500 dark:text-sky-300"
+													size={96}
+												/>
+											</div>
 										)}
-										{card.id === "opened-comparison" && (
-											<IconCirclePlusFilled
+										{card.id === "average-closing-days" && (
+											<div
 												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-teal-500/18 dark:text-teal-300/22"
-												size={96}
-											/>
-										)}
-										{card.id === "concluded-comparison" && (
-											<CheckIcon
-												aria-hidden="true"
-												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-emerald-500/18 dark:text-emerald-300/22"
-												size={96}
-											/>
+												className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 opacity-[0.18] dark:opacity-[0.22]"
+											>
+												<IconQuickstartFill18
+													aria-hidden="true"
+													className="text-emerald-500 dark:text-emerald-300"
+													size={96}
+												/>
+											</div>
 										)}
 										<span className="truncate font-medium text-muted-foreground text-sm">
 											{card.title}
@@ -441,25 +439,6 @@ export default function DashboardPage() {
 											<span className="font-semibold text-5xl text-foreground">
 												{card.value}
 											</span>
-											{card.subtitle && (
-												<>
-													<span
-														className={cn(
-															"text-sm",
-															card.subtitleColor === "negative" &&
-																"text-destructive",
-															card.subtitleColor === "positive" &&
-																"text-emerald-600 dark:text-emerald-400"
-														)}
-													>
-														{card.subtitle}
-													</span>
-													<span className="text-muted-foreground text-sm">
-														{" "}
-														{COMPARISON_SUFFIX}
-													</span>
-												</>
-											)}
 										</div>
 										<ArrowUpRight
 											aria-hidden="true"

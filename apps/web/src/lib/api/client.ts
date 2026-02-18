@@ -708,8 +708,8 @@ export async function deleteNegotiationFile(
 /**
  * GET /statistics/negotiations — Statistiche trattative per l'utente corrente (Venditore/Direttore).
  *
- * Restituisce total_open_negotiations, conclusion_percentage, average_amount,
- * total_open_amount e confronti mensili (aperte/concluse).
+ * Restituisce total_open_negotiations, conclusion_percentage, average_open_amount,
+ * average_concluded_amount, total_open_amount (stringa), average_closing_days.
  * Richiede Bearer Token.
  */
 export async function getNegotiationsStatistics(

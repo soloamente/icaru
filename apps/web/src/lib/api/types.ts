@@ -167,10 +167,11 @@ export interface NegotiationsMonthlyComparison {
 export interface NegotiationsStatistics {
 	total_open_negotiations: number;
 	conclusion_percentage: number;
-	average_amount: number;
-	total_open_amount: number;
-	opened_negotiations_comparison: NegotiationsMonthlyComparison;
-	concluded_negotiations_comparison: NegotiationsMonthlyComparison;
+	average_open_amount: number;
+	average_concluded_amount: number;
+	/** Totale importo trattative aperte (stringa numerica dall'API). */
+	total_open_amount: string;
+	average_closing_days: number;
 }
 
 /** Percentuale avanzamento: 0–100 in 20% increments */
