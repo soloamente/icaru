@@ -432,6 +432,18 @@ html[data-font="rounded"] {
 	font-family: var(--font-sf-pro-rounded), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Font size preference: scales base so all rem-based UI follows. Uses % to respect browser default. */
+html:not([data-font-size]),
+html[data-font-size="medium"] {
+	font-size: 100%;
+}
+html[data-font-size="small"] {
+	font-size: 87.5%;
+}
+html[data-font-size="large"] {
+	font-size: 112.5%;
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;

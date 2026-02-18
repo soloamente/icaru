@@ -9,18 +9,15 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Command } from "cmdk";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-	listClientsCompany,
-	listClientsMe,
 	listNegotiationsCompany,
 	listNegotiationsMe,
 	search,
 } from "@/lib/api/client";
 import type {
-	ApiClient,
-	ApiNegotiation,
 	SearchClientResult,
 	SearchReferentResult,
 	SearchResponse,
@@ -30,51 +27,23 @@ import { useAuthOptional } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 
 const DEBOUNCE_MS = 300;
-const MIN_QUERY_LENGTH = 2;
+/** Minimum characters to run search API; below this we show section navigation cards. */
+const MIN_CHARS_FOR_SEARCH = 3;
 
-/** Build SearchResponse from clients + negotiations (when search is empty). */
-function buildSearchResponseFromLists(
-	clients: ApiClient[],
-	negotiations: ApiNegotiation[]
-): SearchResponse {
-	const clientIdsWithNegotiations = new Set(
-		negotiations.map((n) => n.client_id)
-	);
-	const toSearchClient = (c: ApiClient): SearchClientResult => ({
-		id: c.id,
-		ragione_sociale: c.ragione_sociale,
-		p_iva: c.p_iva ?? null,
-		email: (c.email as string) ?? null,
-		telefono: (c.telefono as string) ?? null,
-		tipologia: (c.tipologia as string) ?? null,
-	});
-	const clientsWithNegotiations = clients
-		.filter((c) => clientIdsWithNegotiations.has(c.id))
-		.map(toSearchClient);
-	const clientsWithoutNegotiations = clients
-		.filter((c) => !clientIdsWithNegotiations.has(c.id))
-		.map(toSearchClient);
-	const referents: SearchReferentResult[] = negotiations.map((n) => ({
-		id: n.id,
-		referente: n.referente,
-		client_id: n.client_id,
-		// Usiamo `data_apertura` della trattativa quando presente, con fallback su `created_at`
-		// per mantenere coerenza tra risultati di ricerca e dettaglio trattativa.
-		data_apertura:
-			(n as ApiNegotiation & { data_apertura?: string }).data_apertura ??
-			n.created_at ??
-			"",
-		spanco: n.spanco,
-		client: {
-			ragione_sociale: n.client?.ragione_sociale ?? "",
-		},
-	}));
-	return {
-		clients_with_negotiations: clientsWithNegotiations,
-		referents,
-		clients_without_negotiations: clientsWithoutNegotiations,
-	};
-}
+/** Section cards shown when search has fewer than MIN_CHARS_FOR_SEARCH characters. */
+const SECTION_NAV_ITEMS = [
+	{ label: "Visualizza clienti", href: "/clienti", value: "nav-clienti" },
+	{
+		label: "Visualizza trattative aperte",
+		href: "/trattative/aperte",
+		value: "nav-trattative-aperte",
+	},
+	{
+		label: "Visualizza tutte le trattative",
+		href: "/trattative/tutte",
+		value: "nav-trattative-tutte",
+	},
+] as const;
 
 export default function GlobalSearchCommand() {
 	const router = useRouter();
@@ -132,7 +101,7 @@ export default function GlobalSearchCommand() {
 		}
 	}, [open]);
 
-	// Fetch results: when search empty → list all; when 2+ chars → search API
+	// Fetch results: when query has 3+ chars → search API; below 3 → section cards only
 	useEffect(() => {
 		const trimmed = searchValue.trim();
 
@@ -142,55 +111,27 @@ export default function GlobalSearchCommand() {
 		}
 
 		if (!(token && auth)) {
-			if (trimmed.length < MIN_QUERY_LENGTH) {
+			if (trimmed.length < MIN_CHARS_FOR_SEARCH) {
 				setResults(null);
 				setError(null);
 			}
 			return;
 		}
 
-		// Empty search: fetch all when dialog is open (no debounce)
-		if (trimmed.length === 0 && open) {
-			setLoading(true);
-			setError(null);
-			const role = roleFromApi(auth.user?.role);
-			const listClients =
-				role === "director" ? listClientsCompany : listClientsMe;
-			const listNegotiations =
-				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
-			Promise.all([listClients(token), listNegotiations(token)])
-				.then(([clientsRes, negsRes]) => {
-					if ("error" in clientsRes) {
-						setError(clientsRes.error);
-						setResults(null);
-						return;
-					}
-					if ("error" in negsRes) {
-						setError(negsRes.error);
-						setResults(null);
-						return;
-					}
-					const data = buildSearchResponseFromLists(
-						clientsRes.data,
-						negsRes.data
-					);
-					setResults(data);
-					setError(null);
-				})
-				.finally(() => {
-					setLoading(false);
-				});
-			return;
-		}
-
-		// 1 char: clear results, no fetch
-		if (trimmed.length < MIN_QUERY_LENGTH) {
+		// Below 3 chars: show section cards only, no API fetch; clear loading so
+		// section cards are visible again if user backspaces from 3+ chars
+		if (trimmed.length < MIN_CHARS_FOR_SEARCH) {
 			setResults(null);
 			setError(null);
+			setLoading(false);
 			return;
 		}
 
-		// 2+ chars: debounced search
+		// 3+ chars: show loading immediately so section cards are replaced by
+		// "Ricerca in corso…" instead of an empty area during debounce + API call
+		setLoading(true);
+		setError(null);
+
 		debounceRef.current = setTimeout(() => {
 			debounceRef.current = null;
 			if (abortRef.current) {
@@ -198,8 +139,6 @@ export default function GlobalSearchCommand() {
 			}
 			abortRef.current = new AbortController();
 
-			setLoading(true);
-			setError(null);
 			search(token, trimmed)
 				.then((out) => {
 					if ("error" in out) {
@@ -221,7 +160,7 @@ export default function GlobalSearchCommand() {
 				clearTimeout(debounceRef.current);
 			}
 		};
-	}, [searchValue, token, auth, open]);
+	}, [searchValue, token, auth]);
 
 	const handleOpenChange = useCallback((next: boolean) => {
 		setOpen(next);
@@ -329,140 +268,179 @@ export default function GlobalSearchCommand() {
 						<Dialog.Title className="sr-only" id="global-search-title">
 							Ricerca globale: clienti e trattative
 						</Dialog.Title>
-						<Command label="Ricerca globale" shouldFilter={false}>
-							{/* Wrapper for floating-style input: padding from dialog, no bottom border */}
-							<div className="global-search-input-wrap">
-								<Command.Input
-									aria-describedby="global-search-hint"
-									autoComplete="off"
-									className="global-search-input"
-									onValueChange={setSearchValue}
-									placeholder="Cerca o lascia vuoto per vedere tutto..."
-									value={searchValue}
-								/>
-							</div>
-							<p className="sr-only" id="global-search-hint">
-								Risultati aggiornati mentre digiti. Usa i tasti freccia per
-								spostarti, Invio per aprire.
-							</p>
-
-							<Command.List
-								aria-label="Risultati ricerca"
-								className="global-search-list scroll-fade-y"
-							>
-								{/* Hint only when 1 character (0 = show all, 2+ = search) */}
-								{!loading && searchValue.trim().length === 1 && (
-									<div className="global-search-empty">
-										Digita almeno 2 caratteri per filtrare
+						<div className="global-search-command">
+							<Command label="Ricerca globale" shouldFilter={false}>
+								{/* Input bar: reference style — rounded-2xl border, icon + input (like Label in reference) */}
+								<div className="global-search-input-wrap">
+									<div className="global-search-input-bar">
+										<Search aria-hidden className="global-search-input-icon" />
+										<Command.Input
+											aria-describedby="global-search-hint"
+											autoComplete="off"
+											className="global-search-input"
+											onValueChange={setSearchValue}
+											placeholder="Cerca clienti e trattative (min. 3 caratteri)..."
+											value={searchValue}
+										/>
 									</div>
-								)}
+								</div>
+								<p className="sr-only" id="global-search-hint">
+									Risultati aggiornati mentre digiti. Usa i tasti freccia per
+									spostarti, Invio per aprire.
+								</p>
 
-								{loading && (
-									<Command.Loading className="global-search-loading">
-										Ricerca in corso…
-									</Command.Loading>
-								)}
+								<Command.List
+									aria-label="Risultati ricerca"
+									className="global-search-list scroll-fade-y p-2"
+								>
+									{/* Section navigation cards when query has fewer than 3 characters */}
+									{!loading &&
+										searchValue.trim().length < MIN_CHARS_FOR_SEARCH && (
+											<ul
+												aria-label="Vai a sezione"
+												className="global-search-section-cards"
+											>
+												{SECTION_NAV_ITEMS.map((item) => (
+													<li key={item.value}>
+														<Command.Item
+															aria-label={`Vai a ${item.label}`}
+															className="global-search-section-card group select-none rounded-xl px-3 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+															onSelect={() => {
+																setOpen(false);
+																router.push(item.href);
+															}}
+															value={item.value}
+														>
+															<span className="global-search-section-card-label">
+																{item.label}
+															</span>
+														</Command.Item>
+													</li>
+												))}
+											</ul>
+										)}
 
-								{!loading &&
-									searchValue.trim().length >= MIN_QUERY_LENGTH &&
-									error && (
-										<div className="global-search-error" role="alert">
-											{error}
-										</div>
+									{loading && (
+										<Command.Loading className="global-search-loading">
+											Ricerca in corso…
+										</Command.Loading>
 									)}
 
-								{!loading &&
-									searchValue.trim().length >= MIN_QUERY_LENGTH &&
-									!error &&
-									!hasResults && (
-										<Command.Empty className="global-search-empty">
-											Nessun risultato per &quot;{searchValue.trim()}&quot;
-										</Command.Empty>
+									{!loading &&
+										searchValue.trim().length >= MIN_CHARS_FOR_SEARCH &&
+										error && (
+											<div className="global-search-error" role="alert">
+												{error}
+											</div>
+										)}
+
+									{!loading &&
+										searchValue.trim().length >= MIN_CHARS_FOR_SEARCH &&
+										!error &&
+										!hasResults && (
+											<Command.Empty className="global-search-empty">
+												Nessun risultato per &quot;{searchValue.trim()}&quot;
+											</Command.Empty>
+										)}
+
+									{!loading && results && hasResults && (
+										<>
+											{results.clients_with_negotiations.length > 0 && (
+												<Command.Group
+													className="global-search-group"
+													heading="Clienti con trattative"
+												>
+													{results.clients_with_negotiations.map((c) => (
+														<Command.Item
+															className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+															key={`client-with-${c.id}`}
+															onSelect={() =>
+																handleSelectClientWithNegotiations(c)
+															}
+															value={`client-with-${c.id}-${c.ragione_sociale}`}
+														>
+															<span className="font-medium">
+																{c.ragione_sociale}
+															</span>
+															{c.p_iva && (
+																<span className="text-muted-foreground">
+																	{" "}
+																	P.IVA {c.p_iva}
+																</span>
+															)}
+														</Command.Item>
+													))}
+												</Command.Group>
+											)}
+
+											{results.referents.length > 0 && (
+												<Command.Group
+													className="global-search-group"
+													heading="Referenti / Trattative"
+												>
+													{results.referents.map((r) => (
+														<Command.Item
+															className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+															key={`ref-${r.id}`}
+															onSelect={() => handleSelectReferent(r)}
+															value={`ref-${r.id}-${r.referente}-${r.client.ragione_sociale}`}
+														>
+															<span className="font-medium">{r.referente}</span>
+															<span className="text-muted-foreground">
+																{" "}
+																— {r.client.ragione_sociale} · Trattativa #
+																{r.id}
+															</span>
+														</Command.Item>
+													))}
+												</Command.Group>
+											)}
+
+											{results.clients_without_negotiations.length > 0 && (
+												<Command.Group
+													className="global-search-group"
+													heading="Clienti senza trattative"
+												>
+													{results.clients_without_negotiations.map((c) => (
+														<Command.Item
+															className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+															key={`client-no-${c.id}`}
+															onSelect={() =>
+																handleSelectClientWithoutNegotiations(c)
+															}
+															value={`client-no-${c.id}-${c.ragione_sociale}`}
+														>
+															<span className="font-medium">
+																{c.ragione_sociale}
+															</span>
+															{c.p_iva && (
+																<span className="text-muted-foreground">
+																	{" "}
+																	P.IVA {c.p_iva}
+																</span>
+															)}
+														</Command.Item>
+													))}
+												</Command.Group>
+											)}
+										</>
 									)}
-
-								{!loading && results && hasResults && (
-									<>
-										{results.clients_with_negotiations.length > 0 && (
-											<Command.Group
-												className="global-search-group"
-												heading="Clienti con trattative"
-											>
-												{results.clients_with_negotiations.map((c) => (
-													<Command.Item
-														className="global-search-item"
-														key={`client-with-${c.id}`}
-														onSelect={() =>
-															handleSelectClientWithNegotiations(c)
-														}
-														value={`client-with-${c.id}-${c.ragione_sociale}`}
-													>
-														<span className="font-medium">
-															{c.ragione_sociale}
-														</span>
-														{c.p_iva && (
-															<span className="text-muted-foreground">
-																{" "}
-																P.IVA {c.p_iva}
-															</span>
-														)}
-													</Command.Item>
-												))}
-											</Command.Group>
-										)}
-
-										{results.referents.length > 0 && (
-											<Command.Group
-												className="global-search-group"
-												heading="Referenti / Trattative"
-											>
-												{results.referents.map((r) => (
-													<Command.Item
-														className="global-search-item"
-														key={`ref-${r.id}`}
-														onSelect={() => handleSelectReferent(r)}
-														value={`ref-${r.id}-${r.referente}-${r.client.ragione_sociale}`}
-													>
-														<span className="font-medium">{r.referente}</span>
-														<span className="text-muted-foreground">
-															{" "}
-															— {r.client.ragione_sociale} · Trattativa #{r.id}
-														</span>
-													</Command.Item>
-												))}
-											</Command.Group>
-										)}
-
-										{results.clients_without_negotiations.length > 0 && (
-											<Command.Group
-												className="global-search-group"
-												heading="Clienti senza trattative"
-											>
-												{results.clients_without_negotiations.map((c) => (
-													<Command.Item
-														className="global-search-item"
-														key={`client-no-${c.id}`}
-														onSelect={() =>
-															handleSelectClientWithoutNegotiations(c)
-														}
-														value={`client-no-${c.id}-${c.ragione_sociale}`}
-													>
-														<span className="font-medium">
-															{c.ragione_sociale}
-														</span>
-														{c.p_iva && (
-															<span className="text-muted-foreground">
-																{" "}
-																P.IVA {c.p_iva}
-															</span>
-														)}
-													</Command.Item>
-												))}
-											</Command.Group>
-										)}
-									</>
-								)}
-							</Command.List>
-						</Command>
+								</Command.List>
+								{/* Footer with keyboard hints (reference style) */}
+								<footer className="global-search-footer">
+									<span className="global-search-footer-hint">
+										<kbd className="global-search-kbd">esc</kbd> per chiudere
+									</span>
+									<span className="global-search-footer-hint">
+										<kbd className="global-search-kbd">↑</kbd>
+										<kbd className="global-search-kbd">↓</kbd> per navigare
+									</span>
+									<span className="global-search-footer-hint">
+										<kbd className="global-search-kbd">invio</kbd> per aprire
+									</span>
+								</footer>
+							</Command>
+						</div>
 					</Dialog.Popup>
 				</div>
 			</Dialog.Portal>

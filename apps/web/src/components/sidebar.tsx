@@ -628,9 +628,9 @@ export default function Sidebar({
 				    seguendo lo stesso pattern usato per la pill "Ha trattativa" in ClientsTable. */}
 				<div className="flex shrink-0 flex-col gap-2.5 pb-2">
 					{navFooter.map((item) => (
-						<div className="group relative inline-flex" key={item.label}>
+						<div className="group relative flex w-full" key={item.label}>
 							<button
-								className="flex cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
+								className="flex w-full cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
 								onClick={item.onClick}
 								type="button"
 							>

@@ -6,6 +6,7 @@ import {
 	ACCENT_OPTIONS,
 	COLOR_SCHEME_OPTIONS,
 	FONT_OPTIONS,
+	FONT_SIZE_OPTIONS,
 	NAVIGATION_POSITION_OPTIONS,
 	usePreferences,
 } from "@/lib/preferences/preferences-context";
@@ -45,6 +46,8 @@ export function PreferencesContent() {
 		setColorScheme,
 		fontStyle,
 		setFontStyle,
+		fontSize,
+		setFontSize,
 		navigationPosition,
 		setNavigationPosition,
 	} = usePreferences();
@@ -211,6 +214,38 @@ export function PreferencesContent() {
 							);
 						}
 					)}
+				</div>
+			</section>
+
+			{/* Font size: Piccolo / Normale / Grande */}
+			<section aria-labelledby="font-size-heading" className="mb-8">
+				<h3
+					className="mb-1 font-medium text-base text-card-foreground"
+					id="font-size-heading"
+				>
+					Dimensione carattere
+				</h3>
+				<div className="flex gap-3">
+					{FONT_SIZE_OPTIONS.map((opt: (typeof FONT_SIZE_OPTIONS)[number]) => {
+						const isSelected = fontSize === opt.id;
+						return (
+							<button
+								aria-pressed={isSelected}
+								className={cn(
+									"flex flex-1 items-center justify-center rounded-lg border-2 py-3 font-medium text-sm transition-colors",
+									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+									isSelected
+										? "border-primary bg-primary/5 text-card-foreground"
+										: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
+								)}
+								key={opt.id}
+								onClick={() => setFontSize(opt.id)}
+								type="button"
+							>
+								{opt.label}
+							</button>
+						);
+					})}
 				</div>
 			</section>
 

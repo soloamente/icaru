@@ -25,8 +25,8 @@ import Sidebar from "./sidebar";
  *  ~300ms  content panel settles (spring); when closing, panel covers sidebar
  * ───────────────────────────────────────────────────────────────────────── */
 
-/** Sidebar width in px; content panel left offset when open. */
-const SIDEBAR_WIDTH_PX = 219;
+/** Single constant: sidebar width when open; the right-hand content container width = viewport minus this (scaled by font size). */
+const SIDEBAR_OPEN_WIDTH_PX = 238;
 
 /** Default spring for content panel (used when DialKit not available). */
 const CONTENT_PANEL_SPRING_DEFAULT = {
@@ -40,7 +40,7 @@ const CONTENT_PANEL_SPRING_DEFAULT = {
 function useSidebarPanelDialKit() {
 	return useDialKit("Sidebar open/close", {
 		content: {
-			openLeft: [SIDEBAR_WIDTH_PX, 0, 400],
+			openLeft: [SIDEBAR_OPEN_WIDTH_PX, 0, 400],
 			spring: {
 				type: "spring",
 				stiffness: 200,
@@ -65,6 +65,17 @@ function SidebarLeftAnimatedLayout({
 }) {
 	const sidebarOpen = useSidebarOpen();
 	const dialParams = useSidebarPanelDialKit();
+	const { fontSize } = usePreferences();
+
+	// Scale the open offset of the content panel based on the font size preference,
+	// so that when the user selects "Grande" the sidebar has more horizontal space
+	// and labels are not cramped or truncated.
+	let fontSizeScale = 1;
+	if (fontSize === "large") {
+		fontSizeScale = 1.125;
+	} else if (fontSize === "small") {
+		fontSizeScale = 0.875;
+	}
 
 	if (!sidebarOpen) {
 		return (
@@ -76,17 +87,24 @@ function SidebarLeftAnimatedLayout({
 	}
 
 	const isOpen = sidebarOpen.isOpen;
-	const openLeft = dialParams?.content?.openLeft ?? SIDEBAR_WIDTH_PX;
+	const baseOpenLeft = dialParams?.content?.openLeft ?? SIDEBAR_OPEN_WIDTH_PX;
+	const openLeft = baseOpenLeft * fontSizeScale;
+	const sidebarWidthPx = SIDEBAR_OPEN_WIDTH_PX * fontSizeScale;
 	const spring = dialParams?.content?.spring ?? CONTENT_PANEL_SPRING_DEFAULT;
 
 	return (
 		<div className="relative h-screen overflow-hidden">
-			{/* Sidebar: no new container, positioned in background so content can overlay it */}
-			<Sidebar
-				className="absolute top-0 left-0 z-0 h-full w-[243px] min-w-0 shrink-0"
-				user={user}
-				variant="sidebar-left"
-			/>
+			{/* Sidebar: width from SIDEBAR_OPEN_WIDTH_PX so the right-hand content container gets smaller by that amount */}
+			<div
+				className="absolute top-0 left-0 z-0 h-full shrink-0"
+				style={{ width: sidebarWidthPx }}
+			>
+				<Sidebar
+					className="h-full w-full min-w-0"
+					user={user}
+					variant="sidebar-left"
+				/>
+			</div>
 			{/* Content panel: transparent background; animates left to reveal (open) or cover (closed) the sidebar. */}
 			<motion.div
 				animate={{ left: isOpen ? openLeft : 0 }}
