@@ -183,7 +183,16 @@ export default function ClientsTable() {
 				setError(result.error);
 				return;
 			}
-			const [first] = result.data;
+			// Filter by client_id: backend may ignore the client_id query param
+			const forClient = result.data.filter((n) => n.client_id === clientId);
+			// Prefer aperte over concluse over abbandonate
+			const order = { aperte: 0, concluse: 1, abbandonate: 2 } as const;
+			const sorted = [...forClient].sort((a, b) => {
+				const sa = getNegotiationStatoSegment(a);
+				const sb = getNegotiationStatoSegment(b);
+				return (order[sa] ?? 2) - (order[sb] ?? 2);
+			});
+			const [first] = sorted;
 			if (!first) {
 				// Defensive fallback: if no negotiations are found, send the user to
 				// the open negotiations list filtered by this client so they can

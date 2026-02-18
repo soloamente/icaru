@@ -13,11 +13,13 @@ import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+	getNegotiation,
 	listNegotiationsCompany,
 	listNegotiationsMe,
 	search,
 } from "@/lib/api/client";
 import type {
+	ApiNegotiation,
 	SearchClientResult,
 	SearchReferentResult,
 	SearchResponse,
@@ -27,6 +29,50 @@ import { useAuthOptional } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 
 const DEBOUNCE_MS = 300;
+
+/** Sort negotiations by relevance: aperte first, then concluse, then abbandonate. */
+function sortNegotiationsByRelevance(list: ApiNegotiation[]): ApiNegotiation[] {
+	const order = { aperte: 0, concluse: 1, abbandonate: 2 } as const;
+	return [...list].sort((a, b) => {
+		const statoA = getNegotiationStatoSegment(a);
+		const statoB = getNegotiationStatoSegment(b);
+		return (order[statoA] ?? 2) - (order[statoB] ?? 2);
+	});
+}
+
+/** Resolve href for a client's negotiation when no referent in search results. */
+async function resolveClientNegotiationHref(
+	token: string,
+	clientId: number,
+	listFn: typeof listNegotiationsMe
+): Promise<string | null> {
+	const result = await listFn(token, { client_id: clientId });
+	if ("error" in result || result.data.length === 0) {
+		return null;
+	}
+	// Filter by client_id: backend may ignore the client_id query param, so we
+	// defensively filter to ensure we only pick a negotiation for this client.
+	const forClient = result.data.filter((n) => n.client_id === clientId);
+	if (forClient.length === 0) {
+		return null;
+	}
+	const sorted = sortNegotiationsByRelevance(forClient);
+	const chosen = sorted[0];
+	if (!chosen) {
+		return null;
+	}
+	const hasRoutingInfo =
+		(typeof chosen.spanco === "string" ||
+			typeof chosen.percentuale === "number") &&
+		typeof chosen.abbandonata === "boolean";
+	let neg = chosen;
+	if (!hasRoutingInfo) {
+		const full = await getNegotiation(token, chosen.id);
+		neg = "error" in full ? chosen : full.data;
+	}
+	return `/trattative/${getNegotiationStatoSegment(neg)}/${neg.id}`;
+}
+
 /** Minimum characters to run search API; below this we show section navigation cards. */
 const MIN_CHARS_FOR_SEARCH = 3;
 
@@ -179,42 +225,27 @@ export default function GlobalSearchCommand() {
 	// in search results (works when empty search or when referent matches query).
 	// When searching, the API may filter referents by query so the client appears
 	// in clients_with_negotiations but no matching referent exists — in that case
-	// we fetch negotiations for that client via listNegotiations(client_id).
+	// we fetch negotiations, prefer aperte over concluse over abbandonate, and use
+	// GET /negotiations/{id} if list data is incomplete (per Alessandro's suggestion).
 	const handleSelectClientWithNegotiations = useCallback(
 		async (c: SearchClientResult) => {
 			if (!(token && auth)) {
 				return;
 			}
 			setOpen(false);
-
-			// 1. Try referent from search results (fast path)
 			const currentResults = resultsRef.current;
 			const firstReferent =
 				currentResults?.referents.find((r) => r.client_id === c.id) ?? null;
-
 			if (firstReferent) {
 				router.push(`/trattative/aperte/${firstReferent.id}`);
 				return;
 			}
-
-			// 2. No referent in results (e.g. search filtered referents by query) —
-			// fetch negotiations for this client and navigate to the first one.
 			const role = roleFromApi(auth.user?.role);
-			const listNegotiations =
+			const listFn =
 				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
-			const result = await listNegotiations(token, { client_id: c.id });
-			if ("error" in result) {
-				// Fallback: navigate to trattative list filtered by client so user can inspect
-				router.push(`/trattative/aperte?client_id=${c.id}`);
-				return;
-			}
-			const [first] = result.data;
-			if (!first) {
-				router.push(`/trattative/aperte?client_id=${c.id}`);
-				return;
-			}
-			const stato = getNegotiationStatoSegment(first);
-			router.push(`/trattative/${stato}/${first.id}`);
+			const href = await resolveClientNegotiationHref(token, c.id, listFn);
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic path built from API; bridge to RouteImpl
+			router.push((href ?? `/trattative/aperte?client_id=${c.id}`) as any);
 		},
 		[auth, router, token]
 	);
