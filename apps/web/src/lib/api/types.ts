@@ -206,6 +206,10 @@ export interface ApiNegotiation {
 	abbandonata: boolean;
 	/** Data di apertura della trattativa (separata da created_at nell'API Laravel). */
 	data_apertura?: string;
+	/** Data di chiusura quando la trattativa è conclusa (se esposta dall'API). */
+	data_chiusura?: string;
+	/** Data di abbandono quando la trattativa è abbandonata (se esposta dall'API). */
+	data_abbandono?: string;
 	created_at?: string;
 	updated_at?: string;
 	/** Client relation when included */

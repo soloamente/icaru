@@ -8,6 +8,7 @@ import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DateRange as DayPickerDateRange } from "react-day-picker";
 import { Drawer } from "vaul";
 import {
 	CheckIcon,
@@ -35,6 +36,7 @@ import type {
 import { useAuth } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
+import { DateRangeFilter } from "./date-range-filter";
 import CircleXmarkFilled from "./icons/circle-xmark-filled";
 import IconDeleteLeftFill18 from "./icons/delete-left-fill-18";
 import { IconCircleInfoSparkle } from "./icons/icon-circle-info-sparkle";
@@ -152,6 +154,55 @@ const isNegotiationCompleted = (negotiation: ApiNegotiation): boolean =>
 const isNegotiationAbandoned = (negotiation: ApiNegotiation): boolean =>
 	negotiation.abbandonata;
 
+/** Data di riferimento per il filtro date in base alla vista: apertura, chiusura o abbandono. */
+function getNegotiationDateForFilter(
+	n: ApiNegotiation,
+	pageFilter: "all" | "aperte" | "concluse" | "abbandonate"
+): string | undefined {
+	if (pageFilter === "concluse") {
+		return n.data_chiusura ?? n.updated_at ?? undefined;
+	}
+	if (pageFilter === "abbandonate") {
+		return n.data_abbandono ?? n.updated_at ?? undefined;
+	}
+	return n.data_apertura ?? n.created_at ?? undefined;
+}
+
+/** Verifica se la data rientra nel range (confronto solo la parte data, ora locale). */
+function isDateInRange(
+	dateStr: string | undefined,
+	range: DayPickerDateRange | undefined
+): boolean {
+	if (!range?.from) {
+		return true; // Nessun range = mostra tutto
+	}
+	if (!dateStr) {
+		return false; // Data mancante con range attivo = escludi
+	}
+	const d = new Date(dateStr);
+	if (Number.isNaN(d.getTime())) {
+		return false;
+	}
+	const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+	const fromOnly = new Date(
+		range.from.getFullYear(),
+		range.from.getMonth(),
+		range.from.getDate()
+	);
+	if (dateOnly < fromOnly) {
+		return false;
+	}
+	if (range.to) {
+		const toOnly = new Date(
+			range.to.getFullYear(),
+			range.to.getMonth(),
+			range.to.getDate()
+		);
+		return dateOnly <= toOnly;
+	}
+	return true;
+}
+
 const isNegotiationOpen = (negotiation: ApiNegotiation): boolean =>
 	!(isNegotiationAbandoned(negotiation) || isNegotiationCompleted(negotiation));
 
@@ -259,6 +310,18 @@ function formatImporto(value: number): string {
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 0,
 	}).format(value);
+}
+
+/** Formatta una data ISO dal backend in breve data italiana; "—" se assente. */
+function formatNegotiationDate(date: string | undefined): string {
+	if (!date) {
+		return "—";
+	}
+	const parsed = new Date(date);
+	if (Number.isNaN(parsed.getTime())) {
+		return date;
+	}
+	return parsed.toLocaleDateString("it-IT");
 }
 
 function getClientDisplay(n: ApiNegotiation): string {
@@ -1192,6 +1255,9 @@ export default function TrattativeTable({
 	const [statoFilter, setStatoFilter] = useState<
 		"all" | "aperta" | "conclusa" | "abbandonata"
 	>("all");
+	const [dateRange, setDateRange] = useState<DayPickerDateRange | undefined>(
+		undefined
+	);
 	const router = useRouter();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	// Captured initialClientId when opening from URL params; cleared when dialog closes.
@@ -1225,11 +1291,11 @@ export default function TrattativeTable({
 	// Header filters visibility:
 	// - SPANCO filter is available on all views except "concluse" (where every row is già in stato finale).
 	// - Stato filter (Aperta/Conclusa/Abbandonata) è significativo solo nella vista "tutte", dove coesistono tutti gli stati.
+	// - Date filter (preset) is always shown on all trattative tables.
 	const showSpancoFilter = filter !== "concluse";
 	const showStatoFilter = filter === "all";
-	// When at least one header filter is visible we keep the two-row header layout;
-	// if no filters are shown (e.g. pagina "concluse") we inline the search next to the primary action button.
-	const hasHeaderFilters = showSpancoFilter || showStatoFilter;
+	// When at least one header filter is visible we keep the two-row header layout.
+	const hasHeaderFilters = true; /* date filter sempre visibile */
 
 	// Direttore Vendite: /company (tutta l'azienda). Venditore: /me, /me/abandoned, /me/concluded.
 	// Per il direttore usiamo /company e filtriamo lato client per concluse/abbandonate (l'API non espone /company/open ecc.).
@@ -1289,6 +1355,13 @@ export default function TrattativeTable({
 				return false;
 			}
 			if (statoFilter === "abbandonata" && !isNegotiationAbandoned(n)) {
+				return false;
+			}
+		}
+		// Date filter: per vista usiamo data apertura, chiusura o abbandono.
+		if (dateRange?.from) {
+			const refDate = getNegotiationDateForFilter(n, filter);
+			if (!isDateInRange(refDate, dateRange)) {
 				return false;
 			}
 		}
@@ -1516,180 +1589,183 @@ export default function TrattativeTable({
 				{hasHeaderFilters && (
 					<div className="flex items-center justify-between gap-2">
 						{/* Header - left side filters (local, client-side).
-						 * We only show:
-						 * - SPANCO filter on all views except "concluse"
-						 * - Stato filter (Aperta/Conclusa/Abbandonata) exclusively on "tutte"
+						 * - Date filter (preset) sempre visibile su tutte le tabelle trattative
+						 * - SPANCO filter su tutte le viste eccetto "concluse"
+						 * - Stato filter (Aperta/Conclusa/Abbandonata) solo su "tutte"
 						 */}
-						{(showSpancoFilter || showStatoFilter) && (
-							<div className="flex w-full items-center justify-start gap-1.25">
-								{showSpancoFilter && (
-									<Select.Root
-										onValueChange={(value) => {
-											// When value is null we treat it as "all" phases; otherwise cast to a valid SPANCO stage.
-											if (value === null) {
-												setSpancoFilter("all");
-												return;
-											}
-											setSpancoFilter(value as SpancoStage);
-										}}
-										value={spancoFilter === "all" ? null : spancoFilter}
+						<div className="flex w-full items-center justify-start gap-1.25">
+							{/* Filtro date con preset e range: data apertura/chiusura/abbandono a seconda della vista */}
+							<DateRangeFilter
+								align="start"
+								dateRange={dateRange}
+								onDateRangeChange={setDateRange}
+								variant="table"
+							/>
+							{showSpancoFilter && (
+								<Select.Root
+									onValueChange={(value) => {
+										// When value is null we treat it as "all" phases; otherwise cast to a valid SPANCO stage.
+										if (value === null) {
+											setSpancoFilter("all");
+											return;
+										}
+										setSpancoFilter(value as SpancoStage);
+									}}
+									value={spancoFilter === "all" ? null : spancoFilter}
+								>
+									<Select.Trigger
+										// Use the same background token as the search input to keep header controls visually consistent.
+										className="flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										id="trattative-spanco-filter"
 									>
-										<Select.Trigger
-											// Use the same background token as the search input to keep header controls visually consistent.
-											className="flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
-											id="trattative-spanco-filter"
+										<Select.Value
+											className="data-placeholder:text-stats-title"
+											placeholder="Tutte le fasi SPANCO"
 										>
-											<Select.Value
-												className="data-placeholder:text-stats-title"
-												placeholder="Tutte le fasi SPANCO"
-											>
-												{(value: SpancoStage | null) =>
-													value
-														? `Solo ${SPANCO_LABELS[value]}`
-														: "Tutte le fasi SPANCO"
+											{(value: SpancoStage | null) =>
+												value
+													? `Solo ${SPANCO_LABELS[value]}`
+													: "Tutte le fasi SPANCO"
+											}
+										</Select.Value>
+										<Select.Icon className="text-button-secondary">
+											<ChevronDown aria-hidden className="size-3.5" />
+										</Select.Icon>
+									</Select.Trigger>
+									<Select.Portal>
+										<Select.Positioner
+											/* Use content-height dropdown with a reasonable max height instead of stretching to the viewport. */
+											alignItemWithTrigger={false}
+											className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+											sideOffset={8}
+										>
+											<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+												<Select.List className="flex h-fit flex-col gap-1">
+													<Select.Item
+														className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value={null}
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>
+															Tutte le fasi SPANCO
+														</Select.ItemText>
+													</Select.Item>
+													{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
+														(stage) => (
+															<Select.Item
+																className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+																key={stage}
+																value={stage}
+															>
+																<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+																	<CheckIcon aria-hidden className="size-4" />
+																</Select.ItemIndicator>
+																<Select.ItemText>
+																	{`Solo ${SPANCO_LABELS[stage]}`}
+																</Select.ItemText>
+															</Select.Item>
+														)
+													)}
+												</Select.List>
+											</Select.Popup>
+										</Select.Positioner>
+									</Select.Portal>
+								</Select.Root>
+							)}
+							{showStatoFilter && (
+								<Select.Root
+									onValueChange={(value) => {
+										if (value === null) {
+											setStatoFilter("all");
+											return;
+										}
+										setStatoFilter(
+											value as "aperta" | "conclusa" | "abbandonata"
+										);
+									}}
+									value={statoFilter === "all" ? null : statoFilter}
+								>
+									<Select.Trigger
+										// Match the search input background token so all header filters share the same visual weight.
+										className="flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										id="trattative-stato-filter"
+									>
+										<Select.Value
+											className="data-placeholder:text-stats-title"
+											placeholder="Tutti gli stati"
+										>
+											{(
+												value: "aperta" | "conclusa" | "abbandonata" | null
+											) => {
+												if (!value) {
+													return "Tutti gli stati";
 												}
-											</Select.Value>
-											<Select.Icon className="text-button-secondary">
-												<ChevronDown aria-hidden className="size-3.5" />
-											</Select.Icon>
-										</Select.Trigger>
-										<Select.Portal>
-											<Select.Positioner
-												/* Use content-height dropdown with a reasonable max height instead of stretching to the viewport. */
-												alignItemWithTrigger={false}
-												className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
-												sideOffset={8}
-											>
-												<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
-													<Select.List className="flex h-fit flex-col gap-1">
-														<Select.Item
-															className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-															value={null}
-														>
-															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																<CheckIcon aria-hidden className="size-4" />
-															</Select.ItemIndicator>
-															<Select.ItemText>
-																Tutte le fasi SPANCO
-															</Select.ItemText>
-														</Select.Item>
-														{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
-															(stage) => (
-																<Select.Item
-																	className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-																	key={stage}
-																	value={stage}
-																>
-																	<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																		<CheckIcon aria-hidden className="size-4" />
-																	</Select.ItemIndicator>
-																	<Select.ItemText>
-																		{`Solo ${SPANCO_LABELS[stage]}`}
-																	</Select.ItemText>
-																</Select.Item>
-															)
-														)}
-													</Select.List>
-												</Select.Popup>
-											</Select.Positioner>
-										</Select.Portal>
-									</Select.Root>
-								)}
-								{showStatoFilter && (
-									<Select.Root
-										onValueChange={(value) => {
-											if (value === null) {
-												setStatoFilter("all");
-												return;
-											}
-											setStatoFilter(
-												value as "aperta" | "conclusa" | "abbandonata"
-											);
-										}}
-										value={statoFilter === "all" ? null : statoFilter}
-									>
-										<Select.Trigger
-											// Match the search input background token so all header filters share the same visual weight.
-											className="flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
-											id="trattative-stato-filter"
+												if (value === "aperta") {
+													return "Solo Aperte";
+												}
+												if (value === "conclusa") {
+													return "Solo Concluse";
+												}
+												return "Solo Abbandonate";
+											}}
+										</Select.Value>
+										<Select.Icon className="text-button-secondary">
+											<ChevronDown aria-hidden className="size-3.5" />
+										</Select.Icon>
+									</Select.Trigger>
+									<Select.Portal>
+										<Select.Positioner
+											alignItemWithTrigger={false}
+											className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+											sideOffset={8}
 										>
-											<Select.Value
-												className="data-placeholder:text-stats-title"
-												placeholder="Tutti gli stati"
-											>
-												{(
-													value: "aperta" | "conclusa" | "abbandonata" | null
-												) => {
-													if (!value) {
-														return "Tutti gli stati";
-													}
-													if (value === "aperta") {
-														return "Solo Aperte";
-													}
-													if (value === "conclusa") {
-														return "Solo Concluse";
-													}
-													return "Solo Abbandonate";
-												}}
-											</Select.Value>
-											<Select.Icon className="text-button-secondary">
-												<ChevronDown aria-hidden className="size-3.5" />
-											</Select.Icon>
-										</Select.Trigger>
-										<Select.Portal>
-											<Select.Positioner
-												alignItemWithTrigger={false}
-												className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
-												sideOffset={8}
-											>
-												<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
-													<Select.List className="flex h-fit flex-col gap-1">
-														<Select.Item
-															className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-															value={null}
-														>
-															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																<CheckIcon aria-hidden className="size-4" />
-															</Select.ItemIndicator>
-															<Select.ItemText>Tutti gli stati</Select.ItemText>
-														</Select.Item>
-														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-															value="aperta"
-														>
-															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																<CheckIcon aria-hidden className="size-4" />
-															</Select.ItemIndicator>
-															<Select.ItemText>Solo Aperte</Select.ItemText>
-														</Select.Item>
-														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-															value="conclusa"
-														>
-															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																<CheckIcon aria-hidden className="size-4" />
-															</Select.ItemIndicator>
-															<Select.ItemText>Solo Concluse</Select.ItemText>
-														</Select.Item>
-														<Select.Item
-															className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-															value="abbandonata"
-														>
-															<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-																<CheckIcon aria-hidden className="size-4" />
-															</Select.ItemIndicator>
-															<Select.ItemText>
-																Solo Abbandonate
-															</Select.ItemText>
-														</Select.Item>
-													</Select.List>
-												</Select.Popup>
-											</Select.Positioner>
-										</Select.Portal>
-									</Select.Root>
-								)}
-							</div>
-						)}
+											<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+												<Select.List className="flex h-fit flex-col gap-1">
+													<Select.Item
+														className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value={null}
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Tutti gli stati</Select.ItemText>
+													</Select.Item>
+													<Select.Item
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value="aperta"
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Solo Aperte</Select.ItemText>
+													</Select.Item>
+													<Select.Item
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value="conclusa"
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Solo Concluse</Select.ItemText>
+													</Select.Item>
+													<Select.Item
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value="abbandonata"
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Solo Abbandonate</Select.ItemText>
+													</Select.Item>
+												</Select.List>
+											</Select.Popup>
+										</Select.Positioner>
+									</Select.Portal>
+								</Select.Root>
+							)}
+						</div>
 						{/* Header - search input aligned to the right, on its own row.
 						 * We use motion.label to animate the width smoothly instead of a pure CSS transition.
 						 */}
@@ -1820,13 +1896,19 @@ export default function TrattativeTable({
 					</div>
 				</div>
 
-				{/* Table */}
+				{/* Table: 8 colonne (Cliente, Referente, Data apertura, Col2 per filter, Spanco, Importo, Percentuale, Stato). Note rimossa per evitare troppe colonne. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
 					{/* Header: align background with table container using the same CSS variable */}
 					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
-						<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(140px,1.2fr)_minmax(100px,0.8fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
+						<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(90px,0.7fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
 							<div>Cliente</div>
 							<div>Referente</div>
+							<div>Data apertura</div>
+							<div>
+								{filter === "concluse" && "Data chiusura"}
+								{filter === "abbandonate" && "Data abbandono"}
+								{(filter === "all" || filter === "aperte") && "Telefono"}
+							</div>
 							<button
 								aria-label={spancoSortAriaLabel}
 								aria-pressed={spancoSortDirection !== null}
@@ -1888,7 +1970,6 @@ export default function TrattativeTable({
 									)}
 								/>
 							</button>
-							<div>Note</div>
 							<div>Stato</div>
 						</div>
 					</div>
@@ -1933,9 +2014,28 @@ export default function TrattativeTable({
 										role="button"
 										tabIndex={0}
 									>
-										<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(140px,1.2fr)_minmax(100px,0.8fr)] items-center gap-4 text-base">
+										<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(90px,0.7fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)] items-center gap-4 text-base">
 											<div className="truncate">{getClientDisplay(n)}</div>
 											<div className="truncate">{n.referente}</div>
+											<div className="truncate tabular-nums">
+												{formatNegotiationDate(
+													n.data_apertura ?? n.created_at ?? undefined
+												)}
+											</div>
+											<div className="truncate">
+												{filter === "concluse" &&
+													formatNegotiationDate(
+														n.data_chiusura ?? n.updated_at ?? undefined
+													)}
+												{filter === "abbandonate" &&
+													formatNegotiationDate(
+														n.data_abbandono ?? n.updated_at ?? undefined
+													)}
+												{(filter === "all" || filter === "aperte") &&
+													(n.client?.telefono?.trim()
+														? n.client.telefono.trim()
+														: "—")}
+											</div>
 											<div className="truncate">
 												<span
 													className={SPANCO_PILL_CLASSES}
@@ -1976,18 +2076,6 @@ export default function TrattativeTable({
 														{clampedPercent}%
 													</span>
 												</div>
-											</div>
-											<div className="truncate">
-												{n.note ? (
-													<span
-														className="block w-full truncate text-left"
-														title={n.note}
-													>
-														{n.note}
-													</span>
-												) : (
-													<span className="text-stats-title">Nessuna nota</span>
-												)}
 											</div>
 											<div>
 												<span

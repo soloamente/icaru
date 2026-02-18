@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "react-day-picker/style.css";
 @import "./table.css";
 @import "./checkbox.css";
 @import "./cmdk.css";
@@ -666,4 +667,48 @@ html[data-font-size="large"] {
 [data-vaul-drawer].create-negotiation-drawer::after,
 [data-vaul-drawer]:has(.create-negotiation-drawer)::after {
 	display: none !important;
+}
+
+/* React DayPicker in DateRangeFilter: usa colori del sito (card, background, foreground).
+   Mantiene angoli arrotondati per il range selezionato (start/end); il default
+   applica border-radius:unset a range_middle che rende tutto spigoloso. */
+.date-range-filter-calendar .rdp-root {
+	--rdp-accent-color: var(--primary);
+	--rdp-accent-background-color: var(--primary);
+	--rdp-background-color: var(--card);
+	--rdp-day_button-border-radius: 9999px;
+	--rdp-range_start-background: var(--primary);
+	--rdp-range_start-color: var(--primary-foreground);
+	--rdp-range_middle-background-color: color-mix(
+		in oklch,
+		var(--primary) 20%,
+		transparent
+	);
+	--rdp-range_middle-color: var(--foreground);
+	--rdp-range_end-background: var(--primary);
+	--rdp-range_end-color: var(--primary-foreground);
+}
+
+.date-range-filter-calendar .rdp-day_button {
+	color: var(--foreground);
+}
+
+/* range_start: angoli arrotondati solo a sinistra; range_end: solo a destra.
+   Si applica sia alla cella (.rdp-day) sia al bottone; !important per override
+   sugli stili importati da react-day-picker. */
+.date-range-filter-calendar .rdp-day.rdp-range_start,
+.date-range-filter-calendar .rdp-day.rdp-range_start .rdp-day_button {
+	border-radius: 9999px 0 0 9999px !important;
+}
+.date-range-filter-calendar .rdp-day.rdp-range_end,
+.date-range-filter-calendar .rdp-day.rdp-range_end .rdp-day_button {
+	border-radius: 0 9999px 9999px 0 !important;
+}
+
+.date-range-filter-calendar .rdp-caption_label {
+	color: var(--foreground);
+}
+
+.date-range-filter-calendar .rdp-head_cell {
+	color: var(--muted-foreground);
 }
