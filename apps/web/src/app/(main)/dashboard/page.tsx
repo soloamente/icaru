@@ -43,11 +43,43 @@ function formatCurrency(value: number): string {
 	}).format(value);
 }
 
+/** Split formatted EUR into main number and suffix (e.g. "18.000" and " €") for styling value at full brightness and suffix with lower opacity. */
+function formatCurrencyParts(value: number): { main: string; suffix: string } {
+	const formatted = formatCurrency(value);
+	const lastSpace = formatted.lastIndexOf(" ");
+	if (lastSpace !== -1) {
+		return {
+			main: formatted.slice(0, lastSpace),
+			suffix: formatted.slice(lastSpace),
+		};
+	}
+	// Locale may output "18.000€" without space; split by symbol so € gets opacity.
+	const euroIndex = formatted.indexOf("€");
+	if (euroIndex !== -1) {
+		return {
+			main: formatted.slice(0, euroIndex).trimEnd(),
+			suffix: formatted.slice(euroIndex),
+		};
+	}
+	return { main: formatted, suffix: "" };
+}
+
+/** Card value + valueSuffix for currency cards (single formatCurrencyParts call). */
+function currencyCardValue(amount: number): {
+	value: string;
+	valueSuffix: string;
+} {
+	const { main, suffix } = formatCurrencyParts(amount);
+	return { value: main, valueSuffix: suffix };
+}
+
 /** Single card in the dashboard statistics grid (from GET /api/statistics/negotiations). */
 interface NegotiationsStatsCard {
 	id: string;
 	title: string;
 	value: ReactNode;
+	/** Optional unit/suffix (€, %, giorni) rendered with lower opacity after the value. */
+	valueSuffix?: ReactNode;
 	/** Optional subtitle (e.g. trend vs previous month). */
 	subtitle?: ReactNode;
 	/** Color for subtitle: green if positive, red if negative. */
@@ -243,31 +275,33 @@ export default function DashboardPage() {
 				{
 					id: "total-open-amount",
 					title: "Importo totale trattative aperte",
-					value: formatCurrency(Number(negotiationsStats.total_open_amount)),
+					...currencyCardValue(Number(negotiationsStats.total_open_amount)),
 					href: TRATTATIVE_APERTE_HREF,
 				},
 				{
 					id: "average-open-amount",
 					title: "Importo medio trattative aperte",
-					value: formatCurrency(negotiationsStats.average_open_amount),
+					...currencyCardValue(negotiationsStats.average_open_amount),
 					href: TRATTATIVE_APERTE_HREF,
 				},
 				{
 					id: "conclusion-pct",
 					title: "Percentuale di conclusione",
-					value: `${negotiationsStats.conclusion_percentage.toFixed(1)}%`,
+					value: negotiationsStats.conclusion_percentage.toFixed(1),
+					valueSuffix: "%",
 					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 				{
 					id: "average-closing-days",
 					title: "Tempo medio chiusura",
 					value: negotiationsStats.average_closing_days,
+					valueSuffix: " giorni",
 					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 				{
 					id: "average-concluded-amount",
 					title: "Importo medio trattative concluse",
-					value: formatCurrency(negotiationsStats.average_concluded_amount),
+					...currencyCardValue(negotiationsStats.average_concluded_amount),
 					href: TRATTATIVE_CONCLUSE_HREF,
 				},
 			]
@@ -351,7 +385,7 @@ export default function DashboardPage() {
 								}
 								return (
 									<Link
-										aria-label={`${card.title}: ${card.value}, vai a ${destinationLabel}`}
+										aria-label={`${card.title}: ${card.value}${card.valueSuffix ?? ""}, vai a ${destinationLabel}`}
 										className="group relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 										href={card.href as Parameters<typeof Link>[0]["href"]}
 										key={card.id}
@@ -433,12 +467,18 @@ export default function DashboardPage() {
 											{card.title}
 										</span>
 										<div className="flex items-baseline gap-2">
-											{/* text-foreground: in dataweb light le card hanno bg-background (blu)
-										    e richiedono testo chiaro come la freccia; negli altri temi
-										    text-foreground garantisce sempre contrasto corretto. */}
+											{/* Value at full brightness; unit/suffix (€, %, giorni) with lower opacity. */}
 											<span className="font-semibold text-5xl text-foreground">
 												{card.value}
 											</span>
+											{card.valueSuffix != null && (
+												<span
+													aria-hidden="true"
+													className="font-semibold text-5xl text-foreground opacity-70"
+												>
+													{card.valueSuffix}
+												</span>
+											)}
 										</div>
 										<ArrowUpRight
 											aria-hidden="true"

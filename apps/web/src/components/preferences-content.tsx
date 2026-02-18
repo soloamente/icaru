@@ -5,7 +5,6 @@ import { useTheme } from "next-themes";
 import {
 	ACCENT_OPTIONS,
 	COLOR_SCHEME_OPTIONS,
-	FONT_OPTIONS,
 	FONT_SIZE_OPTIONS,
 	NAVIGATION_POSITION_OPTIONS,
 	usePreferences,
@@ -34,7 +33,7 @@ export const ACCENT_SWATCH_COLORS: Record<
 };
 
 /**
- * Shared preferences UI: theme, accent color, font style.
+ * Shared preferences UI: theme, accent color, font size, navigation position.
  * Used inside both Dialog (desktop) and Vaul Drawer (mobile).
  */
 export function PreferencesContent() {
@@ -44,8 +43,6 @@ export function PreferencesContent() {
 		setAccent,
 		colorScheme,
 		setColorScheme,
-		fontStyle,
-		setFontStyle,
 		fontSize,
 		setFontSize,
 		navigationPosition,
@@ -243,46 +240,6 @@ export function PreferencesContent() {
 								type="button"
 							>
 								{opt.label}
-							</button>
-						);
-					})}
-				</div>
-			</section>
-
-			{/* Font style */}
-			<section aria-labelledby="font-heading" className="mb-2">
-				<h3
-					className="mb-1 font-medium text-base text-card-foreground"
-					id="font-heading"
-				>
-					Stile carattere
-				</h3>
-				{/* <p className="mb-3 text-muted-foreground text-sm">
-					Predefinito (Inter) o arrotondato (SF Pro Rounded).
-				</p> */}
-				<div className="flex gap-3">
-					{FONT_OPTIONS.map((opt) => {
-						const isSelected = fontStyle === opt.id;
-						return (
-							<button
-								aria-pressed={isSelected}
-								className={cn(
-									"flex flex-1 items-center justify-center rounded-lg border-2 py-4 font-medium text-lg transition-colors",
-									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-									isSelected
-										? "border-primary bg-primary/5 text-card-foreground"
-										: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
-								)}
-								key={opt.id}
-								onClick={() => setFontStyle(opt.id)}
-								style={
-									opt.id === "rounded"
-										? { fontFamily: "var(--font-sf-pro-rounded)" }
-										: undefined
-								}
-								type="button"
-							>
-								Ag
 							</button>
 						);
 					})}
