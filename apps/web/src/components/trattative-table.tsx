@@ -154,20 +154,6 @@ const isNegotiationCompleted = (negotiation: ApiNegotiation): boolean =>
 const isNegotiationAbandoned = (negotiation: ApiNegotiation): boolean =>
 	negotiation.abbandonata;
 
-/** Data di riferimento per il filtro date in base alla vista: apertura, chiusura o abbandono. */
-function getNegotiationDateForFilter(
-	n: ApiNegotiation,
-	pageFilter: "all" | "aperte" | "concluse" | "abbandonate"
-): string | undefined {
-	if (pageFilter === "concluse") {
-		return n.data_chiusura ?? n.updated_at ?? undefined;
-	}
-	if (pageFilter === "abbandonate") {
-		return n.data_abbandono ?? n.updated_at ?? undefined;
-	}
-	return n.data_apertura ?? n.created_at ?? undefined;
-}
-
 /** Verifica se la data rientra nel range (confronto solo la parte data, ora locale). */
 function isDateInRange(
 	dateStr: string | undefined,
@@ -201,6 +187,111 @@ function isDateInRange(
 		return dateOnly <= toOnly;
 	}
 	return true;
+}
+
+/** Verifica se la trattativa rientra nel range date.
+ * Nelle viste concluse/abbandonate: match se apertura O chiusura/abbandono nel range.
+ * Vista aperte e righe aperte in "all": solo apertura. */
+function negotiationMatchesDateRange(
+	n: ApiNegotiation,
+	filter: "all" | "aperte" | "concluse" | "abbandonate",
+	dateRange: DayPickerDateRange | undefined
+): boolean {
+	if (!dateRange?.from) {
+		return true;
+	}
+
+	const apertura = n.data_apertura ?? n.created_at ?? undefined;
+	const chiusura = n.data_chiusura ?? n.updated_at ?? undefined;
+	const abbandono = n.data_abbandono ?? n.updated_at ?? undefined;
+
+	if (filter === "concluse") {
+		return (
+			isDateInRange(apertura, dateRange) || isDateInRange(chiusura, dateRange)
+		);
+	}
+	if (filter === "abbandonate") {
+		return (
+			isDateInRange(apertura, dateRange) || isDateInRange(abbandono, dateRange)
+		);
+	}
+	if (filter === "all") {
+		if (isNegotiationCompleted(n)) {
+			return (
+				isDateInRange(apertura, dateRange) || isDateInRange(chiusura, dateRange)
+			);
+		}
+		if (isNegotiationAbandoned(n)) {
+			return (
+				isDateInRange(apertura, dateRange) ||
+				isDateInRange(abbandono, dateRange)
+			);
+		}
+		return isDateInRange(apertura, dateRange);
+	}
+	// aperte: solo data apertura
+	return isDateInRange(apertura, dateRange);
+}
+
+function passesPageStatusFilter(
+	n: ApiNegotiation,
+	filter: "all" | "aperte" | "concluse" | "abbandonate"
+): boolean {
+	if (filter === "concluse" && !isNegotiationCompleted(n)) {
+		return false;
+	}
+	if (filter === "abbandonate" && !isNegotiationAbandoned(n)) {
+		return false;
+	}
+	if (filter === "aperte" && !isNegotiationOpen(n)) {
+		return false;
+	}
+	return true;
+}
+
+function passesSpancoFilter(
+	n: ApiNegotiation,
+	spancoFilter: SpancoStage | "all"
+): boolean {
+	return spancoFilter === "all" || n.spanco === spancoFilter;
+}
+
+function passesStatoFilter(
+	n: ApiNegotiation,
+	statoFilter: "all" | "aperta" | "conclusa" | "abbandonata"
+): boolean {
+	if (statoFilter === "all") {
+		return true;
+	}
+	if (statoFilter === "aperta") {
+		return isNegotiationOpen(n);
+	}
+	if (statoFilter === "conclusa") {
+		return isNegotiationCompleted(n);
+	}
+	if (statoFilter === "abbandonata") {
+		return isNegotiationAbandoned(n);
+	}
+	return true;
+}
+
+function passesSearchFilter(
+	n: ApiNegotiation,
+	searchTerm: string,
+	getClientDisplay: (n: ApiNegotiation) => string
+): boolean {
+	const normalized = searchTerm.trim().toLowerCase();
+	if (!normalized) {
+		return true;
+	}
+	const clientName = getClientDisplay(n).toLowerCase();
+	const referente = n.referente.toLowerCase();
+	const note = (n.note ?? "").toLowerCase();
+	return (
+		clientName.includes(normalized) ||
+		referente.includes(normalized) ||
+		note.includes(normalized)
+	);
 }
 
 const isNegotiationOpen = (negotiation: ApiNegotiation): boolean =>
@@ -1332,51 +1423,19 @@ export default function TrattativeTable({
 	}, [fetchNegotiations]);
 
 	const filteredNegotiations = negotiations.filter((n) => {
-		// Filtro di stato per pagina dedicata
-		if (filter === "concluse" && !isNegotiationCompleted(n)) {
+		if (!passesPageStatusFilter(n, filter)) {
 			return false;
 		}
-		if (filter === "abbandonate" && !isNegotiationAbandoned(n)) {
+		if (!passesSpancoFilter(n, spancoFilter)) {
 			return false;
 		}
-		if (filter === "aperte" && !isNegotiationOpen(n)) {
+		if (!passesStatoFilter(n, statoFilter)) {
 			return false;
 		}
-		// SPANCO filter: when a specific stage is selected, show only negotiations with that SPANCO value.
-		if (spancoFilter !== "all" && n.spanco !== spancoFilter) {
+		if (dateRange?.from && !negotiationMatchesDateRange(n, filter, dateRange)) {
 			return false;
 		}
-		// Stato filter: when a specific status is selected, show only negotiations with that stato.
-		if (statoFilter !== "all") {
-			if (statoFilter === "aperta" && !isNegotiationOpen(n)) {
-				return false;
-			}
-			if (statoFilter === "conclusa" && !isNegotiationCompleted(n)) {
-				return false;
-			}
-			if (statoFilter === "abbandonata" && !isNegotiationAbandoned(n)) {
-				return false;
-			}
-		}
-		// Date filter: per vista usiamo data apertura, chiusura o abbandono.
-		if (dateRange?.from) {
-			const refDate = getNegotiationDateForFilter(n, filter);
-			if (!isDateInRange(refDate, dateRange)) {
-				return false;
-			}
-		}
-		const normalized = searchTerm.trim().toLowerCase();
-		if (!normalized) {
-			return true;
-		}
-		const clientName = getClientDisplay(n).toLowerCase();
-		const referente = n.referente.toLowerCase();
-		const note = (n.note ?? "").toLowerCase();
-		return (
-			clientName.includes(normalized) ||
-			referente.includes(normalized) ||
-			note.includes(normalized)
-		);
+		return passesSearchFilter(n, searchTerm, getClientDisplay);
 	});
 
 	// Statistiche di riepilogo: aperte, concluse, abbandonate in base alle regole sopra.
@@ -1620,12 +1679,12 @@ export default function TrattativeTable({
 									>
 										<Select.Value
 											className="data-placeholder:text-stats-title"
-											placeholder="Tutte le fasi SPANCO"
+											placeholder="Filtra per SPANCO"
 										>
 											{(value: SpancoStage | null) =>
 												value
 													? `Solo ${SPANCO_LABELS[value]}`
-													: "Tutte le fasi SPANCO"
+													: "Filtra per SPANCO"
 											}
 										</Select.Value>
 										<Select.Icon className="text-button-secondary">
@@ -1694,13 +1753,13 @@ export default function TrattativeTable({
 									>
 										<Select.Value
 											className="data-placeholder:text-stats-title"
-											placeholder="Tutti gli stati"
+											placeholder="Filtra per stato"
 										>
 											{(
 												value: "aperta" | "conclusa" | "abbandonata" | null
 											) => {
 												if (!value) {
-													return "Tutti gli stati";
+													return "Filtra per stato";
 												}
 												if (value === "aperta") {
 													return "Solo Aperte";
