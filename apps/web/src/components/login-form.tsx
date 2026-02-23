@@ -259,7 +259,7 @@ export default function LoginForm() {
 								</motion.button>
 
 								{/* Link per aprire il flusso di "Password dimenticata?" */}
-								<div className="flex justify-end pt-2">
+								<div className="flex items-center justify-center pt-2">
 									<button
 										className="text-muted-foreground text-xs underline-offset-2 hover:text-foreground hover:underline"
 										onClick={() => setIsForgotPasswordOpen(true)}

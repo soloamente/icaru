@@ -140,7 +140,13 @@ const DIALOG_FIELD_INPUT_BASE_CLASSES =
 const DIALOG_FIELD_SELECT_BASE_CLASSES =
 	"flex-1 w-full cursor-pointer appearance-none border-none bg-transparent py-0 pl-0 pr-6 text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0";
 
-type SortColumn = "importo" | "percentuale" | "spanco";
+type SortColumn =
+	| "importo"
+	| "percentuale"
+	| "spanco"
+	| "data_apertura"
+	| "data_chiusura"
+	| "data_abbandono";
 
 const OPEN_STATUS_CLASSES =
 	"bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400";
@@ -165,6 +171,23 @@ function toDateOnlyString(dateStr: string | undefined): string | null {
 		return null;
 	}
 	return formatDate(d, "yyyy-MM-dd");
+}
+
+/** Restituisce un valore ordinabile per una colonna data (timestamp o 0 per mancanti che vanno in fondo). */
+function getSortableDate(
+	n: ApiNegotiation,
+	column: "data_apertura" | "data_chiusura" | "data_abbandono"
+): number {
+	let dateStr: string | undefined;
+	if (column === "data_apertura") {
+		dateStr = n.data_apertura ?? n.created_at;
+	} else if (column === "data_chiusura") {
+		dateStr = n.data_chiusura ?? n.updated_at;
+	} else {
+		dateStr = n.data_abbandono ?? n.updated_at;
+	}
+	const parsed = dateStr ? new Date(dateStr).getTime() : Number.NaN;
+	return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /** Verifica se la data rientra nel range (confronto solo la parte data, ora locale).
@@ -328,14 +351,32 @@ function getSortAriaLabel(
 		}
 		return "Ordina per percentuale dalla più alta";
 	}
-	// column === "spanco"
+	if (column === "spanco") {
+		if (direction === "desc") {
+			return "Ordinato per stato SPANCO dal più avanzato (O). Passa all'ordine iniziale.";
+		}
+		if (direction === "asc") {
+			return "Ordinato per stato SPANCO S → P → A → N → C → O. Rimuovi ordinamento.";
+		}
+		return "Ordina per stato SPANCO S → P → A → N → C → O";
+	}
+	// Date columns
+	const dateLabels: Record<
+		"data_apertura" | "data_chiusura" | "data_abbandono",
+		string
+	> = {
+		data_apertura: "data apertura",
+		data_chiusura: "data chiusura",
+		data_abbandono: "data abbandono",
+	};
+	const label = dateLabels[column];
 	if (direction === "desc") {
-		return "Ordinato per stato SPANCO dal più avanzato (O). Passa all'ordine iniziale.";
+		return `Ordinato per ${label} dalla più recente. Passa a ordine cronologico crescente.`;
 	}
 	if (direction === "asc") {
-		return "Ordinato per stato SPANCO S → P → A → N → C → O. Rimuovi ordinamento.";
+		return `Ordinato per ${label} dalla più vecchia. Rimuovi ordinamento.`;
 	}
-	return "Ordina per stato SPANCO S → P → A → N → C → O";
+	return `Ordina per ${label} dalla più recente`;
 }
 
 /** Valid percentuale values: 0–100 in 20% steps */
@@ -1451,7 +1492,7 @@ export default function TrattativeTable({
 	const handleToggleSort = useCallback((column: SortColumn) => {
 		setSortState((previous) => {
 			if (!previous || previous.column !== column) {
-				// Spanco: first click shows S → P → A → N → C → O (asc). Others: desc.
+				// Spanco: first click asc (S→O). Date columns & importo/percentuale: first click desc (most recent / highest first).
 				const initialDir = column === "spanco" ? "asc" : "desc";
 				return { column, direction: initialDir };
 			}
@@ -1479,7 +1520,18 @@ export default function TrattativeTable({
 				comparison = a.importo - b.importo;
 			} else if (sortState.column === "percentuale") {
 				comparison = a.percentuale - b.percentuale;
+			} else if (sortState.column === "spanco") {
+				comparison = SPANCO_SORT_ORDER[a.spanco] - SPANCO_SORT_ORDER[b.spanco];
+			} else if (
+				sortState.column === "data_apertura" ||
+				sortState.column === "data_chiusura" ||
+				sortState.column === "data_abbandono"
+			) {
+				comparison =
+					getSortableDate(a, sortState.column) -
+					getSortableDate(b, sortState.column);
 			} else {
+				// spanco fallback (type-narrowing)
 				comparison = SPANCO_SORT_ORDER[a.spanco] - SPANCO_SORT_ORDER[b.spanco];
 			}
 			return sortState.direction === "asc" ? comparison : -comparison;
@@ -1492,12 +1544,30 @@ export default function TrattativeTable({
 		sortState?.column === "percentuale" ? sortState.direction : null;
 	const spancoSortDirection =
 		sortState?.column === "spanco" ? sortState.direction : null;
+	const dataAperturaSortDirection =
+		sortState?.column === "data_apertura" ? sortState.direction : null;
+	const dataChiusuraSortDirection =
+		sortState?.column === "data_chiusura" ? sortState.direction : null;
+	const dataAbbandonoSortDirection =
+		sortState?.column === "data_abbandono" ? sortState.direction : null;
 	const importSortAriaLabel = getSortAriaLabel("importo", importSortDirection);
 	const percentSortAriaLabel = getSortAriaLabel(
 		"percentuale",
 		percentSortDirection
 	);
 	const spancoSortAriaLabel = getSortAriaLabel("spanco", spancoSortDirection);
+	const dataAperturaSortAriaLabel = getSortAriaLabel(
+		"data_apertura",
+		dataAperturaSortDirection
+	);
+	const dataChiusuraSortAriaLabel = getSortAriaLabel(
+		"data_chiusura",
+		dataChiusuraSortDirection
+	);
+	const dataAbbandonoSortAriaLabel = getSortAriaLabel(
+		"data_abbandono",
+		dataAbbandonoSortDirection
+	);
 	// Navigate to dedicated edit page based on stato (aperte/concluse/abbandonate).
 	// When on "tutte" we derive stato from the negotiation; otherwise use current filter.
 	const handleOpenUpdate = (n: ApiNegotiation) => {
@@ -1950,12 +2020,79 @@ export default function TrattativeTable({
 						<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(90px,0.7fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
 							<div>Cliente</div>
 							<div>Referente</div>
-							<div>Data apertura</div>
-							<div>
-								{filter === "concluse" && "Data chiusura"}
-								{filter === "abbandonate" && "Data abbandono"}
-								{(filter === "all" || filter === "aperte") && "Telefono"}
-							</div>
+							{/* Data apertura: colonna ordinabile */}
+							<button
+								aria-label={dataAperturaSortAriaLabel}
+								aria-pressed={dataAperturaSortDirection !== null}
+								className={cn(
+									"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+									dataAperturaSortDirection !== null && "text-primary"
+								)}
+								onClick={() => handleToggleSort("data_apertura")}
+								type="button"
+							>
+								<span className="font-medium">Data apertura</span>
+								<ChevronDown
+									aria-hidden
+									className={cn(
+										"size-3.5 transition-transform",
+										dataAperturaSortDirection === "asc" && "-rotate-180",
+										dataAperturaSortDirection === null
+											? "opacity-40"
+											: "opacity-100"
+									)}
+								/>
+							</button>
+							{/* Colonna 4: Data chiusura (concluse), Data abbandono (abbandonate) o Telefono (tutte/aperte) */}
+							{filter === "concluse" && (
+								<button
+									aria-label={dataChiusuraSortAriaLabel}
+									aria-pressed={dataChiusuraSortDirection !== null}
+									className={cn(
+										"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+										dataChiusuraSortDirection !== null && "text-primary"
+									)}
+									onClick={() => handleToggleSort("data_chiusura")}
+									type="button"
+								>
+									<span className="font-medium">Data chiusura</span>
+									<ChevronDown
+										aria-hidden
+										className={cn(
+											"size-3.5 transition-transform",
+											dataChiusuraSortDirection === "asc" && "-rotate-180",
+											dataChiusuraSortDirection === null
+												? "opacity-40"
+												: "opacity-100"
+										)}
+									/>
+								</button>
+							)}
+							{filter === "abbandonate" && (
+								<button
+									aria-label={dataAbbandonoSortAriaLabel}
+									aria-pressed={dataAbbandonoSortDirection !== null}
+									className={cn(
+										"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+										dataAbbandonoSortDirection !== null && "text-primary"
+									)}
+									onClick={() => handleToggleSort("data_abbandono")}
+									type="button"
+								>
+									<span className="font-medium">Data abbandono</span>
+									<ChevronDown
+										aria-hidden
+										className={cn(
+											"size-3.5 transition-transform",
+											dataAbbandonoSortDirection === "asc" && "-rotate-180",
+											dataAbbandonoSortDirection === null
+												? "opacity-40"
+												: "opacity-100"
+										)}
+									/>
+								</button>
+							)}
+							{(filter === "all" || filter === "aperte") && <div>Telefono</div>}
 							<button
 								aria-label={spancoSortAriaLabel}
 								aria-pressed={spancoSortDirection !== null}

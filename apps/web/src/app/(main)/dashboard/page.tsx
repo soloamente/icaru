@@ -98,41 +98,6 @@ const STATS_CARD_IDS = [
 	"average-closing-days",
 ] as const;
 
-/** Role-specific dashboard content (Admin / Director / Seller). */
-function RoleDashboard({ role }: { role: "admin" | "director" | "seller" }) {
-	if (role === "admin") {
-		return (
-			<section className="rounded-lg border border-border p-4">
-				<h2 className="mb-2 font-medium">Pannello Admin</h2>
-				<p className="mb-3 text-muted-foreground text-sm">
-					Gestione aziende, utenti e configurazione. (Funzionalità in arrivo.)
-				</p>
-				<Link
-					className="inline-block text-primary text-sm underline underline-offset-2 hover:no-underline"
-					href="/trattative/tutte"
-				>
-					Vai a Trattative
-				</Link>
-			</section>
-		);
-	}
-	if (role === "director") {
-		return (
-			<section className="rounded-lg border border-border p-4">
-				<h2 className="mb-2 font-medium">Pannello Direttore</h2>
-				<p className="text-muted-foreground text-sm">
-					Gestione team, negoziazioni e clienti aziendali. (Funzionalità in
-					arrivo.)
-				</p>
-			</section>
-		);
-	}
-
-	// For the "seller" role we currently hide the dedicated dashboard panel
-	// so that the main dashboard layout stays cleaner and focused on summary cards.
-	return null;
-}
-
 /**
  * Dashboard page — overview of SPANCO stages and role-specific panel.
  * Requires authentication; redirects to /login if not logged in.
@@ -142,7 +107,6 @@ export default function DashboardPage() {
 	const router = useRouter();
 	const isLoaded = auth?.isLoaded ?? false;
 	const isLoggedIn = Boolean(auth?.user && auth?.token);
-	const role = auth?.role ?? null;
 
 	// Avoid hydration mismatch: auth is restored from localStorage in AuthProvider's
 	// useEffect, so server and first client paint differ. Track mount before trusting auth.
@@ -318,16 +282,6 @@ export default function DashboardPage() {
 					</h1>
 				</div>
 			</div>
-
-			{/* Role-based content when logged in (mostrato solo dopo l'hydration per evitare mismatch SSR/CSR) */}
-			{hasHydrated && isLoaded && isLoggedIn && role && (
-				<section aria-labelledby="role-panel" className="flex flex-col gap-3">
-					<h2 className="sr-only" id="role-panel">
-						Pannello per ruolo
-					</h2>
-					<RoleDashboard role={role} />
-				</section>
-			)}
 
 			{/* Grafico SPANCO: skeleton from first paint (same as cards); real chart only after hydration + auth + logged in. */}
 			{(() => {
