@@ -122,9 +122,6 @@ const ITALY_CENTER = {
 	zoom: 5,
 } as const;
 
-/** Map height to match the donut chart section. */
-const MAP_HEIGHT = 360;
-
 /** Spanco colors aligned with chart and table — for marker styling. */
 const SPANCO_MARKER_COLORS: Record<SpancoStage, string> = {
 	S: "oklch(0.5575 0.0165 244.89)",
@@ -408,6 +405,25 @@ function NegotiationsMapInner({
 		options: { radius: 60, maxZoom: 16 },
 	});
 
+	// Track hovered marker/cluster so we can bring it on top — tooltip must always be above others.
+	const [hoveredClusterId, setHoveredClusterId] = useState<
+		string | number | null
+	>(null);
+
+	// Reorder clusters so the hovered one renders last (on top). Mapbox markers respect DOM order.
+	const sortedClusters = useMemo(() => {
+		if (hoveredClusterId == null) {
+			return clusters;
+		}
+		const idx = clusters.findIndex((c) => c.id === hoveredClusterId);
+		if (idx < 0) {
+			return clusters;
+		}
+		const rest = clusters.filter((c) => c.id !== hoveredClusterId);
+		const hovered = clusters[idx];
+		return [...rest, hovered];
+	}, [clusters, hoveredClusterId]);
+
 	// Dynamic import to avoid SSR issues with mapbox-gl
 	const MapboxMap = useMemo(
 		() =>
@@ -427,20 +443,14 @@ function NegotiationsMapInner({
 
 	if (mapError) {
 		return (
-			<div
-				className="flex h-full items-center justify-center rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center"
-				style={{ minHeight: MAP_HEIGHT }}
-			>
+			<div className="flex h-[360px] w-full items-center justify-center rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center sm:h-[440px] md:h-[520px]">
 				<p className="text-destructive text-sm">{mapError}</p>
 			</div>
 		);
 	}
 
 	return (
-		<div
-			className="relative h-full min-h-[360px] w-full overflow-hidden rounded-xl border border-border p-2"
-			style={{ minHeight: MAP_HEIGHT }}
-		>
+		<div className="relative h-[360px] w-full overflow-hidden rounded-xl border border-border p-2 sm:h-[440px] md:h-[520px]">
 			{/* Absolute inset forces map/canvas to fill the container — Mapbox GL requires explicit dimensions.
 			    Transition for smooth theme/style changes (fog, rain, snow appearance). */}
 			<div
@@ -457,10 +467,10 @@ function NegotiationsMapInner({
 					mapStyle={mapStyle}
 					onLoad={handleMapLoad}
 					onMoveEnd={handleMoveEnd}
-					style={{ width: "100%", height: "100%", minHeight: MAP_HEIGHT }}
+					style={{ width: "100%", height: "100%" }}
 				>
 					{!isMapLoading &&
-						clusters.map((cluster) => {
+						sortedClusters.map((cluster) => {
 							const [longitude, latitude] = cluster.geometry.coordinates;
 							const props = cluster.properties as
 								| (NegotiationPointProperties & { cluster?: boolean })
@@ -490,17 +500,26 @@ function NegotiationsMapInner({
 											}
 										}}
 									>
-										{/* Cluster: tooltip on hover, elevated circle with primary bg. */}
+										{/* Cluster: tooltip on hover, elevated circle with primary bg.
+										    Hover handlers reorder markers so tooltip appears above others. */}
+										{/* biome-ignore lint/a11y/noStaticElementInteractions: Map marker needs hover for tooltip+reorder; info also in title. */}
+										{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Map marker needs hover for tooltip+reorder; info also in title. */}
 										<div
 											className="group relative flex size-11 cursor-pointer select-none items-center justify-center rounded-full border-2 border-white/95 bg-primary font-semibold text-primary-foreground text-sm tabular-nums shadow-black/25 shadow-lg transition-all duration-150 ease-out hover:scale-105 hover:shadow-black/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:border-white/80 dark:shadow-black/40 dark:hover:shadow-black/50"
+											onMouseEnter={() => {
+												const id = cluster.id;
+												setHoveredClusterId(id != null ? id : null);
+											}}
+											onMouseLeave={() => setHoveredClusterId(null)}
 											title={`${count} ${count === 1 ? "trattativa" : "trattative"} · Clicca per espandere`}
 										>
-											{/* Tooltip: visible on hover. */}
+											{/* Tooltip: visible on hover, z-50 so it stays above other markers.
+											    text-card-foreground so count is readable in dataweb light (card bg is light there). */}
 											<div
 												aria-hidden
-												className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100"
+												className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100"
 											>
-												<span className="font-medium text-foreground text-sm">
+												<span className="font-medium text-card-foreground text-sm">
 													{count} {count === 1 ? "trattativa" : "trattative"}
 												</span>
 												<p className="text-muted-foreground text-xs">
@@ -527,17 +546,35 @@ function NegotiationsMapInner({
 									key={`point-${negProps?.negotiationId ?? cluster.id}`}
 									latitude={latitude}
 									longitude={longitude}
+									onClick={() => {
+										// Zoom in on single customer location to see where they live
+										const map = mapInstanceRef.current;
+										if (map?.flyTo) {
+											map.flyTo({
+												center: [longitude, latitude],
+												zoom: 15,
+											});
+										}
+									}}
 								>
-									{/* Single point: tooltip on hover with Avatar and client info. */}
+									{/* Single point: tooltip on hover with Avatar and client info; click to zoom in on location.
+									    Hover handlers reorder markers so tooltip appears above others. */}
+									{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Map marker needs hover for tooltip+reorder; info also in aria-label. */}
 									<div
-										aria-label={`${clientLabel}${negProps?.referente ? `, referente ${negProps.referente}` : ""}`}
-										className="group relative cursor-default"
+										aria-label={`${clientLabel}${negProps?.referente ? `, referente ${negProps.referente}` : ""}. Clicca per vedere la posizione`}
+										className="group relative cursor-pointer"
+										onMouseEnter={() => {
+											const id = cluster.id;
+											setHoveredClusterId(id != null ? id : null);
+										}}
+										onMouseLeave={() => setHoveredClusterId(null)}
 										role="img"
 									>
-										{/* Tooltip: visible on hover, above marker. No interactive content per a11y. */}
+										{/* Tooltip: visible on hover, z-50 so it stays above other markers. No interactive content per a11y.
+										    text-card-foreground for name and price so they are readable in dataweb light (card bg is light there). */}
 										<div
 											aria-hidden
-											className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-52 -translate-x-1/2 rounded-xl border border-border bg-card px-3 py-2.5 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100"
+											className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-52 -translate-x-1/2 rounded-xl border border-border bg-card px-3 py-2.5 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100"
 										>
 											<div className="flex gap-3">
 												<Avatar className="size-10 shrink-0 rounded-lg">
@@ -547,7 +584,7 @@ function NegotiationsMapInner({
 													/>
 												</Avatar>
 												<div className="min-w-0 flex-1">
-													<p className="truncate font-semibold text-foreground text-sm">
+													<p className="truncate font-semibold text-card-foreground text-sm">
 														{clientLabel}
 													</p>
 													{negProps?.referente && (
@@ -561,10 +598,13 @@ function NegotiationsMapInner({
 														</p>
 													)}
 													{typeof negProps?.importo === "number" && (
-														<p className="mt-0.5 font-medium text-foreground text-xs tabular-nums">
+														<p className="mt-0.5 font-medium text-card-foreground text-xs tabular-nums">
 															{formatImporto(negProps.importo)}
 														</p>
 													)}
+													<p className="mt-1 text-muted-foreground text-xs">
+														Clicca per vedere la posizione
+													</p>
 												</div>
 											</div>
 										</div>
@@ -602,10 +642,7 @@ export function NegotiationsMap(): ReactNode {
 
 	if (!mapboxToken) {
 		return (
-			<div
-				className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center"
-				style={{ minHeight: MAP_HEIGHT }}
-			>
+			<div className="flex h-[360px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center sm:h-[440px] md:h-[520px]">
 				<p className="text-muted-foreground text-sm">
 					Configura{" "}
 					<code className="rounded bg-muted px-1 text-xs">
@@ -620,13 +657,10 @@ export function NegotiationsMap(): ReactNode {
 	return <NegotiationsMapInner accessToken={mapboxToken} />;
 }
 
-/** Skeleton for the map section while loading. */
+/** Skeleton for the map section while loading. Same heights as map/donut for layout consistency. */
 export function NegotiationsMapSkeleton(): ReactNode {
 	return (
-		<div
-			className="overflow-hidden rounded-xl border border-border"
-			style={{ height: MAP_HEIGHT }}
-		>
+		<div className="h-[360px] w-full overflow-hidden rounded-xl border border-border sm:h-[440px] md:h-[520px]">
 			<Skeleton className="h-full w-full" />
 		</div>
 	);
