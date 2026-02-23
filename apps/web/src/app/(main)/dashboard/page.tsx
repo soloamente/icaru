@@ -15,6 +15,10 @@ import {
 } from "@/components/icons";
 import Loader from "@/components/loader";
 import {
+	NegotiationsMap,
+	NegotiationsMapSkeleton,
+} from "@/components/negotiations-map";
+import {
 	SpancoDonutChart,
 	SpancoDonutChartSkeleton,
 } from "@/components/spanco-donut-chart";
@@ -283,19 +287,39 @@ export default function DashboardPage() {
 				</div>
 			</div>
 
-			{/* Grafico SPANCO: skeleton from first paint (same as cards); real chart only after hydration + auth + logged in. */}
+			{/* Sezione SPANCO: mappa (sinistra) + grafico donut (destra). */}
 			{(() => {
 				const showChartSkeleton = !(hasHydrated && isLoaded);
 				if (showChartSkeleton) {
-					return <SpancoDonutChartSkeleton />;
+					return (
+						<section
+							aria-label="Distribuzione delle trattative per stato SPANCO"
+							className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2"
+						>
+							<NegotiationsMapSkeleton />
+							<SpancoDonutChartSkeleton />
+						</section>
+					);
 				}
 				if (isLoggedIn) {
 					return (
-						<SpancoDonutChart
-							error={spancoError}
-							isLoading={isSpancoLoading}
-							stats={spancoStats}
-						/>
+						<section
+							aria-label="Distribuzione delle trattative per stato SPANCO"
+							className="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-2"
+						>
+							{/* Mappa Italia: trattative con coordinate, clusters. */}
+							<div className="flex min-h-0 min-w-0 flex-1 flex-col py-6">
+								<NegotiationsMap />
+							</div>
+							{/* Grafico donut SPANCO. */}
+							<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+								<SpancoDonutChart
+									error={spancoError}
+									isLoading={isSpancoLoading}
+									stats={spancoStats}
+								/>
+							</div>
+						</section>
 					);
 				}
 				return null;

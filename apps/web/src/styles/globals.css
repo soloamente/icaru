@@ -712,3 +712,11 @@ html[data-font-size="large"] {
 .date-range-filter-calendar .rdp-head_cell {
 	color: var(--muted-foreground);
 }
+
+/* Mapbox GL: ensure map, canvas container and canvas fill their parent for proper display. */
+.mapboxgl-map,
+.mapboxgl-canvas-container,
+.mapboxgl-canvas {
+	width: 100% !important;
+	height: 100% !important;
+}

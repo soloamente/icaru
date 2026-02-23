@@ -471,6 +471,34 @@ export async function listNegotiationsMeConcluded(
 }
 
 /**
+ * GET /negotiations/me/with-coordinates — Negotiations assigned to the logged-in user
+ * with client.address including latitude/longitude for map display.
+ * Skips negotiations whose client address has no coordinates or geocoding_failed=true.
+ */
+export async function listNegotiationsMeWithCoordinates(
+	accessToken: string
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/negotiations/me/with-coordinates`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
  * GET /negotiations/company — All company negotiations (solo Direttore Vendite).
  */
 export async function listNegotiationsCompany(

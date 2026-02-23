@@ -60,6 +60,12 @@ export interface ApiClientAddress {
 	CAP?: string | null;
 	provincia?: string | null;
 	regione?: string | null;
+	/** Latitude from geocoding (present when client has coordinates, e.g. /negotiations/me/with-coordinates). */
+	latitude?: number | null;
+	/** Longitude from geocoding. */
+	longitude?: number | null;
+	/** True when geocoding failed for this address. */
+	geocoding_failed?: boolean;
 }
 
 /**
@@ -183,6 +189,8 @@ export interface ApiNegotiationClient {
 	ragione_sociale?: string;
 	/** Telefono del cliente, se il backend lo include nella relazione `client` della trattativa. */
 	telefono?: string | null;
+	/** Address with coordinates when fetching from /negotiations/me/with-coordinates. */
+	address?: ApiClientAddress | null;
 	[key: string]: unknown;
 }
 

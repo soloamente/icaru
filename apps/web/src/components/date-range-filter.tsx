@@ -82,6 +82,8 @@ export interface DateRangeFilterProps {
 	dateRange: DayPickerDateRange | undefined;
 	/** Callback quando il range cambia. */
 	onDateRangeChange: (range: DayPickerDateRange | undefined) => void;
+	/** Label del trigger quando nessun range è selezionato (es. "Data apertura", "Data chiusura"). */
+	label?: string;
 	/** Classi aggiuntive per il wrapper. */
 	className?: string;
 	/** Allineamento del popover rispetto al trigger. */
@@ -90,9 +92,12 @@ export interface DateRangeFilterProps {
 	variant?: "default" | "table";
 }
 
+const DEFAULT_LABEL = "Filtra per data";
+
 export function DateRangeFilter({
 	dateRange,
 	onDateRangeChange,
+	label = DEFAULT_LABEL,
 	className,
 	align = "end",
 	variant = "table",
@@ -115,8 +120,8 @@ export function DateRangeFilter({
 		if (dateRange?.to) {
 			return `A ${format(dateRange.to, "dd MMM yyyy", { locale: it })}`;
 		}
-		return "Filtra per data";
-	}, [dateRange]);
+		return label;
+	}, [dateRange, label]);
 
 	const handleQuickPreset = useCallback(
 		(preset: QuickPreset) => {
@@ -149,7 +154,7 @@ export function DateRangeFilter({
 
 	const triggerLabel =
 		activePreset?.value === "total"
-			? "Filtra per data"
+			? label
 			: (activePreset?.label ?? getDateFilterDisplay());
 
 	const hasRange = Boolean(dateRange?.from ?? dateRange?.to);
@@ -166,7 +171,7 @@ export function DateRangeFilter({
 			<Popover.Root onOpenChange={setOpen} open={open}>
 				<div className={pillClassName}>
 					<Popover.Trigger
-						aria-label={`Filtro data: ${triggerLabel}`}
+						aria-label={`Filtro ${label.toLowerCase()}: ${triggerLabel}`}
 						className={cn(
 							"border-none bg-transparent px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
 							variant === "table" && "text-stats-title",
@@ -179,7 +184,7 @@ export function DateRangeFilter({
 					</Popover.Trigger>
 					{hasRange && (
 						<button
-							aria-label="Cancella filtro data"
+							aria-label={`Cancella filtro ${label.toLowerCase()}`}
 							className="flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent pr-2 outline-none transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 dark:hover:bg-white/5"
 							onClick={(e) => {
 								e.preventDefault();

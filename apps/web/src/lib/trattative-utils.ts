@@ -4,10 +4,14 @@
 
 import type { ApiNegotiation } from "./api/types";
 
-const isNegotiationCompleted = (n: ApiNegotiation): boolean =>
+/** Returns true if the negotiation is concluded (Spanco O or 100%). */
+export const isNegotiationCompleted = (n: ApiNegotiation): boolean =>
 	n.spanco === "O" || n.percentuale === 100;
 
-const isNegotiationAbandoned = (n: ApiNegotiation): boolean => n.abbandonata;
+/** Returns true if the negotiation is abandoned. Explicit boolean so we never return 0
+ *  (API may send abbandonata as 0/1); {0 && <JSX />} would render "0" in React. */
+export const isNegotiationAbandoned = (n: ApiNegotiation): boolean =>
+	Boolean(n.abbandonata);
 
 /**
  * Returns the URL segment (stato) for routing: aperte, concluse, or abbandonate.

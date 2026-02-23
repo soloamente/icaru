@@ -23,6 +23,10 @@ import type {
 	UpdateNegotiationBody,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+	isNegotiationAbandoned,
+	isNegotiationCompleted,
+} from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 
 /** Spanco stage display labels */
@@ -202,15 +206,17 @@ const DIALOG_FIELD_INPUT_BASE_CLASSES =
 	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
 
 /** Format a backend date string (ISO) as a short Italian date for display (or fallback gracefully). */
-function formatNegotiationDate(date: string | undefined): string {
-	// If the backend did not send a date, show a neutral placeholder so the layout stays stable.
-	if (!date) {
+function formatNegotiationDate(
+	date: string | number | null | undefined
+): string {
+	// If the backend did not send a date, or sent 0/"0" for empty values, show a neutral placeholder.
+	if (date == null || date === "" || date === 0 || date === "0") {
 		return "—";
 	}
 	const parsed = new Date(date);
-	// Guard against unexpected formats: if parsing fails, prefer to show the raw string instead of "Invalid Date".
+	// Guard against unexpected formats: if parsing fails, show placeholder instead of "Invalid Date" or raw "0".
 	if (Number.isNaN(parsed.getTime())) {
-		return date;
+		return "—";
 	}
 	return parsed.toLocaleDateString("it-IT");
 }
@@ -304,6 +310,47 @@ function DatiTrattativaSection({
 						{dataAperturaDisplay}
 					</span>
 				</div>
+				{/* Data di abbandono/chiusura: mostrata solo se la trattativa è abbandonata o conclusa.
+					- Abbandonata: mostra "Data abbandono" (data_abbandono, fallback updated_at)
+					- Conclusa (Spanco O o 100%): mostra "Data chiusura" (data_chiusura, fallback updated_at)
+					- Altrimenti il campo non viene renderizzato. */}
+				{isNegotiationAbandoned(negotiation) && (
+					<div
+						aria-disabled="true"
+						className={cn(
+							DIALOG_FIELD_CONTAINER_CLASSES,
+							"cursor-not-allowed bg-table-header/30"
+						)}
+					>
+						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
+							Data abbandono
+						</span>
+						<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+							{formatNegotiationDate(
+								negotiation.data_abbandono ?? negotiation.updated_at
+							)}
+						</span>
+					</div>
+				)}
+				{!isNegotiationAbandoned(negotiation) &&
+					isNegotiationCompleted(negotiation) && (
+						<div
+							aria-disabled="true"
+							className={cn(
+								DIALOG_FIELD_CONTAINER_CLASSES,
+								"cursor-not-allowed bg-table-header/30"
+							)}
+						>
+							<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
+								Data chiusura
+							</span>
+							<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+								{formatNegotiationDate(
+									negotiation.data_chiusura ?? negotiation.updated_at
+								)}
+							</span>
+						</div>
+					)}
 				{/* Referente: editable text input, posizionato dopo i campi di contesto (telefono e data apertura)
 					così l'utente vede subito i riferimenti principali della trattativa nell'ordine richiesto dal feedback. */}
 				<label

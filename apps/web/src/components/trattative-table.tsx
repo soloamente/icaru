@@ -209,34 +209,49 @@ function isDateInRange(
 	return dateOnly >= fromStr && dateOnly <= toStr;
 }
 
-/** Verifica se la trattativa rientra nel range date.
- * Vista "tutte" e "aperte": solo data apertura (la colonna mostra solo quella).
- * Vista "concluse": apertura O chiusura. Vista "abbandonate": apertura O abbandono. */
-function negotiationMatchesDateRange(
+/** Filtri date separati: apertura, chiusura, abbandono. Una trattativa passa se soddisfa
+ * TUTTI i filtri attivi per la vista corrente (AND logico). */
+function negotiationMatchesDateFilters(
 	n: ApiNegotiation,
-	filter: "all" | "aperte" | "concluse" | "abbandonate",
-	dateRange: DayPickerDateRange | undefined
+	pageFilter: "all" | "aperte" | "concluse" | "abbandonate",
+	dateRangeApertura: DayPickerDateRange | undefined,
+	dateRangeChiusura: DayPickerDateRange | undefined,
+	dateRangeAbbandono: DayPickerDateRange | undefined
 ): boolean {
-	if (!dateRange?.from) {
-		return true;
-	}
-
 	const apertura = n.data_apertura ?? n.created_at ?? undefined;
 	const chiusura = n.data_chiusura ?? n.updated_at ?? undefined;
 	const abbandono = n.data_abbandono ?? n.updated_at ?? undefined;
 
-	if (filter === "concluse") {
-		return (
-			isDateInRange(apertura, dateRange) || isDateInRange(chiusura, dateRange)
-		);
+	// Filtro data apertura: attivo su tutte le viste
+	if (
+		dateRangeApertura?.from &&
+		dateRangeApertura?.to &&
+		!isDateInRange(apertura, dateRangeApertura)
+	) {
+		return false;
 	}
-	if (filter === "abbandonate") {
-		return (
-			isDateInRange(apertura, dateRange) || isDateInRange(abbandono, dateRange)
-		);
+
+	// Filtro data chiusura: rilevante solo su "concluse" (non su tutte)
+	if (
+		pageFilter === "concluse" &&
+		dateRangeChiusura?.from &&
+		dateRangeChiusura?.to &&
+		!isDateInRange(chiusura, dateRangeChiusura)
+	) {
+		return false;
 	}
-	// "all" e "aperte": solo data apertura (nella pagina "tutte" la colonna è solo apertura)
-	return isDateInRange(apertura, dateRange);
+
+	// Filtro data abbandono: rilevante solo su "abbandonate" (non su tutte)
+	if (
+		pageFilter === "abbandonate" &&
+		dateRangeAbbandono?.from &&
+		dateRangeAbbandono?.to &&
+		!isDateInRange(abbandono, dateRangeAbbandono)
+	) {
+		return false;
+	}
+
+	return true;
 }
 
 function passesPageStatusFilter(
@@ -1370,9 +1385,16 @@ export default function TrattativeTable({
 	const [statoFilter, setStatoFilter] = useState<
 		"all" | "aperta" | "conclusa" | "abbandonata"
 	>("all");
-	const [dateRange, setDateRange] = useState<DayPickerDateRange | undefined>(
-		undefined
-	);
+	// Filtri date separati per apertura, chiusura e abbandono (mostrati in base alla vista)
+	const [dateRangeApertura, setDateRangeApertura] = useState<
+		DayPickerDateRange | undefined
+	>(undefined);
+	const [dateRangeChiusura, setDateRangeChiusura] = useState<
+		DayPickerDateRange | undefined
+	>(undefined);
+	const [dateRangeAbbandono, setDateRangeAbbandono] = useState<
+		DayPickerDateRange | undefined
+	>(undefined);
 	const router = useRouter();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	// Captured initialClientId when opening from URL params; cleared when dialog closes.
@@ -1456,11 +1478,15 @@ export default function TrattativeTable({
 		if (!passesStatoFilter(n, statoFilter)) {
 			return false;
 		}
-		// Filtro date: si applica solo con range completo (from E to). I preset impostano entrambi.
+		// Filtri date separati: apertura (sempre), chiusura (concluse/all), abbandono (abbandonate/all)
 		if (
-			dateRange?.from &&
-			dateRange?.to &&
-			!negotiationMatchesDateRange(n, filter, dateRange)
+			!negotiationMatchesDateFilters(
+				n,
+				filter,
+				dateRangeApertura,
+				dateRangeChiusura,
+				dateRangeAbbandono
+			)
 		) {
 			return false;
 		}
@@ -1710,14 +1736,35 @@ export default function TrattativeTable({
 						 * - SPANCO filter su tutte le viste eccetto "concluse"
 						 * - Stato filter (Aperta/Conclusa/Abbandonata) solo su "tutte"
 						 */}
-						<div className="flex w-full items-center justify-start gap-1.25">
-							{/* Filtro date con preset e range: data apertura/chiusura/abbandono a seconda della vista */}
+						<div className="flex w-full flex-wrap items-center justify-start gap-1.25">
+							{/* Filtro data apertura: sempre visibile su tutte le viste */}
 							<DateRangeFilter
 								align="start"
-								dateRange={dateRange}
-								onDateRangeChange={setDateRange}
+								dateRange={dateRangeApertura}
+								label="Filtra per data apertura"
+								onDateRangeChange={setDateRangeApertura}
 								variant="table"
 							/>
+							{/* Filtro data chiusura: solo su concluse (nascosto su tutte) */}
+							{filter === "concluse" && (
+								<DateRangeFilter
+									align="start"
+									dateRange={dateRangeChiusura}
+									label="Filtra per data chiusura"
+									onDateRangeChange={setDateRangeChiusura}
+									variant="table"
+								/>
+							)}
+							{/* Filtro data abbandono: solo su abbandonate (nascosto su tutte) */}
+							{filter === "abbandonate" && (
+								<DateRangeFilter
+									align="start"
+									dateRange={dateRangeAbbandono}
+									label="Filtra per data abbandono"
+									onDateRangeChange={setDateRangeAbbandono}
+									variant="table"
+								/>
+							)}
 							{showSpancoFilter && (
 								<Select.Root
 									onValueChange={(value) => {

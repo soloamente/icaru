@@ -516,7 +516,7 @@ export default function ClientsTable() {
 														>
 															{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
 															<IconEyeFill12 />
-															<span>Ha trattativa</span>
+															<span>Mostra trattativa</span>
 														</button>
 														{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
 														<span

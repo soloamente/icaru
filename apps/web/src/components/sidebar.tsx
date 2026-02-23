@@ -520,7 +520,11 @@ export default function Sidebar({
 							aria-label="Esci"
 							className={cn(
 								"flex shrink-0 items-center justify-center rounded-lg p-1.5 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-								isRichColors ? "text-red-500" : "text-muted-foreground"
+								// Defer colorScheme-based class until mounted to avoid hydration mismatch
+								// (colorScheme is hydrated from localStorage in PreferencesProvider useEffect).
+								mounted && isRichColors
+									? "text-red-500"
+									: "text-muted-foreground"
 							)}
 							onClick={() => auth?.logout?.()}
 							type="button"
