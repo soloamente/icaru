@@ -276,7 +276,10 @@ export default function DashboardPage() {
 		: [];
 
 	return (
-		<main className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pt-6 pb-10 font-medium">
+		<main
+			className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pt-6 pb-10 font-medium"
+			data-dashboard
+		>
 			{/* Header */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
@@ -308,7 +311,7 @@ export default function DashboardPage() {
 							className="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-2"
 						>
 							{/* Mappa Italia: trattative con coordinate, clusters. */}
-							<div className="flex min-h-0 min-w-0 flex-1 flex-col py-6">
+							<div className="flex min-h-0 min-w-0 flex-1 flex-col items-start py-6">
 								<NegotiationsMap />
 							</div>
 							{/* Grafico donut SPANCO. */}
@@ -343,7 +346,7 @@ export default function DashboardPage() {
 						? STATS_CARD_IDS.map((id) => (
 								<div
 									aria-hidden
-									className="flex flex-col gap-5 rounded-4xl bg-background px-7 py-7"
+									className="stat-card-bg flex flex-col gap-5 rounded-4xl bg-background px-7 py-7"
 									key={id}
 								>
 									<div className="flex items-center justify-between gap-3">
@@ -364,7 +367,7 @@ export default function DashboardPage() {
 								return (
 									<Link
 										aria-label={`${card.title}: ${card.value}${card.valueSuffix ?? ""}, vai a ${destinationLabel}`}
-										className="group relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										className="group stat-card-bg relative flex flex-col gap-2 rounded-4xl bg-background px-7 py-7 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 										href={card.href as Parameters<typeof Link>[0]["href"]}
 										key={card.id}
 									>
@@ -441,18 +444,18 @@ export default function DashboardPage() {
 												/>
 											</div>
 										)}
-										<span className="truncate font-medium text-muted-foreground text-sm">
+										<span className="stat-card-text truncate font-medium text-muted-foreground text-sm">
 											{card.title}
 										</span>
 										<div className="flex items-baseline gap-2">
-											{/* Value at full brightness; unit/suffix (€, %, giorni) with lower opacity. */}
-											<span className="font-semibold text-5xl text-foreground">
+											{/* Value: text-foreground in dark; in dataweb light stat-card uses text-card-foreground for readability. */}
+											<span className="stat-card-text font-semibold text-5xl text-foreground">
 												{card.value}
 											</span>
 											{card.valueSuffix != null && (
 												<span
 													aria-hidden="true"
-													className="font-semibold text-5xl text-foreground opacity-70"
+													className="stat-card-text font-semibold text-5xl text-foreground opacity-70"
 												>
 													{card.valueSuffix}
 												</span>
@@ -460,7 +463,7 @@ export default function DashboardPage() {
 										</div>
 										<ArrowUpRight
 											aria-hidden="true"
-											className="absolute top-6 right-3 shrink-0 text-foreground opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
+											className="stat-card-text absolute top-6 right-3 shrink-0 text-foreground opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
 											size={28}
 										/>
 									</Link>

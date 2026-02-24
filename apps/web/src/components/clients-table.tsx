@@ -18,7 +18,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { AddClientDialog } from "./add-client-dialog";
 import Download4 from "./icons/download-4";
+import IconEarthAlertFill18 from "./icons/icon-earth-alert-fill-18";
 import IconEyeFill12 from "./icons/icon-eye-fill-12";
+import IconFrame69 from "./icons/icon-frame-69";
+import IconTriangleWarningFill18 from "./icons/icon-triangle-warning-fill-18";
 import { UserGroupIcon } from "./icons/user-group";
 import { ImportClientsDialog } from "./import-clients-dialog";
 import { CreateNegotiationDialog } from "./trattative-table";
@@ -470,11 +473,49 @@ export default function ClientsTable() {
 												)}
 											</div>
 											<div
-												className="truncate"
+												className="flex min-w-0 items-center gap-2"
 												title={formatAddress(c.address) || undefined}
 											>
-												{formatAddress(c.address) || (
-													<span className="text-stats-title">—</span>
+												<span className="min-w-0 truncate">
+													{formatAddress(c.address) || (
+														<span className="text-stats-title">—</span>
+													)}
+												</span>
+												{/* Geocoding failed: show warning pill so user knows client won't appear on map. */}
+												{c.address?.geocoding_failed && (
+													<div className="group relative shrink-0">
+														<span
+															aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
+															className="inline-flex items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text"
+															role="img"
+														>
+															<IconEarthAlertFill18 size="18px" />
+														</span>
+														<span
+															aria-live="polite"
+															className="xl pointer-events-none absolute top-full left-1/2 z-20 mt-4 flex w-[350px] -translate-x-1/2 flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left opacity-0 shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset transition-opacity duration-200 ease-out group-hover:opacity-100"
+														>
+															{/* "Attenzione" pill overlapping the top edge. */}
+															<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
+																<IconTriangleWarningFill18 size="14px" />
+																Attenzione
+															</span>
+															{/* Content: icon + text, horizontal layout. */}
+															<div className="flex items-center gap-3">
+																<IconFrame69 size="40px" />
+
+																<span className="min-w-0 flex-1 leading-none">
+																	<span className="text-geocoding-title text-md leading-none">
+																		Indirizzo errato o incompleto
+																	</span>
+																	<span className="mt-1 block text-balance font-normal text-geocoding-desc text-sm leading-none">
+																		Il cliente non verrà visualizzato sulla
+																		mappa.
+																	</span>
+																</span>
+															</div>
+														</span>
+													</div>
 												)}
 											</div>
 											<div className="flex items-center justify-start">

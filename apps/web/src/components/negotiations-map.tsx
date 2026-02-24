@@ -1,6 +1,8 @@
 "use client";
 
+import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
 	type ReactNode,
@@ -12,13 +14,19 @@ import {
 } from "react";
 import type { ClusterProperties, PointFeature } from "supercluster";
 import useSupercluster from "use-supercluster";
+import {
+	IconCircleInfoSparkle,
+	IconExternalLink,
+	IconUTurnToLeft,
+} from "@/components/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listNegotiationsMeWithCoordinates } from "@/lib/api/client";
 import type { ApiNegotiation, SpancoStage } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import { usePreferencesOptional } from "@/lib/preferences/preferences-context";
-
+import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 /** Mapbox GL CSS must be imported for proper rendering. */
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -89,9 +97,25 @@ const ATMOSPHERIC_COLORS: Record<
 	},
 };
 
-/** Zoom-based reveal expression for rain/snow: particles appear from zoom 11 to 13. */
-function zoomBasedReveal(value: number): unknown[] {
-	return ["interpolate", ["linear"] as const, ["zoom"], 11, 0, 13, value];
+/** Mapbox Standard lightPreset values for time-of-day lighting. */
+type LightPreset = "dawn" | "day" | "dusk" | "night";
+
+/**
+ * Returns the Mapbox lightPreset based on current local time.
+ * Dawn 5-7, Day 7-17, Dusk 17-20, Night 20-5.
+ */
+function getLightPresetForTime(date: Date = new Date()): LightPreset {
+	const hour = date.getHours();
+	if (hour >= 5 && hour < 7) {
+		return "dawn";
+	}
+	if (hour >= 7 && hour < 17) {
+		return "day";
+	}
+	if (hour >= 17 && hour < 20) {
+		return "dusk";
+	}
+	return "night";
 }
 
 /** Format importo as EUR for tooltip. */
@@ -136,6 +160,8 @@ const SPANCO_MARKER_COLORS: Record<SpancoStage, string> = {
 interface NegotiationPointProperties {
 	negotiationId: number;
 	spanco: SpancoStage;
+	abbandonata: boolean;
+	percentuale: number;
 	clientName?: string;
 	referente?: string;
 	citta?: string;
@@ -169,6 +195,8 @@ function negotiationsToPoints(
 			properties: {
 				negotiationId: n.id,
 				spanco: n.spanco,
+				abbandonata: Boolean(n.abbandonata),
+				percentuale: n.percentuale ?? 0,
 				clientName: n.client?.ragione_sociale,
 				referente: n.referente,
 				citta: n.client?.address?.citta ?? undefined,
@@ -187,7 +215,7 @@ function negotiationsToPoints(
 }
 
 /**
- * Mapbox Map instance with atmospheric effect APIs (fog, rain, snow).
+ * Mapbox Map instance with atmospheric effect APIs (fog, terrain, 3D).
  * These are available in Mapbox GL JS v3.9+.
  */
 interface MapboxMapWithAtmosphere {
@@ -198,17 +226,20 @@ interface MapboxMapWithAtmosphere {
 		getNorth: () => number;
 	} | null;
 	getZoom: () => number;
-	flyTo: (opts: { center: [number, number]; zoom: number }) => void;
+	flyTo: (opts: {
+		center: [number, number];
+		zoom: number;
+		pitch?: number;
+		bearing?: number;
+	}) => void;
 	on?: (event: string, cb: () => void) => void;
 	off?: (event: string, cb: () => void) => void;
 	setConfigProperty?: (
 		layerName: string,
 		property: string,
-		value: string
+		value: string | boolean
 	) => void;
 	setFog?: (fog: Record<string, unknown>) => void;
-	setRain?: (rain: Record<string, unknown>) => void;
-	setSnow?: (snow: Record<string, unknown>) => void;
 }
 
 /** Inner map content — rendered only when Mapbox token is available. */
@@ -227,6 +258,7 @@ function NegotiationsMapInner({
 	);
 	const [zoom, setZoom] = useState<number>(ITALY_CENTER.zoom);
 
+	const router = useRouter();
 	const auth = useAuthOptional();
 	const { resolvedTheme } = useTheme();
 	const preferences = usePreferencesOptional();
@@ -285,9 +317,9 @@ function NegotiationsMapInner({
 	}
 
 	/**
-	 * Apply fog, rain, and snow effects using theme-aligned colors.
-	 * Mapbox GL JS v3.9+ supports setFog, setRain, setSnow.
-	 * Rain and snow use zoom-based reveal (appear between zoom 11–13) for subtle atmosphere.
+	 * Apply 3D lighting, terrain, atmosphere (fog). Rain and snow are disabled.
+	 * Mapbox GL JS v3.9+ supports setFog, setTerrain, setConfigProperty.
+	 * Light preset: dark theme always "night"; light theme varies by time of day (dawn/day/dusk/night).
 	 */
 	const applyAtmosphericEffects = useCallback(
 		(map: MapboxMapWithAtmosphere | null | undefined) => {
@@ -295,14 +327,17 @@ function NegotiationsMapInner({
 				return;
 			}
 			try {
-				// Standard style light preset: day for light theme, night for dark.
-				map.setConfigProperty(
-					"basemap",
-					"lightPreset",
-					isDark ? "night" : "day"
-				);
+				// 3D lighting: show 3D objects with shadows, ambient occlusion, flood lights.
+				map.setConfigProperty("basemap", "show3dObjects", true);
 
-				// Fog: atmospheric depth, theme-matched colors.
+				// Light theme: preset varies by time (dawn 5-7, day 7-17, dusk 17-20, night 20-5).
+				// Dark theme: always night for consistent dark basemap.
+				const lightPreset: LightPreset = isDark
+					? "night"
+					: getLightPresetForTime();
+				map.setConfigProperty("basemap", "lightPreset", lightPreset);
+
+				// Fog: atmospheric depth, theme-matched colors (globe atmosphere).
 				map.setFog?.({
 					range: [0.5, 10],
 					"horizon-blend": 0.3,
@@ -312,33 +347,7 @@ function NegotiationsMapInner({
 					"star-intensity": 0,
 				});
 
-				// Rain: subtle density, theme-matched droplet/vignette colors.
-				// Density 0.25–0.35 keeps atmosphere without overwhelming the map.
-				map.setRain?.({
-					density: zoomBasedReveal(0.3),
-					intensity: 0.7,
-					color: colors.rain.color,
-					opacity: 0.45,
-					vignette: zoomBasedReveal(0.5),
-					"vignette-color": colors.rain["vignette-color"],
-					direction: [0, 80],
-					"droplet-size": [2, 12],
-					"distortion-strength": 0.4,
-					"center-thinning": 0.35,
-				});
-
-				// Snow: subtle flakes, theme-matched.
-				map.setSnow?.({
-					density: zoomBasedReveal(0.25),
-					intensity: 0.6,
-					opacity: 0.5,
-					color: colors.snow.color,
-					"vignette-color": colors.snow["vignette-color"],
-					vignette: zoomBasedReveal(0.35),
-					"flake-size": 0.45,
-					direction: [0, 50],
-					"center-thinning": 0.25,
-				});
+				// Rain and snow disabled per user preference.
 			} catch {
 				// Map may be destroyed or style not yet loaded; skip atmospheric effects.
 			}
@@ -374,16 +383,58 @@ function NegotiationsMapInner({
 		}
 	}, [applyAtmosphericEffects]);
 
+	// Update light preset periodically (every 15 min) so map reflects time-of-day changes.
+	useEffect(() => {
+		const intervalId = setInterval(
+			() => {
+				const map = mapInstanceRef.current;
+				if (map) {
+					applyEffectsRef.current?.(map);
+				}
+			},
+			15 * 60 * 1000
+		);
+		return () => clearInterval(intervalId);
+	}, []);
+
 	const handleMapLoad = useCallback(
 		(e: MapboxEvent) => {
 			const map = e.target;
 			updateBoundsFromMap(map, true);
 
-			// Re-apply fog/rain/snow when style reloads (theme change triggers mapStyle change).
+			// Add 3D terrain and re-apply effects when style loads.
+			// Terrain requires mapbox-dem source; setTerrain uses it for elevation.
+			// Cast to access Mapbox Map APIs not in our minimal interface.
+			const mapWithTerrain = map as {
+				getSource?: (id: string) => unknown;
+				addSource?: (id: string, source: object) => void;
+				setTerrain?: (terrain: {
+					source: string;
+					exaggeration?: number;
+				}) => void;
+			};
 			const onStyleLoad = () => {
+				try {
+					if (!mapWithTerrain.getSource?.("mapbox-dem")) {
+						mapWithTerrain.addSource?.("mapbox-dem", {
+							type: "raster-dem",
+							url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+							tileSize: 512,
+							maxzoom: 14,
+						});
+					}
+					mapWithTerrain.setTerrain?.({
+						source: "mapbox-dem",
+						exaggeration: 1.5,
+					});
+				} catch {
+					// Source may already exist or style not ready.
+				}
 				applyEffectsRef.current?.(map);
 			};
 			map.on?.("style.load", onStyleLoad);
+			// Run once immediately (style may already be loaded on initial map load).
+			onStyleLoad();
 
 			// Cleanup: Mapbox map is destroyed when Map unmounts; no explicit off needed for our use case.
 		},
@@ -409,6 +460,33 @@ function NegotiationsMapInner({
 	const [hoveredClusterId, setHoveredClusterId] = useState<
 		string | number | null
 	>(null);
+	/** Tooltip placement: 'above' when there's space, 'below' when marker is near top of container. */
+	const [tooltipPlacement, setTooltipPlacement] = useState<"above" | "below">(
+		"above"
+	);
+	// Show reset button only after user zoomed in on a marker/cluster.
+	const [showResetButton, setShowResetButton] = useState(false);
+	const mapContainerRef = useRef<HTMLDivElement>(null);
+
+	/** On marker hover, compute tooltip placement: below when not enough space above. */
+	const handleMarkerMouseEnter = useCallback(
+		(e: React.MouseEvent<HTMLElement>, clusterId: string | number) => {
+			const container = mapContainerRef.current;
+			if (!container) {
+				setHoveredClusterId(clusterId);
+				setTooltipPlacement("above");
+				return;
+			}
+			const markerRect = e.currentTarget.getBoundingClientRect();
+			const containerRect = container.getBoundingClientRect();
+			const spaceAbove = markerRect.top - containerRect.top;
+			const minSpaceForTooltip = 100;
+			const placement = spaceAbove < minSpaceForTooltip ? "below" : "above";
+			setHoveredClusterId(clusterId);
+			setTooltipPlacement(placement);
+		},
+		[]
+	);
 
 	// Reorder clusters so the hovered one renders last (on top). Mapbox markers respect DOM order.
 	const sortedClusters = useMemo(() => {
@@ -441,6 +519,19 @@ function NegotiationsMapInner({
 		[]
 	);
 
+	const handleResetView = useCallback(() => {
+		const map = mapInstanceRef.current;
+		if (map?.flyTo) {
+			map.flyTo({
+				center: [ITALY_CENTER.longitude, ITALY_CENTER.latitude],
+				zoom: ITALY_CENTER.zoom,
+				pitch: 0,
+				bearing: 0,
+			});
+			setShowResetButton(false);
+		}
+	}, []);
+
 	if (mapError) {
 		return (
 			<div className="flex h-[360px] w-full items-center justify-center rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center sm:h-[440px] md:h-[520px]">
@@ -450,7 +541,44 @@ function NegotiationsMapInner({
 	}
 
 	return (
-		<div className="relative h-[360px] w-full overflow-hidden rounded-xl border border-border p-2 sm:h-[440px] md:h-[520px]">
+		<div
+			className="relative h-[360px] w-full shrink-0 overflow-hidden rounded-xl border border-border p-2 sm:h-[440px] md:h-[520px]"
+			ref={mapContainerRef}
+		>
+			{/* Reset view button: only visible after zooming in on a marker. */}
+			<AnimatePresence>
+				{showResetButton && (
+					<motion.div
+						animate={{ opacity: 1, scale: 1, x: 0 }}
+						className="group/button absolute top-4 left-4 z-10"
+						exit={{ opacity: 0, scale: 0.9, x: -8 }}
+						initial={{ opacity: 0, scale: 0.9, x: -8 }}
+						transition={{
+							duration: 0.2,
+							ease: [0.25, 0.46, 0.45, 0.94],
+						}}
+					>
+						{/* Tooltip on hover — same bg as cards; left-aligned (justify-start) to stay visible inside container. */}
+						<div
+							aria-hidden
+							className="stat-card-bg pointer-events-none absolute top-full left-0 z-50 mt-2 whitespace-nowrap rounded-lg border border-border bg-background px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover/button:opacity-100"
+						>
+							<span className="stat-card-text font-medium text-foreground text-sm">
+								Vedi tutta l&apos;Italia
+							</span>
+						</div>
+						<Button
+							aria-label="Vedi tutta l'Italia"
+							className="stat-card-bg size-9 rounded-lg border border-border bg-background shadow-sm hover:bg-background"
+							onClick={handleResetView}
+							size="icon"
+							variant="secondary"
+						>
+							<IconUTurnToLeft size={16} />
+						</Button>
+					</motion.div>
+				)}
+			</AnimatePresence>
 			{/* Absolute inset forces map/canvas to fill the container — Mapbox GL requires explicit dimensions.
 			    Transition for smooth theme/style changes (fog, rain, snow appearance). */}
 			<div
@@ -467,6 +595,7 @@ function NegotiationsMapInner({
 					mapStyle={mapStyle}
 					onLoad={handleMapLoad}
 					onMoveEnd={handleMoveEnd}
+					projection="globe"
 					style={{ width: "100%", height: "100%" }}
 				>
 					{!isMapLoading &&
@@ -496,7 +625,9 @@ function NegotiationsMapInner({
 												map.flyTo({
 													center: [longitude, latitude],
 													zoom: expZoom,
+													pitch: 75, // Tilt camera to reveal 3D terrain
 												});
+												setShowResetButton(true);
 											}
 										}}
 									>
@@ -506,18 +637,23 @@ function NegotiationsMapInner({
 										{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Map marker needs hover for tooltip+reorder; info also in title. */}
 										<div
 											className="group relative flex size-11 cursor-pointer select-none items-center justify-center rounded-full border-2 border-white/95 bg-primary font-semibold text-primary-foreground text-sm tabular-nums shadow-black/25 shadow-lg transition-all duration-150 ease-out hover:scale-105 hover:shadow-black/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:border-white/80 dark:shadow-black/40 dark:hover:shadow-black/50"
-											onMouseEnter={() => {
-												const id = cluster.id;
-												setHoveredClusterId(id != null ? id : null);
+											onMouseEnter={(e) => {
+												const id =
+													cluster.id ??
+													(props as { cluster_id: number }).cluster_id;
+												handleMarkerMouseEnter(e, id);
 											}}
 											onMouseLeave={() => setHoveredClusterId(null)}
 											title={`${count} ${count === 1 ? "trattativa" : "trattative"} · Clicca per espandere`}
 										>
-											{/* Tooltip: visible on hover, z-50 so it stays above other markers.
-											    text-card-foreground so count is readable in dataweb light (card bg is light there). */}
+											{/* Tooltip: above when space available, below when near top edge (avoids clipping). */}
 											<div
 												aria-hidden
-												className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100"
+												className={`pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100 ${
+													tooltipPlacement === "above"
+														? "bottom-full mb-2"
+														: "top-full mt-2"
+												}`}
 											>
 												<span className="font-medium text-card-foreground text-sm">
 													{count} {count === 1 ? "trattativa" : "trattative"}
@@ -547,13 +683,27 @@ function NegotiationsMapInner({
 									latitude={latitude}
 									longitude={longitude}
 									onClick={() => {
-										// Zoom in on single customer location to see where they live
+										// When zoomed in (>=17), navigate to negotiation detail; otherwise zoom in on location
+										if (zoom >= 17) {
+											const stato = getNegotiationStatoSegment({
+												id: negProps.negotiationId,
+												spanco: negProps.spanco,
+												abbandonata: negProps.abbandonata,
+												percentuale: negProps.percentuale,
+											} as ApiNegotiation);
+											router.push(
+												`/trattative/${stato}/${negProps.negotiationId}`
+											);
+											return;
+										}
 										const map = mapInstanceRef.current;
 										if (map?.flyTo) {
 											map.flyTo({
 												center: [longitude, latitude],
-												zoom: 15,
+												zoom: 17,
+												pitch: 75, // Tilt camera to reveal 3D terrain
 											});
+											setShowResetButton(true);
 										}
 									}}
 								>
@@ -561,22 +711,29 @@ function NegotiationsMapInner({
 									    Hover handlers reorder markers so tooltip appears above others. */}
 									{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Map marker needs hover for tooltip+reorder; info also in aria-label. */}
 									<div
-										aria-label={`${clientLabel}${negProps?.referente ? `, referente ${negProps.referente}` : ""}. Clicca per vedere la posizione`}
+										aria-label={`${clientLabel}${negProps?.referente ? `, referente ${negProps.referente}` : ""}. ${zoom < 17 ? "Clicca per vedere la posizione" : "Clicca per vedere trattativa"}`}
 										className="group relative cursor-pointer"
-										onMouseEnter={() => {
-											const id = cluster.id;
-											setHoveredClusterId(id != null ? id : null);
+										onMouseEnter={(e) => {
+											const id =
+												cluster.id ??
+												negProps?.negotiationId ??
+												cluster.id ??
+												0;
+											handleMarkerMouseEnter(e, id);
 										}}
 										onMouseLeave={() => setHoveredClusterId(null)}
 										role="img"
 									>
-										{/* Tooltip: visible on hover, z-50 so it stays above other markers. No interactive content per a11y.
-										    text-card-foreground for name and price so they are readable in dataweb light (card bg is light there). */}
+										{/* Tooltip: above when space available, below when near top edge (avoids clipping). */}
 										<div
 											aria-hidden
-											className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-52 -translate-x-1/2 rounded-xl border border-border bg-card px-3 py-2.5 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100"
+											className={`pointer-events-none absolute left-1/2 z-50 w-52 -translate-x-1/2 rounded-xl border border-border bg-card px-3 py-2.5 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100 ${
+												tooltipPlacement === "above"
+													? "bottom-full mb-2"
+													: "top-full mt-2"
+											}`}
 										>
-											<div className="flex gap-3">
+											<div className="mb-2 flex h-fit gap-3">
 												<Avatar className="size-10 shrink-0 rounded-lg">
 													<AvatarFallback
 														className="rounded-lg bg-primary/10 text-primary"
@@ -602,10 +759,25 @@ function NegotiationsMapInner({
 															{formatImporto(negProps.importo)}
 														</p>
 													)}
-													<p className="mt-1 text-muted-foreground text-xs">
-														Clicca per vedere la posizione
-													</p>
 												</div>
+											</div>
+											<div className="flex w-full items-center justify-start gap-2.5 rounded-md bg-primary/10 px-2 py-1.5 leading-none">
+												{zoom < 17 ? (
+													<IconCircleInfoSparkle
+														className="shrink-0 text-primary"
+														size={20}
+													/>
+												) : (
+													<IconExternalLink
+														className="shrink-0 text-primary"
+														size={20}
+													/>
+												)}
+												<p className="text-balance text-muted-foreground text-xs">
+													{zoom < 17
+														? "Clicca per andare alla posizione"
+														: "Clicca per vedere la trattativa"}
+												</p>
 											</div>
 										</div>
 										{/* Marker dot */}

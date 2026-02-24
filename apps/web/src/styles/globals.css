@@ -59,6 +59,7 @@ html.dark[data-color-scheme="rich"] {
 	--color-foreground: var(--foreground);
 	--color-search-placeholder: var(--search-placeholder);
 	--color-card: var(--card);
+	--color-stat-card: var(--stat-card);
 	--color-table-container-background: var(--table-container-background);
 	--color-card-foreground: var(--card-foreground);
 	--color-button-secondary: var(--button-secondary);
@@ -123,10 +124,21 @@ html.dark[data-color-scheme="rich"] {
 	--color-avatar-placeholder-bg: var(--avatar-placeholder-bg);
 	/* Table hover background token */
 	--color-table-hover: var(--table-hover);
+	/* Geocoding warning tooltip (indirizzo errato in ClientsTable) */
+	--color-geocoding-trigger-bg: var(--geocoding-trigger-bg);
+	--color-geocoding-trigger-text: var(--geocoding-trigger-text);
+	--color-geocoding-tooltip-bg: var(--geocoding-tooltip-bg);
+	--color-geocoding-tooltip-ring: var(--geocoding-tooltip-ring);
+	--color-geocoding-attention-bg: var(--geocoding-attention-bg);
+	--color-geocoding-attention-text: var(--geocoding-attention-text);
+	--color-geocoding-title: var(--geocoding-title);
+	--color-geocoding-desc: var(--geocoding-desc);
 }
 
 :root {
 	--radius: 0.625rem;
+	--stat-card: var(--background);
+	--pie-stroke: var(--background);
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
 	--card: oklch(0.9581 0 0);
@@ -204,6 +216,20 @@ html.dark[data-color-scheme="rich"] {
 	--status-suspended-accent: oklch(0.65 0.2 25);
 	--status-suspended-background: oklch(0.97 0.02 25);
 	--status-suspended-icon: oklch(0.65 0.2 25);
+	/* Geocoding warning tooltip (default light): indirizzo errato/incompleto in ClientsTable. */
+	--geocoding-trigger-bg: oklch(0.97 0.04 95);
+	--geocoding-trigger-text: oklch(0.45 0.12 55);
+	--geocoding-tooltip-bg: oklch(0.985 0.02 95);
+	--geocoding-tooltip-ring: oklch(0.78 0.16 75);
+	--geocoding-attention-bg: oklch(0.78 0.16 75);
+	--geocoding-attention-text: oklch(0.15 0.03 60);
+	--geocoding-title: oklch(0.15 0.03 60);
+	--geocoding-desc: oklch(0.15 0.03 60 / 0.7);
+	/* Geocoding icon (Frame 69) colors. */
+	--geocoding-icon-outer-stroke: oklch(0.72 0.18 55);
+	--geocoding-icon-inner-fill: oklch(0.94 0.08 95);
+	--geocoding-icon-line-stroke: oklch(0.78 0.14 75);
+	--geocoding-icon-detail: oklch(0.15 0.03 60);
 }
 
 .dark {
@@ -285,6 +311,20 @@ html.dark[data-color-scheme="rich"] {
 	--status-suspended-accent: oklch(0.6656 0.2213 25.57);
 	--status-suspended-background: oklch(0.2807 0.0388 17.23);
 	--status-suspended-icon: oklch(0.6656 0.2213 25.57);
+	/* Geocoding warning tooltip (default dark). */
+	--geocoding-trigger-bg: oklch(0.35 0.06 55);
+	--geocoding-trigger-text: oklch(0.85 0.12 75);
+	--geocoding-tooltip-bg: oklch(0.22 0.04 55);
+	--geocoding-tooltip-ring: oklch(0.72 0.15 70);
+	--geocoding-attention-bg: oklch(0.72 0.15 70);
+	--geocoding-attention-text: oklch(0.97 0.02 95);
+	--geocoding-title: oklch(0.97 0.02 95);
+	--geocoding-desc: oklch(0.8 0.02 95 / 0.85);
+	/* Geocoding icon (Frame 69) colors. */
+	--geocoding-icon-outer-stroke: oklch(0.68 0.14 70);
+	--geocoding-icon-inner-fill: oklch(0.35 0.06 55);
+	--geocoding-icon-line-stroke: oklch(0.65 0.12 75);
+	--geocoding-icon-detail: oklch(0.92 0.03 95);
 }
 
 /* Accent color overrides (preferences dialog). Applied via data-accent on <html>. */
@@ -376,6 +416,20 @@ html.dark[data-color-scheme="rich"] {
 	/* Voci di navigazione non attive leggermente desaturate ma ancora leggibili. */
 	--sidebar-secondary: oklch(0.82 0.025 255);
 	--sidebar-accent-foreground: oklch(0.97 0 0);
+	/* Geocoding warning tooltip (Dataweb dark): su sfondo blu scuro, tooltip amber scuro. */
+	--geocoding-trigger-bg: oklch(0.32 0.06 55);
+	--geocoding-trigger-text: oklch(0.88 0.1 75);
+	--geocoding-tooltip-bg: oklch(0.2 0.05 55);
+	--geocoding-tooltip-ring: oklch(0.65 0.12 70);
+	--geocoding-attention-bg: oklch(0.65 0.12 70);
+	--geocoding-attention-text: oklch(0.98 0.02 95);
+	--geocoding-title: oklch(0.98 0.02 95);
+	--geocoding-desc: oklch(0.82 0.02 95 / 0.9);
+	/* Geocoding icon (Frame 69) colors. */
+	--geocoding-icon-outer-stroke: oklch(0.62 0.11 70);
+	--geocoding-icon-inner-fill: oklch(0.32 0.05 55);
+	--geocoding-icon-line-stroke: oklch(0.6 0.1 75);
+	--geocoding-icon-detail: oklch(0.94 0.02 95);
 }
 
 /* Rich colors (LIGHT MODE): sfondo, sidebar e accent vivaci; testo resta neutro. */
@@ -383,6 +437,9 @@ html.dark[data-color-scheme="rich"] {
 	/* Background principale e card leggermente azzurrate */
 	--background: oklch(0.4394 0.1458 255.5);
 	--card: oklch(0.99 0.015 250);
+	/* Dashboard stat cards: soft off-white with subtle blue tint, distinct from the main blue background. */
+	--stat-card: oklch(0.97 0.02 250);
+	--pie-stroke: var(--stat-card);
 	--table-header: oklch(0.96 0.025 250);
 	--table-container-background: oklch(1 0 0);
 	--table-buttons: oklch(0.96 0.025 250);
@@ -406,6 +463,20 @@ html.dark[data-color-scheme="rich"] {
 	/* Non-active nav items color in rich theme */
 	--sidebar-secondary: oklch(0.8544 0.0376 254.58);
 	--sidebar-accent-foreground: oklch(0.98 0 0);
+	/* Geocoding warning tooltip (Dataweb light): su sfondo blu, tooltip crema con contrasto. */
+	--geocoding-trigger-bg: oklch(0.97 0.03 95);
+	--geocoding-trigger-text: oklch(0.45 0.12 55);
+	--geocoding-tooltip-bg: oklch(0.99 0.015 95);
+	--geocoding-tooltip-ring: oklch(0.72 0.14 70);
+	--geocoding-attention-bg: oklch(0.72 0.14 70);
+	--geocoding-attention-text: oklch(0.15 0.03 60);
+	--geocoding-title: oklch(0.15 0.03 60);
+	--geocoding-desc: oklch(0.15 0.03 60 / 0.7);
+	/* Geocoding icon (Frame 69) colors. */
+	--geocoding-icon-outer-stroke: oklch(0.7 0.15 70);
+	--geocoding-icon-inner-fill: oklch(0.95 0.06 95);
+	--geocoding-icon-line-stroke: oklch(0.75 0.12 75);
+	--geocoding-icon-detail: oklch(0.15 0.03 60);
 }
 
 /* Dataweb light: content on card/table-container uses dark text for readability. */
@@ -414,10 +485,22 @@ html.dark[data-color-scheme="rich"] {
 	color: var(--card-foreground);
 }
 
-/* Dataweb dark: override rich light's dark --card-foreground so table/card content stays light on dark. */
+/* Dataweb light only: dashboard stat-card-bg uses off-white; stat-card-text uses dark text. */
+html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-bg,
+html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-bg:hover {
+	background-color: var(--stat-card);
+}
+html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-text {
+	color: var(--card-foreground);
+}
+
+/* Dataweb dark: override rich light's dark --card-foreground so table/card content stays light on dark.
+   Stat-card and pie-stroke revert to background (no special styling — only dataweb light gets the off-white). */
 html.dark[data-color-scheme="rich"] {
 	--foreground: oklch(0.97 0 0);
 	--card-foreground: oklch(0.97 0 0);
+	--stat-card: var(--background);
+	--pie-stroke: var(--background);
 }
 
 /* Dataweb light: outline-style buttons (e.g. Aggiungi allegati) use light text on blue; on hover bg becomes muted (light) so switch text to dark for contrast. */

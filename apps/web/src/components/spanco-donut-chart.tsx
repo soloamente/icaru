@@ -111,18 +111,18 @@ function SpancoTooltip({
 	const value = (entry.value as number | undefined) ?? datum.value;
 
 	return (
-		<div className="rounded-md bg-card px-3 py-2 text-xs shadow-lg ring-1 ring-border">
+		<div className="stat-card-bg rounded-md bg-card px-3 py-2 text-xs shadow-lg ring-1 ring-border">
 			<div className="flex items-center gap-2">
 				<span
 					aria-hidden="true"
 					className="inline-block size-2.5 rounded-full"
 					style={{ backgroundColor: datum.color }}
 				/>
-				<span className="font-medium text-foreground">
+				<span className="stat-card-text font-medium text-foreground">
 					{datum.stage} · {datum.label}
 				</span>
 			</div>
-			<p className="mt-1 text-muted-foreground">
+			<p className="stat-card-text mt-1 text-muted-foreground">
 				{value} trattativa{value === 1 ? "" : "e"}
 			</p>
 		</div>
@@ -148,7 +148,7 @@ export function SpancoDonutChartSkeleton(): ReactNode {
 				<div className="flex h-full flex-col items-center justify-center">
 					<div className="relative size-[min(100%,--spacing(80))] min-h-[280px] min-w-[280px] sm:min-h-[340px] sm:min-w-[340px] md:min-h-[400px] md:min-w-[400px]">
 						<Skeleton className="absolute inset-0 rounded-full" />
-						<div className="absolute inset-[18%] rounded-full bg-background" />
+						<div className="stat-card-bg absolute inset-[18%] rounded-full bg-background" />
 						<div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
 							<Skeleton className="h-14 w-16" />
 							<Skeleton className="h-4 w-28" />
@@ -241,7 +241,7 @@ export function SpancoDonutChart({
 							nameKey="stage"
 							outerRadius="95%"
 							paddingAngle={10}
-							stroke="var(--background)"
+							stroke="var(--pie-stroke)"
 							strokeWidth={6}
 						>
 							{chartData.map((entry) => (
