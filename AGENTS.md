@@ -124,3 +124,41 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+
+---
+
+## Cursor Cloud specific instructions
+
+### Project overview
+
+This is a **Turborepo monorepo** for **ICARU**, an Italian CRM/Sales Management app. The only runnable service is the Next.js frontend in `apps/web/`. The backend is an **external Laravel API** hosted on Railway (not part of this repo).
+
+| Path | Purpose |
+|---|---|
+| `apps/web/` | Next.js 16 frontend (App Router, React 19, TailwindCSS 4, shadcn/ui) |
+| `packages/api/` | tRPC router package (minimal `healthCheck` endpoint) |
+| `packages/env/` | Environment variable validation (`@t3-oss/env-core` / `@t3-oss/env-nextjs`) |
+| `packages/config/` | Shared TypeScript config |
+
+### Package manager
+
+**Bun** (`bun@1.3.4`, specified in `packageManager` field). The lockfile is `bun.lock`. Always use `bun install` for dependency installation.
+
+### Running services
+
+- **Dev server**: `bun run dev:web` (or `bun run dev` to use turborepo). Starts Next.js on **port 3001**.
+- No local database or backend required. The app communicates with the external Laravel API at `https://web-production-7ff544.up.railway.app/api` (hardcoded fallback).
+- No `.env` file is required for development. The `CORS_ORIGIN` env var in `packages/env/src/server.ts` is not imported by the web app during dev/build.
+
+### Lint / Format / Build
+
+- **Lint check**: `bun run check` (runs `ultracite check` → Biome)
+- **Auto-fix**: `bun run fix` (runs `ultracite fix`)
+- **Build**: `bun run build` (runs `turbo build` → `next build`)
+- **Type check**: `bun run check-types` (runs `turbo check-types`)
+
+### Gotchas
+
+- **`motion-plus`** is a premium package. The repo ships a fallback `.tgz` at `scripts/motion-plus.tgz` which `bun install` uses via the `"file:./scripts/motion-plus.tgz"` dependency. No `MOTION_TOKEN` is needed for basic dev.
+- The `.npmrc` references `@motion.dev` registry with a `MOTION_TOKEN` env var. This is safe to ignore for development since the `.tgz` fallback is used.
+- The linter (`bun run check`) reports pre-existing warnings/errors in the codebase. These are not regressions.
