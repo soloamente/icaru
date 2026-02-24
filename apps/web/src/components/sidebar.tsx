@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -49,7 +49,8 @@ type AppRoute =
 	| "/trattative/aperte"
 	| "/trattative/concluse"
 	| "/trattative/abbandonate"
-	| "/clienti";
+	| "/clienti"
+	| "/team";
 
 interface NavigationItem {
 	icon: IconComponent;
@@ -127,6 +128,11 @@ export default function Sidebar({
 			label: "Clienti",
 			href: "/clienti",
 		},
+		{
+			icon: Users as IconComponent,
+			label: "Team",
+			href: "/team",
+		},
 	];
 
 	// Trattative group with expandable sub-pages (tutte, aperte, concluse, abbandonate)
@@ -157,9 +163,10 @@ export default function Sidebar({
 		],
 	};
 
-	// Doc: Admin non ha accesso a trattative/clienti (403). Solo Direttore Vendite e Venditore.
+	// Doc: Admin non ha accesso a trattative/clienti/team (403). Solo Direttore Vendite e Venditore.
 	const canSeeTrattative = auth?.role === "director" || auth?.role === "seller";
 	const canSeeClienti = auth?.role === "director" || auth?.role === "seller";
+	const canSeeTeam = auth?.role === "director" || auth?.role === "seller";
 	// Expand Trattative when current path is under /trattative
 	const isTrattativePath =
 		pathname === "/trattative" || pathname.startsWith("/trattative/");
@@ -336,9 +343,15 @@ export default function Sidebar({
 						className="flex flex-1 items-center gap-1"
 					>
 						{flatNavItems
-							.filter(
-								(item) => item.href !== "/clienti" || (mounted && canSeeClienti)
-							)
+							.filter((item) => {
+								if (item.href === "/clienti") {
+									return mounted && canSeeClienti;
+								}
+								if (item.href === "/team") {
+									return mounted && canSeeTeam;
+								}
+								return true;
+							})
 							.map((item) => (
 								<Link
 									className={cn(
@@ -533,11 +546,17 @@ export default function Sidebar({
 						</button>
 					</div>
 					<div className="flex flex-col gap-2.5">
-						{/* Flat nav items: Dashboard per tutti; Clienti solo per Direttore Vendite / Venditore (Admin riceve 403). */}
+						{/* Flat nav items: Dashboard per tutti; Clienti e Team solo per Direttore Vendite / Venditore (Admin riceve 403). */}
 						{flatNavItems
-							.filter(
-								(item) => item.href !== "/clienti" || (mounted && canSeeClienti)
-							)
+							.filter((item) => {
+								if (item.href === "/clienti") {
+									return mounted && canSeeClienti;
+								}
+								if (item.href === "/team") {
+									return mounted && canSeeTeam;
+								}
+								return true;
+							})
 							.map((item) => (
 								<Link
 									className={cn(

@@ -5,11 +5,17 @@
  */
 
 import type {
+	AddTeamMembersBody,
+	ApiAvailableMember,
 	ApiClient,
 	ApiClientWithoutNegotiation,
 	ApiNegotiation,
+	ApiTeam,
+	ApiTeamMinimal,
+	ApiTeamStats,
 	CreateClientBody,
 	CreateNegotiationBody,
+	CreateTeamBody,
 	ImportCheckResponse,
 	ImportConfirmResponse,
 	LoginResponse,
@@ -18,6 +24,7 @@ import type {
 	SpancoStatistics,
 	UpdateClientBody,
 	UpdateNegotiationBody,
+	UpdateTeamBody,
 } from "./types";
 
 const BASE_URL =
@@ -1037,6 +1044,305 @@ export async function search(
 				? payload.data
 				: (payload as unknown as SearchResponse);
 		return { data };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+// --- Teams API ---
+// Direttore Vendite: CRUD completo + gestione membri + statistiche.
+// Venditore: solo GET /api/teams/my-teams (team a cui è assegnato).
+
+/**
+ * GET /api/teams/available-members — Utenti della company assegnabili come membri.
+ * Include venditori e altri direttori vendite (escluso l'utente corrente e sospesi).
+ * Solo Direttore Vendite.
+ */
+export async function listAvailableMembers(
+	accessToken: string
+): Promise<{ data: ApiAvailableMember[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/available-members`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as
+			| ApiAvailableMember[]
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento dei membri disponibili";
+			return { error: msg };
+		}
+		return { data: json as ApiAvailableMember[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams — Lista tutti i team della company dell'utente autenticato.
+ * Solo Direttore Vendite.
+ */
+export async function listTeams(
+	accessToken: string
+): Promise<{ data: ApiTeam[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiTeam[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento dei team";
+			return { error: msg };
+		}
+		return { data: json as ApiTeam[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/my-teams — Team a cui l'utente è assegnato (membro o creator con creator_participates).
+ * Payload minimale: id, nome, creator_name. Direttore Vendite e Venditore.
+ */
+export async function listMyTeams(
+	accessToken: string
+): Promise<{ data: ApiTeamMinimal[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/my-teams`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiTeamMinimal[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento dei tuoi team";
+			return { error: msg };
+		}
+		return { data: json as ApiTeamMinimal[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * POST /api/teams — Crea un nuovo team nella company dell'utente.
+ * Solo Direttore Vendite.
+ */
+export async function createTeam(
+	accessToken: string,
+	body: CreateTeamBody
+): Promise<{ data: ApiTeam } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiTeam | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nella creazione del team";
+			return { error: msg };
+		}
+		return { data: json as ApiTeam };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{id} — Dettaglio completo di un team (con users e conteggi).
+ * Solo Direttore Vendite.
+ */
+export async function getTeam(
+	accessToken: string,
+	id: number
+): Promise<{ data: ApiTeam } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${id}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiTeam | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Team non trovato";
+			return { error: msg };
+		}
+		return { data: json as ApiTeam };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * PUT /api/teams/{id} — Aggiorna dati di un team.
+ * Se `members` è incluso nel body, esegue un SYNC completo (sostituisce tutti i membri).
+ * Solo Direttore Vendite.
+ */
+export async function updateTeam(
+	accessToken: string,
+	id: number,
+	body: UpdateTeamBody
+): Promise<{ data: ApiTeam } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${id}`, {
+			method: "PUT",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiTeam | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nell'aggiornamento del team";
+			return { error: msg };
+		}
+		return { data: json as ApiTeam };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * DELETE /api/teams/{id} — Elimina un team e tutte le associazioni nel pivot.
+ * Restituisce 204 No Content. Solo Direttore Vendite.
+ */
+export async function deleteTeam(
+	accessToken: string,
+	id: number
+): Promise<{ ok: true } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${id}`, {
+			method: "DELETE",
+			headers: getAuthHeaders(accessToken),
+		});
+		if (!res.ok) {
+			let msg = "Errore nell'eliminazione del team";
+			try {
+				const json = (await res.json()) as { message?: string };
+				if (
+					typeof json.message === "string" &&
+					json.message.trim().length > 0
+				) {
+					msg = json.message;
+				}
+			} catch {
+				// 204 No Content or non-JSON response — ignore parse error
+			}
+			return { error: msg };
+		}
+		return { ok: true };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * POST /api/teams/{id}/members — Aggiunge membri al team SENZA rimuovere quelli esistenti.
+ * Membri già presenti vengono ignorati. Solo Direttore Vendite.
+ */
+export async function addTeamMembers(
+	accessToken: string,
+	teamId: number,
+	body: AddTeamMembersBody
+): Promise<{ data: ApiTeam } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${teamId}/members`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiTeam | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nell'aggiunta dei membri";
+			return { error: msg };
+		}
+		return { data: json as ApiTeam };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * DELETE /api/teams/{id}/members/{userId} — Rimuove un singolo membro dal team.
+ * Restituisce il team aggiornato. Solo Direttore Vendite.
+ */
+export async function removeTeamMember(
+	accessToken: string,
+	teamId: number,
+	userId: number
+): Promise<{ data: ApiTeam } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${teamId}/members/${userId}`, {
+			method: "DELETE",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiTeam | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nella rimozione del membro";
+			return { error: msg };
+		}
+		return { data: json as ApiTeam };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{id}/stats — Statistiche aggregate del team (pipeline, concluse, abbandonate).
+ * Basate sulle trattative dei membri effettivi (include creator se creator_participates).
+ * Solo Direttore Vendite.
+ */
+export async function getTeamStats(
+	accessToken: string,
+	teamId: number
+): Promise<{ data: ApiTeamStats } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${teamId}/stats`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiTeamStats | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche del team";
+			return { error: msg };
+		}
+		return { data: json as ApiTeamStats };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };

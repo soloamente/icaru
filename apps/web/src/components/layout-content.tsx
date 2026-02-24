@@ -167,7 +167,12 @@ export default function LayoutContent({
 	const hideSidebarPaths: string[] = [];
 
 	// List of paths where the sidebar should be visible
-	const visibleSidebarPaths = ["/dashboard", "/trattative", "/clienti"];
+	const visibleSidebarPaths = [
+		"/dashboard",
+		"/trattative",
+		"/clienti",
+		"/team",
+	];
 
 	// Check if current pathname matches any hide patterns
 	const shouldHideSidebar = hideSidebarPaths.some((path) =>

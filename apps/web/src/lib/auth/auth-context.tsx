@@ -74,7 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 		setState({
 			user: storedUser ?? undefined,
 			token,
-			role: storedUser ? roleFromApi(storedUser.role) : null,
+			role: storedUser
+				? roleFromApi(storedUser.role, storedUser.role_id)
+				: null,
 			isLoaded: true,
 		});
 		// Validate with backend; only clear session on real auth failure (401), not on network errors
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 			setState((prev) => ({
 				...prev,
 				user: result.data,
-				role: roleFromApi(result.data.role),
+				role: roleFromApi(result.data.role, result.data.role_id),
 			}));
 		});
 	}, []);
@@ -106,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 		setState({
 			user,
 			token,
-			role: roleFromApi(user.role),
+			role: roleFromApi(user.role, user.role_id),
 			isLoaded: true,
 		});
 	}, []);
@@ -134,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 			return {
 				...prev,
 				user,
-				role: roleFromApi(user.role),
+				role: roleFromApi(user.role, user.role_id),
 			};
 		});
 	}, []);

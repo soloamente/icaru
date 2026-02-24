@@ -3,8 +3,8 @@
  * Base URL: https://web-production-7ff544.up.railway.app/
  */
 
-/** Role names from API: Admin, Director, Seller (Venditore) */
-export type RoleName = "Admin" | "Director" | "Venditore";
+/** Role names from API: Admin, Direttore Vendite, Venditore */
+export type RoleName = "Admin" | "Direttore Vendite" | "Venditore";
 
 export interface ApiRole {
 	nome: RoleName;
@@ -20,6 +20,8 @@ export interface ApiUser {
 	id: number;
 	email: string;
 	role: ApiRole;
+	/** Numeric role id from API: 1 = Admin, 2 = Direttore Vendite, 3 = Venditore */
+	role_id?: number;
 	company?: ApiCompany | null;
 	[key: string]: unknown;
 }
@@ -35,15 +37,35 @@ export interface LoginResponse {
 /** Normalized role for app (Venditore → Seller) */
 export type AppRole = "admin" | "director" | "seller";
 
-export function roleFromApi(role: ApiRole | undefined): AppRole {
-	if (!role?.nome) {
-		return "seller";
+/**
+ * Map API role to normalized app role.
+ * Accepts both the `role` object (with `nome`) and the numeric `role_id`
+ * so that the mapping works regardless of which field the API populates.
+ *
+ * role.nome values: "Admin", "Direttore Vendite", "Venditore"
+ * role_id values:   1 = Admin, 2 = Direttore Vendite, 3 = Venditore
+ */
+export function roleFromApi(
+	role: ApiRole | undefined,
+	roleId?: number
+): AppRole {
+	if (role?.nome) {
+		const n = role.nome.toLowerCase();
+		if (n === "admin") {
+			return "admin";
+		}
+		if (n === "direttore vendite" || n === "director") {
+			return "director";
+		}
+		if (n === "venditore") {
+			return "seller";
+		}
 	}
-	const n = role.nome.toLowerCase();
-	if (n === "admin") {
+	// Fallback to numeric role_id when role object is missing or unrecognised
+	if (roleId === 1) {
 		return "admin";
 	}
-	if (n === "director") {
+	if (roleId === 2) {
 		return "director";
 	}
 	return "seller";
@@ -298,4 +320,131 @@ export interface SearchResponse {
 	clients_with_negotiations: SearchClientResult[];
 	referents: SearchReferentResult[];
 	clients_without_negotiations: SearchClientResult[];
+}
+
+// --- Teams API ---
+// Endpoints: GET /api/teams, GET /api/teams/my-teams, GET /api/teams/available-members,
+// POST /api/teams, GET /api/teams/{id}, PUT /api/teams/{id}, DELETE /api/teams/{id},
+// POST /api/teams/{id}/members, DELETE /api/teams/{id}/members/{userId},
+// GET /api/teams/{id}/stats
+
+/** Creator sub-object included in team responses (id, nome, cognome). */
+export interface ApiTeamCreator {
+	id: number;
+	nome: string;
+	cognome: string;
+}
+
+/** Pivot data for team_user relationship. */
+export interface ApiTeamUserPivot {
+	team_id: number;
+	user_id: number;
+	created_at: string;
+	updated_at: string;
+}
+
+/** Team member as returned in team detail / create / update responses. */
+export interface ApiTeamUser {
+	id: number;
+	nome: string;
+	cognome: string;
+	email: string;
+	pivot: ApiTeamUserPivot;
+}
+
+/** Role sub-object for available members. */
+export interface ApiAvailableMemberRole {
+	id: number;
+	nome: string;
+}
+
+/**
+ * Available member from GET /api/teams/available-members.
+ * Includes venditori and other direttori vendite (excluding the current user).
+ */
+export interface ApiAvailableMember {
+	id: number;
+	nome: string;
+	cognome: string;
+	email: string;
+	role_id: number;
+	role: ApiAvailableMemberRole;
+}
+
+/**
+ * Full team object from GET /api/teams (list) and GET /api/teams/{id} (detail).
+ * `users` array is present in detail/create/update responses but absent in list.
+ * `users_count` and `effective_members_count` are present in list and detail.
+ */
+export interface ApiTeam {
+	id: number;
+	nome: string;
+	description: string | null;
+	data_creazione: string;
+	company_id: number;
+	creator_id: number;
+	creator_participates: boolean;
+	created_at: string;
+	updated_at: string;
+	/** Number of users in the pivot table (without creator). Present in list/detail. */
+	users_count?: number;
+	/** Effective members including creator if creator_participates. Present in list/detail. */
+	effective_members_count?: number;
+	creator: ApiTeamCreator;
+	/** Member list — present in detail, create, update responses. */
+	users?: ApiTeamUser[];
+}
+
+/**
+ * Minimal team from GET /api/teams/my-teams (Venditore / Direttore).
+ * Payload volutamente ridotto: solo id, nome, creator_name.
+ */
+export interface ApiTeamMinimal {
+	id: number;
+	nome: string;
+	creator_name: string;
+}
+
+/** Stats bucket (count + total amount) for pipeline / concluded / abandoned. */
+export interface ApiTeamStatsBucket {
+	count: number;
+	total_importo: number;
+}
+
+/** Response from GET /api/teams/{id}/stats — aggregate metrics for team negotiations. */
+export interface ApiTeamStats {
+	team_id: number;
+	effective_members_count: number;
+	member_ids: number[];
+	pipeline: ApiTeamStatsBucket;
+	concluded: ApiTeamStatsBucket;
+	abandoned: ApiTeamStatsBucket;
+}
+
+/** Request body for POST /api/teams (create team). */
+export interface CreateTeamBody {
+	nome: string;
+	description?: string | null;
+	creator_participates?: boolean;
+	/** Array of user ids to add as members. Must belong to same company. */
+	members?: number[];
+}
+
+/**
+ * Request body for PUT /api/teams/{id} (update team).
+ * All fields are optional — send only what changed.
+ * IMPORTANT: if `members` is sent it performs a SYNC (replaces all members).
+ */
+export interface UpdateTeamBody {
+	nome?: string;
+	description?: string | null;
+	creator_participates?: boolean;
+	/** Full member list — REPLACES existing members. Omit to leave members unchanged. */
+	members?: number[];
+}
+
+/** Request body for POST /api/teams/{id}/members (add members without removing existing). */
+export interface AddTeamMembersBody {
+	/** Array of user ids to add. Min 1 element. Must belong to same company. */
+	members: number[];
 }

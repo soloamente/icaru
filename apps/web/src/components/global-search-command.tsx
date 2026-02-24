@@ -240,7 +240,7 @@ export default function GlobalSearchCommand() {
 				router.push(`/trattative/aperte/${firstReferent.id}`);
 				return;
 			}
-			const role = roleFromApi(auth.user?.role);
+			const role = roleFromApi(auth.user?.role, auth.user?.role_id);
 			const listFn =
 				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
 			const href = await resolveClientNegotiationHref(token, c.id, listFn);

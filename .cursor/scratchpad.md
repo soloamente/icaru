@@ -6,6 +6,17 @@ Dashboard: è stato richiesto un grafico SPANCO circolare (donut chart) che most
 
 Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bloccata nella fase di `bun install`, fermandosi al log `Resolved, downloaded and extracted [62]` senza procedere alla fase di build dell'app.
 
+### Team Management (Gestione Team)
+
+È stata richiesta una sezione completa di gestione dei team con organigramma (organization chart) visuale. Il backend Laravel espone un set completo di API per CRUD team, gestione membri e statistiche. L'interfaccia deve seguire gli stessi pattern e design delle altre pagine (clienti, trattative, dashboard).
+
+**Requisiti principali:**
+- **Direttore Vendite:** CRUD completo sui team, gestione membri, toggle `creator_participates`, statistiche
+- **Venditore:** solo vista minimale dei team a cui è assegnato (id, nome, creator)
+- **Admin:** nessun accesso ai team
+- **Organigramma:** vista ad albero con il creator in alto e i membri sotto, con "skeleton" placeholder cliccabili per aggiungere nuovi membri tra quelli disponibili
+- **Stile:** coerente con clienti/trattative (card `bg-card`, `table-container-bg`, stats cards, pill, ecc.)
+
 ## Key Challenges and Analysis
 
 - Evitare di usare `primary-foreground` in un contesto non primario, così da non perdere contrasto con lo sfondo della sidebar.
@@ -13,15 +24,88 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - Capire se il blocco di `bun install` su Vercel è dovuto a una dipendenza locale (`motion-plus` via `.tgz`), a una configurazione errata del package manager o a uno script che si comporta diversamente in ambiente CI.
 - Verificare che la struttura del monorepo (workspaces `apps/*` e `packages/*`, `bun.lock`, `packageManager` Bun) sia compatibile con la configurazione corrente del progetto Vercel (Install/Build command, directory di output).
 
+### Team Management — Sfide tecniche e di design
+
+1. **Organigramma (Org Chart):** Non è una tabella piatta ma una vista ad albero. Il team ha una struttura semplice: un creator (direttore) in cima + N membri sotto. L'org chart sarà composto da:
+   - **Nodo Creator:** card in alto al centro con nome, cognome, ruolo, e indicatore se partecipa (`creator_participates`). Toggle "Partecipa al team" direttamente sul nodo.
+   - **Nodi Membri:** card sotto, collegati con linee verticali/orizzontali. Ogni card mostra nome, cognome, email, ruolo (badge Venditore/Direttore). Bottone rimuovi su hover.
+   - **Skeleton "Aggiungi membro":** card tratteggiata/punteggiata con "+" che al click apre un dropdown con la lista dei membri disponibili (`GET /api/teams/available-members`). Pulsing animation come placeholder.
+
+2. **Routing e ruoli:** Servono percorsi distinti in base al ruolo:
+   - Direttore: `/team` (lista completa) → `/team/crea` → `/team/[id]` (dettaglio con organigramma) → `/team/[id]/modifica`
+   - Venditore: `/team` (i miei team, vista minimale)
+   - Admin: redirect a dashboard
+
+3. **Sidebar update:** Aggiungere voce "Team" nella sidebar (visibile solo a Direttore e Venditore, come per Trattative/Clienti).
+
+4. **Layout content update:** Aggiungere `/team` ai percorsi visibili nella sidebar per `LayoutContent`.
+
+5. **API types e client:** Definire tutti i tipi TypeScript e le funzioni client per i 10 endpoint team documentati.
+
+6. **Statistiche team:** Cards riassuntive (pipeline, concluse, abbandonate) nella pagina di dettaglio, coerenti con lo stile dashboard/trattative.
+
 ## High-level Task Breakdown
 
-1. Identificare il punto in cui viene renderizzato il nome/email dell'utente loggato in `Sidebar`.
-2. Aggiornare le classi Tailwind in modo che il testo usi un colore `sidebar-*` appropriato (es. `text-sidebar-primary`) mantenendo la struttura esistente.
-3. Verificare che non ci siano errori di compilazione/lint e che il rendering sia corretto sia in tema chiaro che scuro.
-4. Riprodurre localmente il problema di deploy eseguendo `bun install` dalla root del monorepo e osservare se si blocca o genera errori, annotando l'output completo (successo: `bun install` termina correttamente in locale).
-5. Analizzare e, se necessario, correggere la dipendenza locale `motion-plus` in `package.json` (percorso `.tgz` e inclusione nel repo) affinché Bun riesca a risolverla e installarla sia in locale sia su Vercel (successo: `bun install` completa anche in CI senza blocchi nella fase di linking).
-6. Verificare e allineare la configurazione del progetto Vercel allo stack Bun + Turborepo + Next.js (Install command `bun install`, Build command `turbo build` o `bun run build`, directory di output `apps/web/.next`) e aggiornare la documentazione interna se necessario (successo: configurazione consistente tra locale e CI).
-7. Rieseguire una build su Vercel, controllare i log fino al termine e confermare che la fase di installazione superi il punto "Resolved, downloaded and extracted [...]" e che la build Next.js arrivi al termine senza errori (successo: deploy completo e preview/production raggiungibile).
+### (Vecchi task — sidebar color, deploy, ecc.)
+1–7: vedi task precedenti (sidebar color, deploy Vercel — completati o in standby).
+
+### Team Management — Piano di implementazione
+
+**Task 1: Tipi TypeScript per le API Team** (`apps/web/src/lib/api/types.ts`)
+- Aggiungere: `ApiTeamCreator`, `ApiTeamUser`, `ApiTeam`, `ApiTeamMinimal`, `ApiAvailableMember`, `ApiTeamStats`, `CreateTeamBody`, `UpdateTeamBody`, `AddTeamMembersBody`
+- **Criterio di successo:** Tipi compilano senza errori, coprono tutti i campi documentati dall'API.
+
+**Task 2: Funzioni client API Team** (`apps/web/src/lib/api/client.ts`)
+- Aggiungere 10 funzioni: `listAvailableMembers`, `listTeams`, `listMyTeams`, `createTeam`, `getTeam`, `updateTeam`, `deleteTeam`, `addTeamMembers`, `removeTeamMember`, `getTeamStats`
+- Seguire lo stesso pattern `{ data } | { error }` delle altre funzioni.
+- **Criterio di successo:** Tutte le funzioni compilano, seguono i pattern esistenti, endpoint URL corretti.
+
+**Task 3: Sidebar — Aggiungere voce "Team"**
+- Aggiungere "Team" come voce flat in `flatNavItems` nella Sidebar (tra "Clienti" e "Trattative" o dopo "Clienti").
+- Visibile solo a `director` e `seller` (come `canSeeClienti`).
+- Icona: `UserGroupIcon` o un'icona team dedicata (lucide `Users`).
+- Aggiungere `/team` al tipo `AppRoute`.
+- **Criterio di successo:** Voce "Team" visibile in sidebar per direttore e venditore, link funzionante a `/team`.
+
+**Task 4: LayoutContent — Abilitare sidebar su `/team`**
+- Aggiungere `"/team"` all'array `visibleSidebarPaths` in `layout-content.tsx`.
+- **Criterio di successo:** Navigando a `/team` la sidebar è visibile.
+
+**Task 5: Pagina lista team — Direttore** (`/team` page)
+- Per `director`: tabella/griglia dei team (`GET /api/teams`) con nome, creator, conteggio membri, `creator_participates` toggle, azioni (dettaglio, modifica, elimina).
+- Per `seller`: vista minimale "I miei team" (`GET /api/teams/my-teams`) con solo nome team e nome creator.
+- Stats cards: totale team, totale membri, ecc.
+- **Criterio di successo:** Pagina funzionante, dati caricati da API, ruoli gestiti correttamente.
+
+**Task 6: Pagina dettaglio team con Organigramma** (`/team/[id]`)
+- Org chart: creator in alto → membri sotto con connettori.
+- Ogni nodo membro: avatar, nome, cognome, email, badge ruolo, bottone rimuovi (solo director).
+- Nodo creator: evidenziato, toggle `creator_participates`.
+- **Skeleton "Aggiungi membro":** card punteggiata con icona "+" al centro. Pulsing animation. Al click → dropdown/popover con lista `available-members` per selezionare chi aggiungere.
+- Sezione statistiche team: cards pipeline/concluse/abbandonate (`GET /api/teams/{id}/stats`).
+- **Criterio di successo:** Org chart renderizzato con dati reali, aggiunta/rimozione membri funzionanti, statistiche visibili.
+
+**Task 7: Pagina creazione team** (`/team/crea`)
+- Form: nome, descrizione, toggle `creator_participates`, multi-select membri (da `available-members`).
+- Submit → `POST /api/teams`, redirect a dettaglio.
+- **Criterio di successo:** Form funzionante, team creato con successo, redirect al dettaglio.
+
+**Task 8: Pagina modifica team** (`/team/[id]/modifica`)
+- Precompila form con dati team (`GET /api/teams/{id}`) + available members.
+- Salvataggio → `PUT /api/teams/{id}`.
+- Conferma uscita con modifiche non salvate (stesso pattern trattative).
+- **Criterio di successo:** Form precompilato, modifica salvata, gestione unsaved changes.
+
+**Task 9: Eliminazione team** (dialog/modale dalla lista o dal dettaglio)
+- Conferma modale prima di `DELETE /api/teams/{id}`.
+- Redirect a lista dopo eliminazione.
+- **Criterio di successo:** Dialog conferma, team eliminato, redirect a lista.
+
+**Task 10: Raffinamenti e polish**
+- Animazioni (motion/react) coerenti con il resto dell'app.
+- Skeleton loading per org chart durante caricamento.
+- Empty states (nessun team, nessun membro).
+- Responsive: org chart che si adatta su mobile.
 
 ## Project Status Board
 
@@ -51,6 +135,19 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
  - [ ] Rendere l'intera riga della tabella clienti (`/clienti`) cliccabile per aprire la pagina di dettaglio cliente, mantenendo indipendenti i pulsanti nella colonna "Trattativa".
 
 ## Executor's Feedback or Assistance Requests
+
+- **Team Management (Task 1–9 completati):** Ho implementato l'intera struttura per la gestione team:
+  - **types.ts:** 11 nuovi tipi/interfacce per team API (ApiTeam, ApiTeamMinimal, ApiAvailableMember, ApiTeamStats, CreateTeamBody, UpdateTeamBody, AddTeamMembersBody, ecc.)
+  - **client.ts:** 10 nuove funzioni API (listAvailableMembers, listTeams, listMyTeams, createTeam, getTeam, updateTeam, deleteTeam, addTeamMembers, removeTeamMember, getTeamStats)
+  - **sidebar.tsx:** Voce "Team" aggiunta con icona Users (lucide), visibile solo per director/seller
+  - **layout-content.tsx:** Aggiunto "/team" ai path visibili con sidebar
+  - **team/page.tsx:** Pagina lista team — Director vede tabella completa con stats/azioni; Seller vede "I miei team" minimale
+  - **team/[id]/page.tsx + team-org-chart.tsx:** Organigramma con nodo creator (crown, toggle partecipa), nodi membri (avatar, nome, email, rimuovi), skeleton "Aggiungi membro" con dropdown available-members, stats pipeline/concluse/abbandonate
+  - **team/crea/page.tsx + create-team-form.tsx:** Form creazione team con nome, descrizione, toggle creator_participates, multi-select membri
+  - **Eliminazione:** Bottone "Elimina" nella tabella team (direttamente nella lista, senza dialog separato per ora)
+  - **Fix roleFromApi:** Corretto il bug che causava "Venditore" per tutti gli utenti — ora gestisce "Direttore Vendite" dall'API e fallback su role_id numerico
+  - **TypeScript:** Build passa senza errori (`tsc --noEmit` OK)
+  - Chiedo una verifica visiva sulla pagina `/team` (come Director) per confermare che lista, organigramma e creazione funzionino correttamente.
 
 - **Vercel build + motion-plus:** Per sbloccare la build senza rimuovere motion-plus: (1) Aggiunto `scripts/vercel-install.sh` che, se `MOTION_TOKEN` è impostato, scarica `motion-plus.tgz` in `scripts/` e poi esegue `bun install`. (2) Aggiunto `vercel.json` con `installCommand: "bash scripts/vercel-install.sh"`. (3) Documentato in README: in Vercel va impostata la variabile d'ambiente `MOTION_TOKEN`. L'utente deve aggiungere `MOTION_TOKEN` nelle Environment Variables del progetto Vercel e rieseguire il deploy.
 - **GlobalSearchCommand (⌘K) su /clienti:** Ho applicato il feedback di pagina: (1) dialog centrato nella viewport: il contenitore è passato da `items-start justify-center pt-[15vh]` a `items-center justify-center p-4`; (2) input “floating”: rimosso il border-bottom, aggiunto wrapper `.global-search-input-wrap` con padding (top e lati) e input con `background: var(--muted)`, `border-radius: var(--radius-md)` e padding interno, senza bordo. Corretto anche l’ordine dei selettori in `cmdk.css` per il lint (specificity). Chiedo una verifica visiva su /clienti (aprire la command palette con ⌘K/Ctrl+K) prima di considerare il task chiuso.
