@@ -1069,7 +1069,7 @@ export async function listAvailableMembers(
 		});
 		const json = (await res.json()) as
 			| ApiAvailableMember[]
-			| { message?: string };
+			| { data?: ApiAvailableMember[]; message?: string };
 		if (!res.ok) {
 			const msg =
 				typeof (json as { message?: string }).message === "string"
@@ -1077,7 +1077,18 @@ export async function listAvailableMembers(
 					: "Errore nel caricamento dei membri disponibili";
 			return { error: msg };
 		}
-		return { data: json as ApiAvailableMember[] };
+		// Laravel may return { data: ApiAvailableMember[] } or a raw array
+		const raw = Array.isArray((json as { data?: ApiAvailableMember[] }).data)
+			? (json as { data: ApiAvailableMember[] }).data
+			: (json as ApiAvailableMember[]);
+		// Filter out null/undefined or malformed entries to avoid runtime errors
+		const data = Array.isArray(raw)
+			? raw.filter(
+					(m): m is ApiAvailableMember =>
+						m != null && typeof m.id === "number" && typeof m.nome === "string"
+				)
+			: [];
+		return { data };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };

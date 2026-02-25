@@ -21,6 +21,7 @@ export { IconFileCheckFill18 } from "./icon-file-check-fill-18";
 export { IconFilePlusFill18 } from "./icon-file-plus-fill-18";
 export { IconFrame69 } from "./icon-frame-69";
 export { IconMagnifierSparkleFill18 } from "./icon-magnifier-sparkle-fill-18";
+export { IconPeople } from "./icon-people";
 export { IconQuickstartFill18 } from "./icon-quickstart-fill-18";
 export { IconSackDollarFill18 } from "./icon-sack-dollar-fill-18";
 export { IconSuitcaseDollarFill18 } from "./icon-suitcase-dollar-fill-18";

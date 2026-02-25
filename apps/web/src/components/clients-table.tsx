@@ -5,7 +5,11 @@ import { motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { CheckIcon, IconCirclePlusFilled } from "@/components/icons";
+import {
+	CheckIcon,
+	IconCirclePlusFilled,
+	IconPeople,
+} from "@/components/icons";
 import {
 	listClientsCompany,
 	listClientsMe,
@@ -22,7 +26,6 @@ import IconEarthAlertFill18 from "./icons/icon-earth-alert-fill-18";
 import IconEyeFill12 from "./icons/icon-eye-fill-12";
 import IconFrame69 from "./icons/icon-frame-69";
 import IconTriangleWarningFill18 from "./icons/icon-triangle-warning-fill-18";
-import { UserGroupIcon } from "./icons/user-group";
 import { ImportClientsDialog } from "./import-clients-dialog";
 import { CreateNegotiationDialog } from "./trattative-table";
 
@@ -256,7 +259,7 @@ export default function ClientsTable() {
 			<div className="relative flex w-full items-center justify-between gap-4.5">
 				<h1 className="flex items-center justify-center gap-3.5">
 					{/* Usiamo la stessa icona della voce "Clienti" nella Sidebar per coerenza visiva. */}
-					<UserGroupIcon aria-hidden size={24} />
+					<IconPeople aria-hidden size={24} />
 					<span>Clienti</span>
 				</h1>
 				<div className="flex items-center justify-end gap-2">
@@ -316,7 +319,7 @@ export default function ClientsTable() {
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
 						>
-							<UserGroupIcon
+							<IconPeople
 								aria-hidden
 								className="text-black dark:text-white"
 								size={56}

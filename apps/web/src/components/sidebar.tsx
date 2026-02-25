@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Users, X } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import {
 	DashboardIcon,
 	GearIcon,
 	IconMagnifierSparkleFill18,
+	IconPeople,
 	OpenRectArrowOutIcon,
 } from "@/components/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -124,12 +125,12 @@ export default function Sidebar({
 			href: "/dashboard",
 		},
 		{
-			icon: UserGroupIcon as IconComponent,
+			icon: IconPeople as IconComponent,
 			label: "Clienti",
 			href: "/clienti",
 		},
 		{
-			icon: Users as IconComponent,
+			icon: UserGroupIcon as IconComponent,
 			label: "Team",
 			href: "/team",
 		},

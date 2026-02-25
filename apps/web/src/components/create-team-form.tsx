@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Check, Plus, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { createTeam, listAvailableMembers } from "@/lib/api/client";
 import type { ApiAvailableMember } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { UserGroupIcon } from "./icons/user-group";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Skeleton } from "./ui/skeleton";
 
@@ -100,7 +101,7 @@ export function CreateTeamForm() {
 					<ArrowLeft className="size-5" />
 				</button>
 				<h1 className="flex items-center justify-center gap-3.5">
-					<Users aria-hidden size={24} />
+					<UserGroupIcon aria-hidden size={24} />
 					<span>Crea Team</span>
 				</h1>
 			</div>
