@@ -8,7 +8,7 @@ import { useAuthOptional } from "@/lib/auth/auth-context";
 
 /**
  * Clienti page - shows clients table.
- * Sellers see only own clients; Directors see all company clients.
+ * Tutti i ruoli vedono solo i propri clienti (GET /api/clients/me).
  * Requires authentication; redirects to login if not logged in.
  */
 export default function ClientiPage() {

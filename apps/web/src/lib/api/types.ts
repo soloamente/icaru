@@ -100,8 +100,8 @@ export interface ApiClientWithoutNegotiation {
 }
 
 /**
- * Client from GET /api/clients/me or GET /api/clients/company.
- * Venditore/Direttore: propri clienti (/me). Direttore Vendite: tutta l'azienda (/company).
+ * Client from GET /api/clients/me.
+ * Tutti i ruoli: solo clienti personali.
  * Ogni cliente include sempre l'oggetto address nella risposta API.
  */
 export interface ApiClient {

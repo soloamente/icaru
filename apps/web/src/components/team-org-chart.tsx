@@ -1,12 +1,14 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, ChevronDown, Crown, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Crown, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Drawer } from "vaul";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	addTeamMembers,
 	getTeam,
@@ -23,6 +25,7 @@ import type {
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
+import { cn } from "@/lib/utils";
 import { IconUTurnToLeft } from "./icons";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
@@ -89,7 +92,11 @@ function isTeamFormDirty(form: TeamFormState, team: ApiTeam): boolean {
 export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 	const { token, role } = useAuth();
 	const router = useRouter();
+	const isMobile = useIsMobile();
 	const isDirector = role === "director";
+
+	// On mobile, section cards stack vertically (flex-col); matches UpdateClientForm / UpdateNegotiationForm.
+	const sectionCardClasses = cn(SECTION_CARD_CLASSES, isMobile && "flex-col");
 
 	const [team, setTeam] = useState<ApiTeam | null>(null);
 	const [stats, setStats] = useState<ApiTeamStats | null>(null);
@@ -218,9 +225,11 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 
 			if ("error" in result) {
 				setError(result.error);
+				toast.error(result.error);
 				return;
 			}
 			setTeam(result.data);
+			toast.success("Team aggiornato");
 		},
 		[token, team, teamId, form]
 	);
@@ -398,7 +407,37 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 
 			{/* Body: table-container-bg, scrollable, holds the form + org chart + stats */}
 			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
-				<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto">
+				{/* Scroll container with gap-2.5 between sections — aligned with UpdateClientForm / UpdateNegotiationForm. */}
+				<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
+					{/* Stats cards — at the very top, same pattern as /team list page */}
+					{isDirector && stats && (
+						<div className="flex flex-wrap items-start gap-3.75">
+							<StatCard
+								count={stats.pipeline.count}
+								importo={formatCurrency(stats.pipeline.total_importo)}
+								title="Pipeline"
+							/>
+							<StatCard
+								count={stats.concluded.count}
+								importo={formatCurrency(stats.concluded.total_importo)}
+								title="Concluse"
+							/>
+							<StatCard
+								count={stats.abandoned.count}
+								importo={formatCurrency(stats.abandoned.total_importo)}
+								title="Abbandonate"
+							/>
+							<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+								<h3 className="font-medium text-sm text-stats-title leading-none">
+									Membri effettivi
+								</h3>
+								<AnimateNumber className="text-xl tabular-nums leading-none">
+									{stats.effective_members_count}
+								</AnimateNumber>
+							</div>
+						</div>
+					)}
+
 					{/* Error banner */}
 					{error && (
 						<div className="rounded-lg bg-destructive/10 px-4 py-2 text-center text-destructive text-sm">
@@ -409,15 +448,15 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 					{/* ─── EDITABLE FORM: Team Name + Description ─── */}
 					{isDirector && (
 						<form
-							className="flex w-full flex-col gap-2.5 md:flex-row"
+							className="flex w-full min-w-0 flex-col gap-2.5"
 							id={UPDATE_TEAM_FORM_ID}
 							onSubmit={handleSubmit}
 						>
 							<section
 								aria-labelledby="team-info-heading"
-								className={SECTION_CARD_CLASSES}
+								className={sectionCardClasses}
 							>
-								<div className="flex w-full min-w-0 shrink-0 md:w-auto">
+								<div className="flex w-full min-w-0">
 									<h2 className="font-medium text-2xl" id="team-info-heading">
 										Dati team
 									</h2>
@@ -484,10 +523,10 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 						</form>
 					)}
 
-					{/* Read-only team info for non-directors */}
+					{/* Read-only team info for non-directors — same layout as editable section. */}
 					{!isDirector && (
-						<section className={SECTION_CARD_CLASSES}>
-							<div className="flex w-full min-w-0 shrink-0 md:w-auto">
+						<section className={sectionCardClasses}>
+							<div className="flex w-full min-w-0">
 								<h2 className="font-medium text-2xl">Dati team</h2>
 							</div>
 							<div className="flex w-full min-w-0 flex-col gap-2">
@@ -517,7 +556,6 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 							fetchStats();
 							fetchAvailableMembers();
 						}}
-						stats={stats}
 						team={team}
 						teamId={teamId}
 					/>
@@ -546,7 +584,6 @@ interface OrgChartSectionProps {
 	teamId: number;
 	isDirector: boolean;
 	availableMembers: ApiAvailableMember[];
-	stats: ApiTeamStats | null;
 	onTeamUpdate: (team: ApiTeam) => void;
 	onError: (error: string) => void;
 }
@@ -560,7 +597,6 @@ function OrgChartSection({
 	teamId,
 	isDirector,
 	availableMembers,
-	stats,
 	onTeamUpdate,
 	onError,
 }: OrgChartSectionProps) {
@@ -645,11 +681,14 @@ function OrgChartSection({
 	const filteredAvailable = availableMembers.filter(
 		(m) => !currentMemberIds.has(m.id)
 	);
+	// Whether the "add member" skeleton is shown, and total items in the member row
+	const hasAddSkeleton = isDirector && filteredAvailable.length > 0;
+	const totalOrgItems = members.length + (hasAddSkeleton ? 1 : 0);
 
 	return (
 		<>
-			{/* Org chart: creator + connector lines + members */}
-			<div className="flex flex-col items-center gap-0">
+			{/* Org chart card — same container as "Dati team" */}
+			<section className={`${SECTION_CARD_CLASSES} flex-col items-center`}>
 				<CreatorNode
 					creator={team.creator}
 					creatorParticipates={team.creator_participates}
@@ -658,81 +697,50 @@ function OrgChartSection({
 					onToggleParticipates={handleToggleCreatorParticipates}
 				/>
 
-				{(members.length > 0 ||
-					(isDirector && filteredAvailable.length > 0)) && (
-					<div className="flex flex-col items-center">
-						<div className="h-8 w-px bg-border" />
-						<div className="h-px w-full max-w-[calc(100%-4rem)] bg-border" />
-					</div>
+				{/* Connector lines + member cards */}
+				{totalOrgItems > 0 && (
+					<>
+						{/* Vertical stem from creator down to the horizontal bar */}
+						<div className="h-8 w-px bg-muted-foreground/20" />
+
+						{/* Member row — relative so the horizontal connector can be positioned absolutely */}
+						<div className="relative flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
+							{/* Horizontal bar from center-of-first → center-of-last (inset = w-48 / 2 = 6rem) */}
+							{totalOrgItems > 1 && (
+								<div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-muted-foreground/20" />
+							)}
+
+							{members.map((member) => (
+								<div className="flex flex-col items-center" key={member.id}>
+									<div className="h-5 w-px bg-muted-foreground/20" />
+									<MemberNode
+										isDirector={isDirector}
+										isRemoving={removingUserId === member.id}
+										member={member}
+										onRemove={() => handleRemoveMember(member.id)}
+									/>
+								</div>
+							))}
+
+							{hasAddSkeleton && (
+								<div
+									className="flex flex-col items-center"
+									ref={addDropdownRef}
+								>
+									<div className="h-5 w-px bg-muted-foreground/20" />
+									<AddMemberSkeleton
+										addingMemberId={addingMemberId}
+										availableMembers={filteredAvailable}
+										isOpen={isAddOpen}
+										onAdd={handleAddMember}
+										onToggle={() => setIsAddOpen(!isAddOpen)}
+									/>
+								</div>
+							)}
+						</div>
+					</>
 				)}
-
-				<div className="mt-0 flex flex-wrap items-start justify-center gap-6 pt-2">
-					{members.map((member) => (
-						<div className="flex flex-col items-center gap-0" key={member.id}>
-							<div className="h-4 w-px bg-border" />
-							<MemberNode
-								isDirector={isDirector}
-								isRemoving={removingUserId === member.id}
-								member={member}
-								onRemove={() => handleRemoveMember(member.id)}
-							/>
-						</div>
-					))}
-
-					{isDirector && filteredAvailable.length > 0 && (
-						<div
-							className="flex flex-col items-center gap-0"
-							ref={addDropdownRef}
-						>
-							<div className="h-4 w-px bg-border" />
-							<AddMemberSkeleton
-								addingMemberId={addingMemberId}
-								availableMembers={filteredAvailable}
-								isOpen={isAddOpen}
-								onAdd={handleAddMember}
-								onToggle={() => setIsAddOpen(!isAddOpen)}
-							/>
-						</div>
-					)}
-				</div>
-			</div>
-
-			{/* Stats cards */}
-			{isDirector && stats && (
-				<div className="flex flex-col gap-4">
-					<h2 className="font-medium text-muted-foreground text-sm">
-						Statistiche team
-					</h2>
-					<div className="flex flex-wrap items-start gap-3.75">
-						<StatCard
-							count={stats.pipeline.count}
-							importo={formatCurrency(stats.pipeline.total_importo)}
-							title="Pipeline"
-							variant="sky"
-						/>
-						<StatCard
-							count={stats.concluded.count}
-							importo={formatCurrency(stats.concluded.total_importo)}
-							title="Concluse"
-							variant="green"
-						/>
-						<StatCard
-							count={stats.abandoned.count}
-							importo={formatCurrency(stats.abandoned.total_importo)}
-							title="Abbandonate"
-							variant="red"
-						/>
-						<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-							<h3 className="font-medium text-sm text-stats-title leading-none">
-								Membri effettivi
-							</h3>
-							<AnimateNumber className="text-xl tabular-nums leading-none">
-								{stats.effective_members_count}
-							</AnimateNumber>
-						</div>
-					</div>
-				</div>
-			)}
+			</section>
 		</>
 	);
 }
@@ -760,12 +768,12 @@ function CreatorNode({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className="relative flex w-60 flex-col items-center gap-2 rounded-2xl border-2 border-amber-300/50 bg-linear-to-b from-amber-50 to-amber-100/30 px-4 py-5 shadow-sm dark:border-amber-700/40 dark:from-amber-950/30 dark:to-amber-900/10"
+			className="relative flex w-60 flex-col items-center gap-2 rounded-2xl bg-amber-50/70 px-4 py-5 dark:bg-amber-950/20"
 			initial={{ opacity: 0, y: -10 }}
 			transition={{ duration: 0.2, ease: "easeOut" }}
 		>
 			{/* Crown badge */}
-			<div className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-amber-200 px-2 py-0.5 text-amber-800 text-xs dark:bg-amber-800/60 dark:text-amber-200">
+			<div className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 text-xs dark:bg-amber-900/50 dark:text-amber-300">
 				<Crown className="size-3" />
 				<span>Creatore</span>
 			</div>
@@ -823,7 +831,7 @@ function MemberNode({
 	return (
 		<motion.div
 			animate={{ opacity: 1, scale: 1 }}
-			className="group relative flex w-48 flex-col items-center gap-1.5 rounded-2xl border border-border bg-background px-3 py-4 shadow-sm transition-shadow hover:shadow-md"
+			className="group relative flex w-48 flex-col items-center gap-1.5 rounded-2xl bg-table-header px-3 py-4 transition-colors hover:bg-table-hover"
 			exit={{ opacity: 0, scale: 0.9 }}
 			initial={{ opacity: 0, scale: 0.95 }}
 			layout
@@ -839,16 +847,16 @@ function MemberNode({
 				{member.email}
 			</span>
 
-			{/* Remove button — visible on hover (directors only) */}
+			{/* Remove button (directors only) */}
 			{isDirector && (
 				<button
 					aria-label={`Rimuovi ${fullName} dal team`}
-					className="absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 shadow-sm transition-opacity disabled:opacity-30 group-hover:opacity-100"
+					className="absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-destructive hover:text-white disabled:opacity-30"
 					disabled={isRemoving}
 					onClick={onRemove}
 					type="button"
 				>
-					<Trash2 className="size-3" />
+					<X className="size-3.5" />
 				</button>
 			)}
 		</motion.div>
@@ -878,12 +886,12 @@ function AddMemberSkeleton({
 	return (
 		<div className="relative">
 			<motion.button
-				animate={{
-					borderColor: isOpen ? "var(--color-primary)" : "var(--color-border)",
-				}}
 				aria-expanded={isOpen}
 				aria-label="Aggiungi membro al team"
-				className="flex w-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-muted/30 px-3 py-6 transition-colors hover:bg-muted/60"
+				className={cn(
+					"flex w-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl bg-table-header px-3 py-6 transition-colors hover:bg-table-hover",
+					isOpen && "bg-table-hover"
+				)}
 				onClick={onToggle}
 				type="button"
 				whileHover={{ scale: 1.02 }}
@@ -905,7 +913,7 @@ function AddMemberSkeleton({
 				{isOpen && (
 					<motion.div
 						animate={{ opacity: 1, y: 0 }}
-						className="absolute top-full right-0 left-0 z-30 mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-popover shadow-lg"
+						className="absolute top-full right-0 left-0 z-30 mt-2 max-h-56 overflow-y-auto rounded-xl bg-popover shadow-lg"
 						exit={{ opacity: 0, y: -4 }}
 						initial={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.15 }}
@@ -935,13 +943,16 @@ function AddMemberSkeleton({
 												placeholderSeed={`${member.nome} ${member.cognome}`}
 											/>
 										</Avatar>
-										<div className="flex min-w-0 flex-1 flex-col">
+										<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 											<span className="truncate font-medium">
 												{member.nome} {member.cognome}
 											</span>
 											<span className="truncate text-muted-foreground text-xs">
-												{member.role?.nome ?? "—"}
+												{member.email ?? "—"}
 											</span>
+											{/* <span className="truncate text-muted-foreground text-xs">
+												{member.role?.nome ?? "—"}
+											</span> */}
 										</div>
 										{addingMemberId === member.id && (
 											<span className="shrink-0 text-muted-foreground text-xs">
@@ -962,31 +973,27 @@ interface StatCardProps {
 	title: string;
 	count: number;
 	importo: string;
-	variant: "sky" | "green" | "red";
 }
 
-/** Stat card for team statistics (pipeline, concluded, abandoned). */
-function StatCard({ title, count, importo, variant }: StatCardProps) {
-	const variantStyles = {
-		sky: "bg-sky-50 dark:bg-sky-950/20",
-		green: "bg-green-50 dark:bg-green-950/20",
-		red: "bg-red-50 dark:bg-red-950/20",
-	};
-
+/** Stat card for team statistics — same bg-table-header style as /team list page. */
+function StatCard({ title, count, importo }: StatCardProps) {
 	return (
-		<div
-			className={`flex flex-col items-start justify-center gap-2 rounded-xl p-3.75 ${variantStyles[variant]}`}
-		>
+		<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
 			<h3 className="font-medium text-sm text-stats-title leading-none">
 				{title}
 			</h3>
-			<div className="flex items-baseline gap-2">
+			<div className="flex items-center gap-2">
 				<AnimateNumber className="text-xl tabular-nums leading-none">
 					{count}
 				</AnimateNumber>
-				<span className="text-muted-foreground text-sm">trattative</span>
+				<span className="text-muted-foreground text-sm leading-none">
+					trattative
+				</span>
+				<div className="h-4 w-[2px] rounded-full bg-muted-foreground/25" />
+				<span className="font-medium text-sm tabular-nums leading-none">
+					{importo}
+				</span>
 			</div>
-			<span className="font-medium text-sm tabular-nums">{importo}</span>
 		</div>
 	);
 }

@@ -129,12 +129,12 @@ export async function logout(accessToken: string): Promise<void> {
 
 // --- Clients API ---
 // Endpoint base: /api/clients
-// A. Venditore/Direttore Vendite (propri): GET /api/clients/me — clienti assegnati all'utente (ordinati per ragione sociale)
-// B. Direttore Vendite (azienda): GET /api/clients/company — tutti i clienti dell'azienda
+// GET /api/clients e GET /api/clients/me — entrambi restituiscono solo i clienti personali (venditore e direttore).
+// Per statistiche team aggregate (solo Direttore): GET /api/teams/{id}/stats
 // Struttura risposta: ogni cliente include sempre l'oggetto address.
 
 /**
- * Estrae l'array clienti dalla risposta GET /api/clients/me o /api/clients/company.
+ * Estrae l'array clienti dalla risposta GET /api/clients/me.
  * Accetta sia risposta come array diretto sia come oggetto { data: ApiClient[] }.
  */
 function parseClientsResponse(
@@ -164,41 +164,6 @@ export async function listClientsMe(
 		}
 		const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
 		const res = await fetch(`${BASE_URL}/clients/me${query}`, {
-			method: "GET",
-			headers: getAuthHeaders(accessToken),
-		});
-		const json = (await res.json()) as
-			| ApiClient[]
-			| { data?: ApiClient[]; message?: string };
-		if (!res.ok) {
-			const msg =
-				typeof (json as { message?: string }).message === "string"
-					? (json as { message: string }).message
-					: "Errore nel caricamento dei clienti";
-			return { error: msg };
-		}
-		return { data: parseClientsResponse(json) };
-	} catch (e) {
-		const message = e instanceof Error ? e.message : "Errore di rete";
-		return { error: message };
-	}
-}
-
-/**
- * GET /api/clients/company — List all company clients (solo Direttore Vendite).
- * Tutti i clienti dell'azienda.
- */
-export async function listClientsCompany(
-	accessToken: string,
-	params?: { search?: string }
-): Promise<{ data: ApiClient[] } | { error: string }> {
-	try {
-		const searchParams = new URLSearchParams();
-		if (params?.search?.trim()) {
-			searchParams.set("search", params.search.trim());
-		}
-		const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-		const res = await fetch(`${BASE_URL}/clients/company${query}`, {
 			method: "GET",
 			headers: getAuthHeaders(accessToken),
 		});
@@ -250,7 +215,7 @@ export async function listClientsWithoutNegotiations(
 
 /**
  * List clients: defaults to "me" (Venditore/Direttore propri).
- * Use listClientsMe or listClientsCompany for explicit scope.
+ * Tutti i ruoli usano listClientsMe (solo clienti personali).
  */
 export function listClients(
 	accessToken: string,
@@ -350,7 +315,7 @@ export async function createClient(
 }
 
 // --- Negotiations API ---
-// Doc: Venditore/Direttore (proprie) → /me, /me/open, /me/abandoned, /me/concluded; Direttore (azienda) → /company
+// Doc: tutti i ruoli → /me, /me/open, /me/abandoned, /me/concluded (solo trattative personali)
 
 interface NegotiationsListParams {
 	client_id?: number;
@@ -506,37 +471,9 @@ export async function listNegotiationsMeWithCoordinates(
 }
 
 /**
- * GET /negotiations/company — All company negotiations (solo Direttore Vendite).
- */
-export async function listNegotiationsCompany(
-	accessToken: string,
-	params?: NegotiationsListParams
-): Promise<{ data: ApiNegotiation[] } | { error: string }> {
-	try {
-		const query = buildNegotiationsQuery(params);
-		const res = await fetch(`${BASE_URL}/negotiations/company${query}`, {
-			method: "GET",
-			headers: getAuthHeaders(accessToken),
-		});
-		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
-		if (!res.ok) {
-			const msg =
-				typeof (json as { message?: string }).message === "string"
-					? (json as { message: string }).message
-					: "Errore nel caricamento delle trattative";
-			return { error: msg };
-		}
-		return { data: json as ApiNegotiation[] };
-	} catch (e) {
-		const message = e instanceof Error ? e.message : "Errore di rete";
-		return { error: message };
-	}
-}
-
-/**
- * List negotiations: uses /me by default (all of current user).
+ * List negotiations: uses /me (solo trattative personali).
  * Prefer listNegotiationsMe, listNegotiationsMeOpen, listNegotiationsMeAbandoned,
- * listNegotiationsMeConcluded, or listNegotiationsCompany for explicit scope/filter.
+ * listNegotiationsMeConcluded per filtri espliciti.
  */
 export function listNegotiations(
 	accessToken: string,
@@ -1001,7 +938,7 @@ export async function importConfirm(
 }
 
 // --- Global Search API ---
-// POST /api/search — Smart search for clients and referents (min 2 chars). Scoped by role (Direttore: company; Venditore: own).
+// POST /api/search — Smart search for clients and referents (min 2 chars). Solo dati personali.
 
 /**
  * POST /search — Unified search for clients (with/without negotiations) and referents.

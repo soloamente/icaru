@@ -13,22 +13,18 @@ Tutte le chiamate richiedono il token di autenticazione (Bearer Token).
 
 ### Recupero Trattative
 
-#### A. Venditore / Direttore Vendite (Proprie)
-Recupera le trattative assegnate all'utente loggato.
+#### Venditore / Direttore Vendite (Proprie)
+Ora entrambi `/api/negotiations` e `/api/negotiations/me` restituiscono solo le trattative personali.
 
 | Metodo | Endpoint | Descrizione |
 | :--- | :--- | :--- |
-| `GET` | `/api/negotiations/me` | Tutte le trattative dell'utente. |
-| `GET` | `/api/negotiations/me/open` | Trattative **APERTE** (Spanco != 'O' AND % < 100 AND non abbandonate). |
-| `GET` | `/api/negotiations/me/abandoned` | Trattative **ABBANDONATE** (`abbandonata` = true). |
-| `GET` | `/api/negotiations/me/concluded` | Trattative **CONCLUSE** (Spanco = 'O' OR % = 100). |
+| `GET` | `/api/negotiations/me` | Tutte le trattative dell'utente (solo proprie). |
+| `GET` | `/api/negotiations/me/open` | Trattative **APERTE** (solo proprie). |
+| `GET` | `/api/negotiations/me/abandoned` | Trattative **ABBANDONATE** (solo proprie). |
+| `GET` | `/api/negotiations/me/concluded` | Trattative **CONCLUSE** (solo proprie). |
+| `GET` | `/api/negotiations/me/with-coordinates` | Trattative con coordinate (solo proprie). |
 
-#### B. Direttore Vendite (Tutta l'Azienda)
-Recupera tutte le trattative dell'azienda.
-
-| Metodo | Endpoint | Descrizione |
-| :--- | :--- | :--- |
-| `GET` | `/api/negotiations/company` | Tutte le trattative dell'azienda (solo per Direttore Vendite). |
+Per statistiche team aggregate (solo Direttore): `GET /api/teams/{id}/stats`
 
 ### Struttura Risposta (Esempio)
 ```json
@@ -68,19 +64,13 @@ Recupera tutte le trattative dell'azienda.
 
 ### Recupero Clienti
 
-#### A. Venditore / Direttore Vendite (Propri)
-Recupera i clienti assegnati all'utente loggato.
+#### Venditore / Direttore Vendite (Propri)
+Ora entrambi `/api/clients` e `/api/clients/me` restituiscono solo i clienti personali.
 
 | Metodo | Endpoint | Descrizione |
 | :--- | :--- | :--- |
-| `GET` | `/api/clients/me` | Tutti i clienti dell'utente (ordinati per ragione sociale). |
-
-#### B. Direttore Vendite (Tutta l'Azienda)
-Recupera tutti i clienti dell'azienda.
-
-| Metodo | Endpoint | Descrizione |
-| :--- | :--- | :--- |
-| `GET` | `/api/clients/company` | Tutti i clienti dell'azienda (solo per Direttore Vendite). |
+| `GET` | `/api/clients/me` | Tutti i clienti dell'utente (solo propri, ordinati per ragione sociale). |
+| `GET` | `/api/clients/without-negotiations` | Clienti senza trattative (solo propri). |
 
 ### Struttura Risposta (Esempio)
 **Ogni cliente include sempre l'oggetto `address`.**

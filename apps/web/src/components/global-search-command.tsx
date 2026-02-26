@@ -12,19 +12,13 @@ import { Command } from "cmdk";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	getNegotiation,
-	listNegotiationsCompany,
-	listNegotiationsMe,
-	search,
-} from "@/lib/api/client";
+import { getNegotiation, listNegotiationsMe, search } from "@/lib/api/client";
 import type {
 	ApiNegotiation,
 	SearchClientResult,
 	SearchReferentResult,
 	SearchResponse,
 } from "@/lib/api/types";
-import { roleFromApi } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 
@@ -240,10 +234,11 @@ export default function GlobalSearchCommand() {
 				router.push(`/trattative/aperte/${firstReferent.id}`);
 				return;
 			}
-			const role = roleFromApi(auth.user?.role, auth.user?.role_id);
-			const listFn =
-				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
-			const href = await resolveClientNegotiationHref(token, c.id, listFn);
+			const href = await resolveClientNegotiationHref(
+				token,
+				c.id,
+				listNegotiationsMe
+			);
 			// biome-ignore lint/suspicious/noExplicitAny: dynamic path built from API; bridge to RouteImpl
 			router.push((href ?? `/trattative/aperte?client_id=${c.id}`) as any);
 		},

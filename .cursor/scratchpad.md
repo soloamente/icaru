@@ -107,8 +107,21 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - Empty states (nessun team, nessun membro).
 - Responsive: org chart che si adatta su mobile.
 
+### Team Cards View — Migrazione da tabella a cards
+
+È stato richiesto di migliorare la visualizzazione dei team nella pagina `/team`. Attualmente i team vengono mostrati come tabella (righe con colonne Nome, Creatore, Membri, Partecipa, Azioni). La richiesta è di passare a una visualizzazione a **cards** coerente con il design system del sito (come le stat cards in dashboard).
+
+**Requisiti:**
+- Le cards devono mostrare: nome team, descrizione (se presente), creator, conteggio membri, badge `creator_participates`, azioni (dettaglio, elimina)
+- Layout a griglia responsive (3 colonne desktop, 2 tablet, 1 mobile)
+- Stile coerente con le stat cards della dashboard (`bg-background`, `rounded-4xl`, hover effect)
+- Mantenere le stats cards "Totale team" e "Totale membri" in alto
+- Card cliccabile per aprire il dettaglio team
+- Pulsante elimina con stato di loading
+
 ## Project Status Board
 
+- [ ] `/team`: sostituire la vista tabellare dei team con una griglia di cards responsive (Director + Seller) e skeleton minimal con info essenziali durante il caricamento. **In attesa di validazione manuale utente**.
 - [ ] Aggiornare il colore del nome/email dell'utente loggato nella `Sidebar` usando i token `sidebar-*`.
 - [ ] Aggiornare la palette dark per lo schema colore `"rich"` (tema **Dataweb**) definendo nuovi valori oklch in `globals.css` per migliorare contrasto e leggibilità.
 - [ ] Aggiungere pagina e voce di navigazione per le **trattative aperte** (`/trattative/aperte`) utilizzando `TrattativeTable` con filtro corretto.
@@ -136,6 +149,10 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 
 ## Executor's Feedback or Assistance Requests
 
+- Refinement applicato su `/team` dopo feedback UI: ho rimosso completamente bordi/ring dalle cards e dai relativi skeleton in `teams-view.tsx`, sostituendo i surface con background coerenti ai pattern del sito (`bg-table-header` + `hover:bg-table-hover`). Le cards ora seguono il linguaggio visivo usato nelle altre sezioni senza outline.
+- Ho implementato un nuovo refinement su `/team` in `apps/web/src/components/teams-view.tsx`: la vista Director non usa più tabella ma una griglia di cards responsive (1 col mobile, 2 tablet, 3 desktop), mantenendo le stats cards in alto. Ogni card mostra nome team, descrizione (o fallback), creator, conteggio membri, badge `Partecipa` se `creator_participates=true`, azioni `Dettaglio` e `Elimina` (con stato `Eliminazione…` durante DELETE). Ho applicato lo stesso pattern cards anche alla vista Seller.
+- Ho aggiunto skeleton minimal per il caricamento sia in Director sia in Seller: struttura card con heading/subheading e meta pills placeholder, coerente con il design system (`bg-background`, `border-border/60`, `rounded-4xl`, `shadow-sm`).
+- Chiedo verifica manuale su `/team` (desktop + mobile): layout cards, leggibilità delle info essenziali, click card verso dettaglio, e stato loading del bottone elimina. Se confermi, nel prossimo step segno il task come completato nella board.
 - **Team Management (Task 1–9 completati):** Ho implementato l'intera struttura per la gestione team:
   - **types.ts:** 11 nuovi tipi/interfacce per team API (ApiTeam, ApiTeamMinimal, ApiAvailableMember, ApiTeamStats, CreateTeamBody, UpdateTeamBody, AddTeamMembersBody, ecc.)
   - **client.ts:** 10 nuove funzioni API (listAvailableMembers, listTeams, listMyTeams, createTeam, getTeam, updateTeam, deleteTeam, addTeamMembers, removeTeamMember, getTeamStats)
@@ -198,6 +215,25 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
  - Ho reso cliccabile l'intera riga di `ClientsTable` sulla pagina `/clienti`: ora un click in qualsiasi punto della riga (eccetto i pulsanti della colonna "Trattativa") porta alla pagina di dettaglio cliente `/clienti/[id]`, mentre i pulsanti "Aggiungi" / "Ha trattativa" continuano a funzionare come prima grazie a `stopPropagation`. Chiedo una verifica del comportamento con il mouse per confermare che la navigazione rispecchi il feedback richiesto.
 
 - Ho raffinato le icone di sfondo nelle cards riassuntive della dashboard (`/dashboard`): ogni card ha ora un'icona decorativa con un colore tematico molto attenuato (sky per "Trattative aperte", amber per "% Conclusione", emerald per "Importo medio" e "Concluse", indigo/teal per importi e aperture mensili), calibrato con opacità basse diverse tra light e dark mode per restare subtle ma leggibile. Chiedo una verifica visiva sulle cards (soprattutto quella "Trattative aperte" indicata nel feedback) prima che il Planner segni il relativo task in board come completato.
+
+- **Team Cards View:** Ho sostituito la visualizzazione a tabella dei team nella pagina `/team` (Director) con una griglia di cards responsive (1→2→3 colonne). Ogni card mostra: avatar team, badge "Partecipa" se `creator_participates`, nome team, descrizione (o placeholder italic), creator + conteggio membri nel footer, freccia di navigazione su hover e pulsante "Elimina" che appare su hover. Le stats cards "Totale team" / "Totale membri" rimangono in alto. Ho aggiornato anche la vista Seller con lo stesso pattern a cards. Loading skeleton, empty state con CTA "Crea team", e error state sono tutti gestiti. Chiedo una verifica visiva sulla pagina `/team` (come Director) prima che il Planner segni il task come completato.
+- **Team Cards View (refinement layout/background):** In seguito al feedback visivo su `/team`, ho aumentato la separazione delle cards dal container applicando un surface più evidente (`bg-table-header/80`), bordo (`border-border/60`) e ombra leggera (`shadow-sm` + `hover:shadow-md`). Ho anche migliorato il layout interno delle card Director rendendo la gerarchia più chiara: meta info in pill (creator + numero membri) e una action row persistente in fondo con bottoni `Dettaglio` e `Elimina` sempre visibili. Chiedo una nuova verifica visiva su `/team` (viewport desktop) prima che il Planner chiuda il task.
+
+- **Org Chart Visual Fix (`/team/[id]`):** Corretto il design dell'org chart nella pagina di dettaglio team:
+  - **Rimossi tutti i bordi:** CreatorNode (`border-2 border-amber-300/50` → `bg-amber-50/70 dark:bg-amber-950/20`), MemberNode (`border border-border bg-background shadow-sm` → `bg-table-header hover:bg-table-hover`), AddMemberSkeleton (`border-2 border-dashed` → `bg-muted/20 hover:bg-muted/50`), dropdown (`border border-border` → solo `shadow-lg`)
+  - **Fix linee di connessione:** La linea orizzontale non era visibile perché era in un container `flex-col items-center` con solo una linea verticale larga 1px, quindi `w-full` = 1px. Risolto spostando la linea orizzontale come elemento `absolute` nel container dei membri (che ha larghezza reale), con `inset-x-24` (= w-48/2 = 6rem) per allinearla dal centro della prima card al centro dell'ultima.
+  - **Crown badge:** Ammorbidito da `bg-amber-200 text-amber-800` a `bg-amber-100 text-amber-700` (meno pesante visivamente)
+  - Chiedo una verifica visiva sulla pagina `/team/[id]` (come Director) per confermare che le linee di connessione funzionino e lo stile sia coerente col resto del sito.
+
+- **Team Detail Page Redesign (`/team/[id]`):** Ho ristrutturato completamente la pagina di dettaglio team (`TeamOrgChart`) per seguire lo stesso design pattern delle pagine `/clienti/[id]` e `/trattative/aperte/[id]`:
+  - **Header:** pulsante "Torna indietro" (`IconUTurnToLeft`) + titolo "Team {nome}" a sinistra; pulsanti "Annulla" e "Salva" a destra che appaiono solo quando il form è sporco (stessa animazione scale+opacity delle altre pagine)
+  - **Form editabile:** sezione "Dati team" con campi Nome e Descrizione in pill arrotondate (`bg-table-header`, `rounded-2xl`), identici allo stile di `UpdateClientForm` / `UpdateNegotiationForm`. Per i non-direttori la sezione è in sola lettura.
+  - **Dirty tracking:** confronto form vs dati API, con `isDirty` che controlla la visibilità delle azioni e l'attivazione del dialog "Modifiche non salvate".
+  - **Unsaved changes dialog:** componente `TeamLeaveDialog` separato con Dialog Base UI su desktop e Drawer Vaul su mobile (stesso pattern delle altre pagine).
+  - **Integrazione navigazione globale:** `registerUnsavedNavigationListener` per bloccare la navigazione dalla Sidebar quando ci sono modifiche non salvate.
+  - **Org chart + stats:** estratti in un sub-componente `OrgChartSection` che gestisce internamente l'aggiunta/rimozione membri e il toggle `creator_participates`, mantenendo la complessità della pagina principale sotto controllo.
+  - **Shell grafica:** `table-container-bg` con `scroll-fade-y`, identica alle altre pagine di dettaglio.
+  - Chiedo una verifica visiva sulla pagina `/team/[id]` (come Director) per confermare che i campi nome/descrizione siano editabili, che i pulsanti Annulla/Salva funzionino, e che l'aspetto sia coerente con le altre pagine di dettaglio.
 
 ## Lessons
 

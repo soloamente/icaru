@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import {
 	createNegotiation,
 	listClientsWithoutNegotiations,
-	listNegotiationsCompany,
 	listNegotiationsMe,
 	listNegotiationsMeAbandoned,
 	listNegotiationsMeConcluded,
@@ -1369,7 +1368,7 @@ export default function TrattativeTable({
 	openCreateDialogInitially = false,
 	initialClientIdForNewNegotiation,
 }: TrattativeTableProps) {
-	const { token, role } = useAuth();
+	const { token } = useAuth();
 	const [negotiations, setNegotiations] = useState<ApiNegotiation[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -1434,19 +1433,16 @@ export default function TrattativeTable({
 	// When at least one header filter is visible we keep the two-row header layout.
 	const hasHeaderFilters = true; /* date filter sempre visibile */
 
-	// Direttore Vendite: /company (tutta l'azienda). Venditore: /me, /me/abandoned, /me/concluded.
-	// Per il direttore usiamo /company e filtriamo lato client per concluse/abbandonate (l'API non espone /company/open ecc.).
+	// Tutti i ruoli (venditore e direttore): solo trattative personali.
+	// GET /api/negotiations/me, /me/open, /me/abandoned, /me/concluded.
 	const fetchNegotiations = useCallback(async () => {
 		if (!token) {
 			return;
 		}
 		setLoading(true);
 		setError(null);
-		const isDirector = role === "director";
 		let fetcher: typeof listNegotiationsMe;
-		if (isDirector) {
-			fetcher = listNegotiationsCompany;
-		} else if (filter === "concluse") {
+		if (filter === "concluse") {
 			fetcher = listNegotiationsMeConcluded;
 		} else if (filter === "abbandonate") {
 			fetcher = listNegotiationsMeAbandoned;
@@ -1462,7 +1458,7 @@ export default function TrattativeTable({
 			return;
 		}
 		setNegotiations(result.data);
-	}, [token, filter, role]);
+	}, [token, filter]);
 
 	useEffect(() => {
 		fetchNegotiations();

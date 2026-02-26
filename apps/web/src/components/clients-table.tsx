@@ -11,10 +11,8 @@ import {
 	IconPeople,
 } from "@/components/icons";
 import {
-	listClientsCompany,
 	listClientsMe,
 	listClientsWithoutNegotiations,
-	listNegotiationsCompany,
 	listNegotiationsMe,
 } from "@/lib/api/client";
 import type { ApiClient, ApiClientAddress } from "@/lib/api/types";
@@ -75,7 +73,7 @@ function formatAddress(addr: ApiClientAddress | null | undefined): string {
 }
 
 export default function ClientsTable() {
-	const { token, role } = useAuth();
+	const { token } = useAuth();
 	const router = useRouter();
 	const [clients, setClients] = useState<ApiClient[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -108,16 +106,15 @@ export default function ClientsTable() {
 		return () => window.clearTimeout(timer);
 	}, [searchTerm]);
 
-	// API Clienti: Direttore Vendite → GET /api/clients/company (tutta l'azienda); Venditore/Direttore → GET /api/clients/me (clienti assegnati, ordinati per ragione sociale).
+	// API Clienti: tutti i ruoli → GET /api/clients/me (solo clienti personali, ordinati per ragione sociale).
+	// Modificato: il direttore vendite non vede più tutta l'azienda, solo i propri clienti.
 	const fetchClients = useCallback(async () => {
 		if (!token) {
 			return;
 		}
 		setLoading(true);
 		setError(null);
-		const listClients =
-			role === "director" ? listClientsCompany : listClientsMe;
-		const result = await listClients(token, {
+		const result = await listClientsMe(token, {
 			search: debouncedSearch || undefined,
 		});
 		setLoading(false);
@@ -127,7 +124,7 @@ export default function ClientsTable() {
 			return;
 		}
 		setClients(result.data);
-	}, [token, debouncedSearch, role]);
+	}, [token, debouncedSearch]);
 
 	/**
 	 * Load once the list of clients that have **no** negotiations yet. We keep
@@ -169,7 +166,7 @@ export default function ClientsTable() {
 	 * When a client already has at least one negotiation, clicking the
 	 * "Ha trattative" pill should take the user directly to a relevant
 	 * trattativa detail page. We:
-	 * - Fetch negotiations for that client (scoped to user or company).
+	 * - Fetch negotiations for that client (solo proprie trattative).
 	 * - If at least one exists, derive the correct stato segment and route
 	 *   to `/trattative/{stato}/{id}` using the first match.
 	 * - If for any reason none are returned, fall back to the list view
@@ -180,9 +177,9 @@ export default function ClientsTable() {
 			if (!token) {
 				return;
 			}
-			const listNegotiations =
-				role === "director" ? listNegotiationsCompany : listNegotiationsMe;
-			const result = await listNegotiations(token, { client_id: clientId });
+			const result = await listNegotiationsMe(token, {
+				client_id: clientId,
+			});
 			if ("error" in result) {
 				// Reuse the table-level error surface so the user sees a clear message
 				// instead of failing silently when the navigation cannot be resolved.
@@ -209,7 +206,7 @@ export default function ClientsTable() {
 			const stato = getNegotiationStatoSegment(first);
 			router.push(`/trattative/${stato}/${first.id}`);
 		},
-		[role, router, token]
+		[router, token]
 	);
 
 	useEffect(() => {
