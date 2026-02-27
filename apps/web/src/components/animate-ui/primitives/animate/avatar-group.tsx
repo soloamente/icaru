@@ -37,24 +37,22 @@ function AvatarContainer({
 			side={side}
 			sideOffset={sideOffset}
 		>
-			<TooltipTrigger
-				render={
-					<motion.div
-						data-slot="avatar-container"
-						initial="initial"
-						style={{ position: "relative", zIndex }}
-						whileHover="hover"
-						whileTap="hover"
-					/>
-				}
-			>
+			<TooltipTrigger asChild>
 				<motion.div
-					variants={{
-						initial: { y: 0 },
-						hover: { y: translate },
-					}}
-					{...props}
-				/>
+					data-slot="avatar-container"
+					initial="initial"
+					style={{ position: "relative", zIndex }}
+					whileHover="hover"
+					whileTap="hover"
+				>
+					<motion.div
+						variants={{
+							initial: { y: 0 },
+							hover: { y: translate },
+						}}
+						{...props}
+					/>
+				</motion.div>
 			</TooltipTrigger>
 		</Tooltip>
 	);
