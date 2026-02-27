@@ -60,6 +60,7 @@ html.dark[data-color-scheme="rich"] {
 	--color-search-placeholder: var(--search-placeholder);
 	--color-card: var(--card);
 	--color-stat-card: var(--stat-card);
+	--color-team-info-card: var(--team-info-card);
 	--color-table-container-background: var(--table-container-background);
 	--color-card-foreground: var(--card-foreground);
 	--color-button-secondary: var(--button-secondary);
@@ -138,6 +139,7 @@ html.dark[data-color-scheme="rich"] {
 :root {
 	--radius: 0.625rem;
 	--stat-card: var(--background);
+	--team-info-card: var(--stat-card);
 	--pie-stroke: var(--background);
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
@@ -477,6 +479,8 @@ html.dark[data-color-scheme="rich"] {
 	--geocoding-icon-inner-fill: oklch(0.95 0.06 95);
 	--geocoding-icon-line-stroke: oklch(0.75 0.12 75);
 	--geocoding-icon-detail: oklch(0.15 0.03 60);
+	/* Team page info cards: pure white for clear contrast against table-header and readable dark text. */
+	--team-info-card: oklch(1 0 0);
 }
 
 /* Dataweb light: content on card/table-container uses dark text for readability. */
@@ -494,12 +498,59 @@ html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-text {
 	color: var(--card-foreground);
 }
 
+/* Dataweb light: table-hover slightly darker than table-header so row hover is visible on table-header surfaces. */
+html:not(.dark)[data-color-scheme="rich"] {
+	--table-hover: oklch(0.92 0.03 250);
+}
+
+/* Dataweb dark: table-hover slightly lighter than table-header so row hover is visible on dark surfaces. */
+html.dark[data-color-scheme="rich"] {
+	--table-hover: oklch(0.33 0.09 252);
+}
+
+/* Dataweb light: cmdk input bar uses card (light) bg; --foreground is light there.
+   Use card-foreground so typed text is readable. */
+html:not(.dark)[data-color-scheme="rich"] .global-search-dialog [cmdk-input],
+html:not(.dark)[data-color-scheme="rich"]
+	.global-search-dialog
+	.global-search-input {
+	color: var(--card-foreground);
+}
+html:not(.dark)[data-color-scheme="rich"]
+	.global-search-dialog
+	[cmdk-input]::placeholder,
+html:not(.dark)[data-color-scheme="rich"]
+	.global-search-dialog
+	.global-search-input::placeholder {
+	color: var(--muted-foreground);
+}
+
+/* Dataweb light: cmdk section cards use muted (light) bg; --foreground is light there.
+   Default: muted-foreground. Hover/selected: subdued text (not full-bright accent-foreground). */
+html:not(.dark)[data-color-scheme="rich"] .global-search-dialog
+	[cmdk-item].global-search-section-card {
+	color: var(--muted-foreground);
+}
+html:not(.dark)[data-color-scheme="rich"]
+	.global-search-dialog
+	[cmdk-item].global-search-section-card:hover,
+html:not(.dark)[data-color-scheme="rich"]
+	.global-search-dialog
+	[cmdk-item].global-search-section-card[data-selected="true"] {
+	color: color-mix(
+		in oklch,
+		var(--muted-foreground) 25%,
+		var(--card-foreground)
+	);
+}
+
 /* Dataweb dark: override rich light's dark --card-foreground so table/card content stays light on dark.
    Stat-card and pie-stroke revert to background (no special styling — only dataweb light gets the off-white). */
 html.dark[data-color-scheme="rich"] {
 	--foreground: oklch(0.97 0 0);
 	--card-foreground: oklch(0.97 0 0);
 	--stat-card: var(--background);
+	--team-info-card: var(--stat-card);
 	--pie-stroke: var(--background);
 }
 

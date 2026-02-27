@@ -181,12 +181,13 @@
 
 /* Section navigation cards (shown when search has < 3 characters); fill list height */
 .global-search-section-cards {
-	display: grid;
+	display: flex;
 	grid-template-columns: repeat(3, 1fr);
 	grid-auto-rows: 1fr;
 	gap: 0.5rem;
 	height: 100%;
 	min-height: 0;
+	justify-content: center;
 	padding: 0.75rem 0.5rem;
 	list-style: none;
 	margin: 0;
@@ -194,7 +195,8 @@
 
 /* Section cards: always have a base background (muted); higher specificity so
    .global-search-dialog [cmdk-item] { background: transparent } does not override.
-   Same press animation as global button (scale 0.97) and subtle hover lift. */
+   Same press animation as global button (scale 0.97) and subtle hover lift.
+   Explicit foreground color ensures readable contrast when not hovered. */
 .global-search-dialog [cmdk-item].global-search-section-card {
 	display: flex;
 	align-items: center;
@@ -202,6 +204,7 @@
 	min-height: 3.5rem;
 	height: 100%;
 	background: var(--muted);
+	color: var(--foreground);
 	cursor: pointer;
 	transition:
 		background-color 100ms ease,

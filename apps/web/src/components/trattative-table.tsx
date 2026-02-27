@@ -36,6 +36,7 @@ import type {
 import { useAuth } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
+import { AnimatedEmptyState } from "./animated-empty-state";
 import { DateRangeFilter } from "./date-range-filter";
 import CircleXmarkFilled from "./icons/circle-xmark-filled";
 import IconDeleteLeftFill18 from "./icons/delete-left-fill-18";
@@ -2212,11 +2213,42 @@ export default function TrattativeTable({
 							</div>
 						)}
 						{!(loading || error) && filteredNegotiations.length === 0 && (
-							<div className="flex h-full items-center justify-center p-8">
-								<p className="text-center text-stats-title">
-									Nessuna trattativa trovata
-								</p>
-							</div>
+							<AnimatedEmptyState
+								cta={
+									negotiations.length > 0
+										? undefined
+										: {
+												label: "Aggiungi trattativa",
+												icon: <IconCirclePlusFilled aria-hidden size={16} />,
+												onClick: () => setIsCreateDialogOpen(true),
+											}
+								}
+								heading={
+									negotiations.length > 0
+										? "Nessun risultato"
+										: "Non hai ancora trattative"
+								}
+								icon={
+									negotiations.length > 0 ? (
+										<div className="opacity-50">
+											<Search className="text-muted-foreground" size={64} />
+										</div>
+									) : (
+										<div className="opacity-50">
+											<SignatureIcon
+												aria-hidden
+												className="text-muted-foreground"
+												size={56}
+											/>
+										</div>
+									)
+								}
+								subtitle={
+									negotiations.length > 0
+										? "Prova a modificare i filtri o il termine di ricerca"
+										: "Aggiungi la tua prima trattativa per iniziare"
+								}
+							/>
 						)}
 						{!(loading || error) &&
 							sortedNegotiations.length > 0 &&

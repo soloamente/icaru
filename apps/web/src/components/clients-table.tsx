@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
-import { motion } from "motion/react";
+import { Plus, Search, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -19,6 +19,7 @@ import type { ApiClient, ApiClientAddress } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { AddClientDialog } from "./add-client-dialog";
+import { AnimatedEmptyState } from "./animated-empty-state";
 import Download4 from "./icons/download-4";
 import IconEarthAlertFill18 from "./icons/icon-earth-alert-fill-18";
 import IconEyeFill12 from "./icons/icon-eye-fill-12";
@@ -282,7 +283,35 @@ export default function ClientsTable() {
 							placeholder="Cerca per nome, email, P.IVA, telefono, tipologia, sede..."
 							value={searchTerm}
 						/>
-						<Search className="size-4 shrink-0 text-search-placeholder" />
+						{/* Swap search icon ↔ clear button based on input content */}
+						<AnimatePresence initial={false} mode="popLayout">
+							{searchTerm.length > 0 ? (
+								<motion.button
+									animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+									aria-label="Cancella ricerca"
+									className="flex shrink-0 cursor-pointer items-center justify-center text-search-placeholder"
+									exit={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
+									initial={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
+									key="clear"
+									onClick={() => setSearchTerm("")}
+									transition={{ duration: 0.15 }}
+									type="button"
+								>
+									<X className="size-4" />
+								</motion.button>
+							) : (
+								<motion.span
+									animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+									className="shrink-0 text-search-placeholder"
+									exit={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
+									initial={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
+									key="search"
+									transition={{ duration: 0.15 }}
+								>
+									<Search className="size-4" />
+								</motion.span>
+							)}
+						</AnimatePresence>
 					</motion.label>
 					{/* Primary action: add a single client (same pill style as trattative "Aggiungi"). */}
 					<button
@@ -399,11 +428,42 @@ export default function ClientsTable() {
 							</div>
 						)}
 						{!(loading || error) && visibleClients.length === 0 && (
-							<div className="flex h-full items-center justify-center p-8">
-								<p className="text-center text-stats-title">
-									Nessun cliente trovato
-								</p>
-							</div>
+							<AnimatedEmptyState
+								cta={
+									debouncedSearch.length > 0
+										? undefined
+										: {
+												label: "Aggiungi cliente",
+												icon: <IconCirclePlusFilled aria-hidden size={16} />,
+												onClick: () => setIsAddClientDialogOpen(true),
+											}
+								}
+								heading={
+									debouncedSearch.length > 0
+										? "Nessun risultato"
+										: "Non hai ancora clienti"
+								}
+								icon={
+									debouncedSearch.length > 0 ? (
+										<div className="opacity-50">
+											<Search className="text-muted-foreground" size={64} />
+										</div>
+									) : (
+										<div className="opacity-50">
+											<IconPeople
+												aria-hidden
+												className="text-muted-foreground"
+												size={64}
+											/>
+										</div>
+									)
+								}
+								subtitle={
+									debouncedSearch.length > 0
+										? "Prova con un altro termine di ricerca"
+										: "Aggiungi il tuo primo cliente per iniziare"
+								}
+							/>
 						)}
 						{!(loading || error) &&
 							visibleClients.length > 0 &&

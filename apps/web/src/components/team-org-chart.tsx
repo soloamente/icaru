@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, ChevronDown, Crown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,7 @@ import type {
 import { useAuth } from "@/lib/auth/auth-context";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
-import { IconUTurnToLeft } from "./icons";
+import { IconCrown2Fill18, IconUTurnToLeft } from "./icons";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -264,36 +264,73 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 		router.push(backHref as any);
 	}, [backHref, isDirty, isSubmitting, router]);
 
-	// Loading skeleton — same shell as other detail pages
+	// Loading skeleton — mirrors the detail page layout: header, stats (director), form, org chart.
 	if (loading) {
 		return (
 			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+				{/* Header: back button + title */}
 				<div className="flex items-center gap-3.5">
-					<Skeleton className="size-6 rounded" />
-					<Skeleton className="h-6 w-48" />
+					<Skeleton aria-hidden className="size-11 shrink-0 rounded-lg" />
+					<Skeleton className="h-7 w-48" />
 				</div>
-				<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-8 rounded-t-3xl px-5.5 pt-6.25">
-					{/* Form section skeleton */}
-					<div className="flex w-full gap-3 rounded-2xl bg-card px-7.5 py-10">
-						<Skeleton className="h-6 w-32" />
-						<div className="flex w-full flex-col gap-2">
-							<Skeleton className="h-14 w-full rounded-2xl" />
-							<Skeleton className="h-14 w-full rounded-2xl" />
-						</div>
-					</div>
-					{/* Creator skeleton */}
-					<div className="flex flex-col items-center gap-4">
-						<Skeleton className="h-24 w-56 rounded-2xl" />
-						<Skeleton className="h-px w-px rounded-full" />
-					</div>
-					{/* Members skeleton grid */}
-					<div className="flex flex-wrap justify-center gap-4">
-						{Array.from({ length: 4 }).map((_, i) => (
-							<Skeleton
-								className="h-20 w-48 rounded-2xl"
-								key={`ms-${String(i)}`}
-							/>
-						))}
+				<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
+					<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
+						{/* Stats cards skeleton (same layout as Pipeline, Concluse, Abbandonate, Membri effettivi) */}
+						{isDirector && (
+							<div className="flex flex-wrap items-start gap-3.75">
+								{Array.from({ length: 4 }).map((_, i) => (
+									<div
+										aria-hidden
+										className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
+										key={`stat-skeleton-${String(i)}`}
+									>
+										<Skeleton className="h-4 w-20" />
+										<Skeleton className="h-7 w-16" />
+									</div>
+								))}
+							</div>
+						)}
+
+						{/* Form section skeleton — Dati team with Nome and Descrizione fields */}
+						<section
+							aria-hidden
+							className={cn(SECTION_CARD_CLASSES, isMobile && "flex-col")}
+						>
+							<div className="flex w-full min-w-0">
+								<Skeleton className="h-8 w-32" />
+							</div>
+							<div className="flex w-full min-w-0 flex-col gap-2">
+								{/* Two field rows: label left, value right */}
+								<div aria-hidden className={FIELD_CONTAINER_CLASSES}>
+									<Skeleton className="h-4 w-16" />
+									<Skeleton className="h-4 w-32" />
+								</div>
+								<div aria-hidden className={FIELD_CONTAINER_CLASSES}>
+									<Skeleton className="h-4 w-20" />
+									<Skeleton className="h-4 w-40" />
+								</div>
+							</div>
+						</section>
+
+						{/* Org chart skeleton — creator node + connector + member nodes */}
+						<section
+							aria-hidden
+							className={cn(SECTION_CARD_CLASSES, "flex-col items-center")}
+						>
+							<Skeleton className="h-32 w-60 rounded-2xl" />
+							<div className="h-8 w-px bg-muted-foreground/20" />
+							<div className="relative flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
+								{Array.from({ length: 4 }).map((_, i) => (
+									<div
+										className="flex flex-col items-center"
+										key={`member-skeleton-${String(i)}`}
+									>
+										<div className="h-5 w-px bg-muted-foreground/20" />
+										<Skeleton aria-hidden className="h-20 w-48 rounded-2xl" />
+									</div>
+								))}
+							</div>
+						</section>
 					</div>
 				</div>
 			</main>
@@ -307,7 +344,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 					<div className="flex items-center justify-start gap-2.5">
 						<button
 							aria-label="Torna alla lista team"
-							className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={() => {
 								// biome-ignore lint/suspicious/noExplicitAny: dynamic route
 								router.push(backHref as any);
@@ -343,7 +380,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 					<div className="flex min-w-0 flex-1 items-center justify-start gap-1">
 						<button
 							aria-label="Torna alla lista team"
-							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={handleBackClick}
 							type="button"
 						>
@@ -689,57 +726,60 @@ function OrgChartSection({
 		<>
 			{/* Org chart card — same container as "Dati team" */}
 			<section className={`${SECTION_CARD_CLASSES} flex-col items-center`}>
-				<CreatorNode
-					creator={team.creator}
-					creatorParticipates={team.creator_participates}
-					isDirector={isDirector}
-					isToggling={togglingParticipates}
-					onToggleParticipates={handleToggleCreatorParticipates}
-				/>
+				{/* Tree group: no gap so connector lines actually touch creator ↔ stem ↔ row */}
+				<div className="flex flex-col items-center">
+					<CreatorNode
+						creator={team.creator}
+						creatorParticipates={team.creator_participates}
+						isDirector={isDirector}
+						isToggling={togglingParticipates}
+						onToggleParticipates={handleToggleCreatorParticipates}
+					/>
 
-				{/* Connector lines + member cards */}
-				{totalOrgItems > 0 && (
-					<>
-						{/* Vertical stem from creator down to the horizontal bar */}
-						<div className="h-8 w-px bg-muted-foreground/20" />
+					{/* Connector lines + member cards */}
+					{totalOrgItems > 0 && (
+						<>
+							{/* Vertical stem from creator down to the horizontal bar — flush, no gap */}
+							<div className="h-8 w-px shrink-0 bg-muted-foreground/20" />
 
-						{/* Member row — relative so the horizontal connector can be positioned absolutely */}
-						<div className="relative flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
-							{/* Horizontal bar from center-of-first → center-of-last (inset = w-48 / 2 = 6rem) */}
-							{totalOrgItems > 1 && (
-								<div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-muted-foreground/20" />
-							)}
+							{/* Member row — relative so the horizontal connector can be positioned absolutely */}
+							<div className="relative flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
+								{/* Horizontal bar from center-of-first → center-of-last (inset = w-48 / 2 = 6rem) */}
+								{totalOrgItems > 1 && (
+									<div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-muted-foreground/20" />
+								)}
 
-							{members.map((member) => (
-								<div className="flex flex-col items-center" key={member.id}>
-									<div className="h-5 w-px bg-muted-foreground/20" />
-									<MemberNode
-										isDirector={isDirector}
-										isRemoving={removingUserId === member.id}
-										member={member}
-										onRemove={() => handleRemoveMember(member.id)}
-									/>
-								</div>
-							))}
+								{members.map((member) => (
+									<div className="flex flex-col items-center" key={member.id}>
+										<div className="h-5 w-px bg-muted-foreground/20" />
+										<MemberNode
+											isDirector={isDirector}
+											isRemoving={removingUserId === member.id}
+											member={member}
+											onRemove={() => handleRemoveMember(member.id)}
+										/>
+									</div>
+								))}
 
-							{hasAddSkeleton && (
-								<div
-									className="flex flex-col items-center"
-									ref={addDropdownRef}
-								>
-									<div className="h-5 w-px bg-muted-foreground/20" />
-									<AddMemberSkeleton
-										addingMemberId={addingMemberId}
-										availableMembers={filteredAvailable}
-										isOpen={isAddOpen}
-										onAdd={handleAddMember}
-										onToggle={() => setIsAddOpen(!isAddOpen)}
-									/>
-								</div>
-							)}
-						</div>
-					</>
-				)}
+								{hasAddSkeleton && (
+									<div
+										className="flex flex-col items-center"
+										ref={addDropdownRef}
+									>
+										<div className="h-5 w-px bg-muted-foreground/20" />
+										<AddMemberSkeleton
+											addingMemberId={addingMemberId}
+											availableMembers={filteredAvailable}
+											isOpen={isAddOpen}
+											onAdd={handleAddMember}
+											onToggle={() => setIsAddOpen(!isAddOpen)}
+										/>
+									</div>
+								)}
+							</div>
+						</>
+					)}
+				</div>
 			</section>
 		</>
 	);
@@ -774,17 +814,17 @@ function CreatorNode({
 		>
 			{/* Crown badge */}
 			<div className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 text-xs dark:bg-amber-900/50 dark:text-amber-300">
-				<Crown className="size-3" />
+				<IconCrown2Fill18 size={12} />
 				<span>Creatore</span>
 			</div>
 
 			<Avatar className="size-11">
 				<AvatarFallback placeholderSeed={fullName} />
 			</Avatar>
-			<span className="text-center font-medium text-sm leading-tight">
+			<span className="text-center font-medium text-sm leading-none">
 				{fullName}
 			</span>
-			<span className="text-center text-muted-foreground text-xs">
+			<span className="text-center text-muted-foreground text-xs leading-none">
 				Direttore Vendite
 			</span>
 
@@ -831,7 +871,7 @@ function MemberNode({
 	return (
 		<motion.div
 			animate={{ opacity: 1, scale: 1 }}
-			className="group relative flex w-48 flex-col items-center gap-1.5 rounded-2xl bg-table-header px-3 py-4 transition-colors hover:bg-table-hover"
+			className="group relative flex w-48 flex-col items-center gap-1.5 rounded-2xl bg-table-header px-3 py-4 transition-colors duration-150 ease-out hover:bg-table-hover"
 			exit={{ opacity: 0, scale: 0.9 }}
 			initial={{ opacity: 0, scale: 0.95 }}
 			layout
@@ -840,10 +880,10 @@ function MemberNode({
 			<Avatar className="size-9">
 				<AvatarFallback placeholderSeed={fullName} />
 			</Avatar>
-			<span className="text-center font-medium text-sm leading-tight">
+			<span className="mt-2 text-center font-medium text-sm leading-none">
 				{fullName}
 			</span>
-			<span className="max-w-full truncate text-center text-muted-foreground text-xs">
+			<span className="max-w-full truncate text-center text-muted-foreground text-xs leading-none">
 				{member.email}
 			</span>
 
@@ -904,7 +944,7 @@ function AddMemberSkeleton({
 					Aggiungi membro
 				</span>
 				<ChevronDown
-					className={`size-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+					className={`size-3.5 text-muted-foreground transition-transform duration-150 ease-out ${isOpen ? "rotate-180" : ""}`}
 				/>
 			</motion.button>
 
@@ -913,7 +953,7 @@ function AddMemberSkeleton({
 				{isOpen && (
 					<motion.div
 						animate={{ opacity: 1, y: 0 }}
-						className="absolute top-full right-0 left-0 z-30 mt-2 max-h-56 overflow-y-auto rounded-xl bg-popover shadow-lg"
+						className="absolute top-full right-0 left-0 z-30 mt-2 rounded-xl bg-popover shadow-lg"
 						exit={{ opacity: 0, y: -4 }}
 						initial={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.15 }}
@@ -923,44 +963,46 @@ function AddMemberSkeleton({
 								Nessun membro disponibile
 							</div>
 						) : (
-							availableMembers
-								.filter(
-									(m): m is ApiAvailableMember =>
-										m != null &&
-										typeof m.nome === "string" &&
-										typeof m.id === "number"
-								)
-								.map((member) => (
-									<button
-										className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted disabled:opacity-50"
-										disabled={addingMemberId === member.id}
-										key={member.id}
-										onClick={() => onAdd(member.id)}
-										type="button"
-									>
-										<Avatar className="size-7">
-											<AvatarFallback
-												placeholderSeed={`${member.nome} ${member.cognome}`}
-											/>
-										</Avatar>
-										<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-											<span className="truncate font-medium">
-												{member.nome} {member.cognome}
-											</span>
-											<span className="truncate text-muted-foreground text-xs">
-												{member.email ?? "—"}
-											</span>
-											{/* <span className="truncate text-muted-foreground text-xs">
+							<div className="scroll-fade-y max-h-56 overflow-y-auto">
+								{availableMembers
+									.filter(
+										(m): m is ApiAvailableMember =>
+											m != null &&
+											typeof m.nome === "string" &&
+											typeof m.id === "number"
+									)
+									.map((member) => (
+										<button
+											className="flex w-full select-none items-center gap-3 px-3 py-2.5 text-left text-sm transition-[background-color,color,transform] duration-150 ease-out first:rounded-t-xl last:rounded-b-xl hover:bg-muted active:scale-[0.99] disabled:opacity-50"
+											disabled={addingMemberId === member.id}
+											key={member.id}
+											onClick={() => onAdd(member.id)}
+											type="button"
+										>
+											<Avatar className="size-7">
+												<AvatarFallback
+													placeholderSeed={`${member.nome} ${member.cognome}`}
+												/>
+											</Avatar>
+											<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+												<span className="truncate font-medium leading-none">
+													{member.nome} {member.cognome}
+												</span>
+												<span className="truncate text-muted-foreground text-xs leading-none">
+													{member.email ?? "—"}
+												</span>
+												{/* <span className="truncate text-muted-foreground text-xs">
 												{member.role?.nome ?? "—"}
 											</span> */}
-										</div>
-										{addingMemberId === member.id && (
-											<span className="shrink-0 text-muted-foreground text-xs">
-												Aggiunta…
-											</span>
-										)}
-									</button>
-								))
+											</div>
+											{addingMemberId === member.id && (
+												<span className="shrink-0 text-muted-foreground text-xs">
+													Aggiunta…
+												</span>
+											)}
+										</button>
+									))}
+							</div>
 						)}
 					</motion.div>
 				)}

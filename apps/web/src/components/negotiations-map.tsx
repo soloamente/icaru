@@ -625,7 +625,6 @@ function NegotiationsMapInner({
 												map.flyTo({
 													center: [longitude, latitude],
 													zoom: expZoom,
-													pitch: 75, // Tilt camera to reveal 3D terrain
 												});
 												setShowResetButton(true);
 											}

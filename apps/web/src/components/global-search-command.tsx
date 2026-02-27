@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * Global command palette (⌘K / Ctrl+K) for searching clients and trattative (negotiations).
+ * Global command palette (⌘K / Ctrl+K) for searching clients, trattative (negotiations), and teams.
  * Uses POST /api/search; results are grouped: clients with negotiations, referents, clients without negotiations.
- * Filtering is done server-side; cmdk shouldFilter is false.
+ * Teams are fetched via listTeams/listMyTeams and filtered client-side by nome, description, creator.
+ * Filtering for clients/referents is done server-side; cmdk shouldFilter is false.
  * Uses Base UI Dialog (not Radix) for accessibility and consistency with the rest of the app.
  */
 
@@ -12,9 +13,17 @@ import { Command } from "cmdk";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getNegotiation, listNegotiationsMe, search } from "@/lib/api/client";
+import {
+	getNegotiation,
+	listMyTeams,
+	listNegotiationsMe,
+	listTeams,
+	search,
+} from "@/lib/api/client";
 import type {
 	ApiNegotiation,
+	ApiTeam,
+	ApiTeamMinimal,
 	SearchClientResult,
 	SearchReferentResult,
 	SearchResponse,
@@ -83,17 +92,70 @@ const SECTION_NAV_ITEMS = [
 		href: "/trattative/tutte",
 		value: "nav-trattative-tutte",
 	},
+	{ label: "Visualizza team", href: "/team", value: "nav-team" },
 ] as const;
+
+/** Union type for team search results (ApiTeam from listTeams, ApiTeamMinimal from listMyTeams). */
+type SearchTeamResult = ApiTeam | ApiTeamMinimal;
+
+/** Normalize string for case-insensitive matching (trim + lowercase). */
+function normalizeForMatch(s: string): string {
+	return s.trim().toLowerCase();
+}
+
+/**
+ * Filter teams by search query — matches nome, description (ApiTeam), creator_name (ApiTeamMinimal).
+ * Both types have id and nome; ApiTeam has creator.nome/cognome, ApiTeamMinimal has creator_name.
+ */
+function filterTeamsByQuery(
+	teams: SearchTeamResult[],
+	query: string
+): SearchTeamResult[] {
+	const q = normalizeForMatch(query);
+	if (!q) {
+		return teams;
+	}
+	return teams.filter((t) => {
+		if (normalizeForMatch(t.nome).includes(q)) {
+			return true;
+		}
+		if (
+			"description" in t &&
+			t.description &&
+			normalizeForMatch(t.description).includes(q)
+		) {
+			return true;
+		}
+		if ("creator" in t && t.creator) {
+			const creatorStr = `${t.creator.nome} ${t.creator.cognome}`;
+			if (normalizeForMatch(creatorStr).includes(q)) {
+				return true;
+			}
+		}
+		if (
+			"creator_name" in t &&
+			t.creator_name &&
+			normalizeForMatch(t.creator_name).includes(q)
+		) {
+			return true;
+		}
+		return false;
+	});
+}
 
 export default function GlobalSearchCommand() {
 	const router = useRouter();
 	const auth = useAuthOptional();
 	const token = auth?.token ?? null;
+	const isDirector = auth?.role === "director";
 
 	const [open, setOpen] = useState(false);
 	const [searchValue, setSearchValue] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [results, setResults] = useState<SearchResponse | null>(null);
+	const [teamsResults, setTeamsResults] = useState<SearchTeamResult[] | null>(
+		null
+	);
 	const [error, setError] = useState<string | null>(null);
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -137,6 +199,7 @@ export default function GlobalSearchCommand() {
 		if (!open) {
 			setSearchValue("");
 			setResults(null);
+			setTeamsResults(null);
 			setError(null);
 		}
 	}, [open]);
@@ -179,14 +242,28 @@ export default function GlobalSearchCommand() {
 			}
 			abortRef.current = new AbortController();
 
-			search(token, trimmed)
-				.then((out) => {
-					if ("error" in out) {
-						setError(out.error);
+			// Fetch main search (clients/referents) and teams in parallel.
+			// Teams: director → listTeams, seller → listMyTeams; filter client-side.
+			const teamsPromise = isDirector ? listTeams(token) : listMyTeams(token);
+
+			Promise.all([search(token, trimmed), teamsPromise])
+				.then(([searchOut, teamsOut]) => {
+					if ("error" in searchOut) {
+						setError(searchOut.error);
 						setResults(null);
 					} else {
-						setResults(out.data);
+						setResults(searchOut.data);
 						setError(null);
+					}
+					if ("error" in teamsOut) {
+						// Don't block main results; teams fetch may 403 for Admin
+						setTeamsResults([]);
+					} else {
+						const filtered = filterTeamsByQuery(
+							teamsOut.data as SearchTeamResult[],
+							trimmed
+						);
+						setTeamsResults(filtered);
 					}
 				})
 				.finally(() => {
@@ -200,7 +277,7 @@ export default function GlobalSearchCommand() {
 				clearTimeout(debounceRef.current);
 			}
 		};
-	}, [searchValue, token, auth]);
+	}, [searchValue, token, auth, isDirector]);
 
 	const handleOpenChange = useCallback((next: boolean) => {
 		setOpen(next);
@@ -255,21 +332,25 @@ export default function GlobalSearchCommand() {
 		[router]
 	);
 
+	// Team select: navigate to team detail page
+	const handleSelectTeam = useCallback(
+		(team: SearchTeamResult) => {
+			setOpen(false);
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic route path
+			router.push(`/team/${team.id}` as any);
+		},
+		[router]
+	);
+
 	const hasResults = useMemo(() => {
-		if (!results) {
-			return false;
-		}
-		const {
-			clients_with_negotiations,
-			referents,
-			clients_without_negotiations,
-		} = results;
-		return (
-			clients_with_negotiations.length > 0 ||
-			referents.length > 0 ||
-			clients_without_negotiations.length > 0
-		);
-	}, [results]);
+		const hasSearch =
+			results &&
+			(results.clients_with_negotiations.length > 0 ||
+				results.referents.length > 0 ||
+				results.clients_without_negotiations.length > 0);
+		const hasTeams = teamsResults && teamsResults.length > 0;
+		return Boolean(hasSearch || hasTeams);
+	}, [results, teamsResults]);
 
 	// Only render when we have auth (command is for authenticated users; Admin gets 403 from API)
 	if (!auth) {
@@ -292,7 +373,7 @@ export default function GlobalSearchCommand() {
 					>
 						{/* Visually hidden title for screen readers (Base UI Dialog accessibility) */}
 						<Dialog.Title className="sr-only" id="global-search-title">
-							Ricerca globale: clienti e trattative
+							Ricerca globale: clienti, trattative e team
 						</Dialog.Title>
 						<div className="global-search-command">
 							<Command label="Ricerca globale" shouldFilter={false}>
@@ -305,7 +386,7 @@ export default function GlobalSearchCommand() {
 											autoComplete="off"
 											className="global-search-input"
 											onValueChange={setSearchValue}
-											placeholder="Cerca clienti e trattative (min. 3 caratteri)..."
+											placeholder="Cerca clienti, trattative e team (min. 3 caratteri)..."
 											value={searchValue}
 										/>
 									</div>
@@ -369,37 +450,38 @@ export default function GlobalSearchCommand() {
 											</Command.Empty>
 										)}
 
-									{!loading && results && hasResults && (
+									{!loading && hasResults && (
 										<>
-											{results.clients_with_negotiations.length > 0 && (
-												<Command.Group
-													className="global-search-group"
-													heading="Clienti con trattative"
-												>
-													{results.clients_with_negotiations.map((c) => (
-														<Command.Item
-															className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
-															key={`client-with-${c.id}`}
-															onSelect={() =>
-																handleSelectClientWithNegotiations(c)
-															}
-															value={`client-with-${c.id}-${c.ragione_sociale}`}
-														>
-															<span className="font-medium">
-																{c.ragione_sociale}
-															</span>
-															{c.p_iva && (
-																<span className="text-muted-foreground">
-																	{" "}
-																	P.IVA {c.p_iva}
+											{results?.clients_with_negotiations &&
+												results.clients_with_negotiations.length > 0 && (
+													<Command.Group
+														className="global-search-group"
+														heading="Clienti con trattative"
+													>
+														{results.clients_with_negotiations.map((c) => (
+															<Command.Item
+																className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+																key={`client-with-${c.id}`}
+																onSelect={() =>
+																	handleSelectClientWithNegotiations(c)
+																}
+																value={`client-with-${c.id}-${c.ragione_sociale}`}
+															>
+																<span className="font-medium">
+																	{c.ragione_sociale}
 																</span>
-															)}
-														</Command.Item>
-													))}
-												</Command.Group>
-											)}
+																{c.p_iva && (
+																	<span className="text-muted-foreground">
+																		{" "}
+																		P.IVA {c.p_iva}
+																	</span>
+																)}
+															</Command.Item>
+														))}
+													</Command.Group>
+												)}
 
-											{results.referents.length > 0 && (
+											{results?.referents && results.referents.length > 0 && (
 												<Command.Group
 													className="global-search-group"
 													heading="Referenti / Trattative"
@@ -422,29 +504,55 @@ export default function GlobalSearchCommand() {
 												</Command.Group>
 											)}
 
-											{results.clients_without_negotiations.length > 0 && (
+											{results?.clients_without_negotiations &&
+												results.clients_without_negotiations.length > 0 && (
+													<Command.Group
+														className="global-search-group"
+														heading="Clienti senza trattative"
+													>
+														{results.clients_without_negotiations.map((c) => (
+															<Command.Item
+																className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+																key={`client-no-${c.id}`}
+																onSelect={() =>
+																	handleSelectClientWithoutNegotiations(c)
+																}
+																value={`client-no-${c.id}-${c.ragione_sociale}`}
+															>
+																<span className="font-medium">
+																	{c.ragione_sociale}
+																</span>
+																{c.p_iva && (
+																	<span className="text-muted-foreground">
+																		{" "}
+																		P.IVA {c.p_iva}
+																	</span>
+																)}
+															</Command.Item>
+														))}
+													</Command.Group>
+												)}
+
+											{teamsResults && teamsResults.length > 0 && (
 												<Command.Group
 													className="global-search-group"
-													heading="Clienti senza trattative"
+													heading="Team"
 												>
-													{results.clients_without_negotiations.map((c) => (
+													{teamsResults.map((t) => (
 														<Command.Item
 															className="global-search-item group flex cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
-															key={`client-no-${c.id}`}
-															onSelect={() =>
-																handleSelectClientWithoutNegotiations(c)
-															}
-															value={`client-no-${c.id}-${c.ragione_sociale}`}
+															key={`team-${t.id}`}
+															onSelect={() => handleSelectTeam(t)}
+															value={`team-${t.id}-${t.nome}`}
 														>
-															<span className="font-medium">
-																{c.ragione_sociale}
+															<span className="font-medium">{t.nome}</span>
+															<span className="text-muted-foreground">
+																{" "}
+																—{" "}
+																{"creator_name" in t
+																	? t.creator_name
+																	: `${t.creator.nome} ${t.creator.cognome}`}
 															</span>
-															{c.p_iva && (
-																<span className="text-muted-foreground">
-																	{" "}
-																	P.IVA {c.p_iva}
-																</span>
-															)}
 														</Command.Item>
 													))}
 												</Command.Group>
