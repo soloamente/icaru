@@ -1,10 +1,10 @@
 "use client";
 
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	CheckIcon,
 	IconCirclePlusFilled,
@@ -18,8 +18,10 @@ import {
 import type { ApiClient, ApiClientAddress } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
+import { cn } from "@/lib/utils";
 import { AddClientDialog } from "./add-client-dialog";
 import { AnimatedEmptyState } from "./animated-empty-state";
+import IconDeleteLeftFill18 from "./icons/delete-left-fill-18";
 import Download4 from "./icons/download-4";
 import IconEarthAlertFill18 from "./icons/icon-earth-alert-fill-18";
 import IconEyeFill12 from "./icons/icon-eye-fill-12";
@@ -90,6 +92,8 @@ export default function ClientsTable() {
 	>(null);
 	// Controls animated width of the search pill (expand on focus, like trattative page).
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
+	// Ref for the search input so the clear icon can return focus to the field after clearing.
+	const searchInputRef = useRef<HTMLInputElement | null>(null);
 	/**
 	 * Keep track of which clients currently have **no** negotiations using the
 	 * dedicated backend helper `/api/clients/without-negotiations`. We only
@@ -281,37 +285,69 @@ export default function ClientsTable() {
 							onChange={(e) => setSearchTerm(e.target.value)}
 							onFocus={() => setIsSearchFocused(true)}
 							placeholder="Cerca per nome, email, P.IVA, telefono, tipologia, sede..."
+							ref={searchInputRef}
 							value={searchTerm}
 						/>
-						{/* Swap search icon ↔ clear button based on input content */}
-						<AnimatePresence initial={false} mode="popLayout">
-							{searchTerm.length > 0 ? (
-								<motion.button
-									animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-									aria-label="Cancella ricerca"
-									className="flex shrink-0 cursor-pointer items-center justify-center text-search-placeholder"
-									exit={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
-									initial={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
-									key="clear"
-									onClick={() => setSearchTerm("")}
-									transition={{ duration: 0.15 }}
-									type="button"
-								>
-									<X className="size-4" />
-								</motion.button>
-							) : (
-								<motion.span
-									animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-									className="shrink-0 text-search-placeholder"
-									exit={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
-									initial={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
-									key="search"
-									transition={{ duration: 0.15 }}
-								>
-									<Search className="size-4" />
-								</motion.span>
-							)}
-						</AnimatePresence>
+						{/* Swap search icon ↔ clear button based on input content. Appearance matches trattative page search bar. */}
+						<div className="ml-2 flex items-center justify-center">
+							<AnimatePresence initial={false} mode="wait">
+								{searchTerm.length > 0 ? (
+									<motion.button
+										animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+										aria-label="Cancella ricerca"
+										className="flex items-center justify-center rounded-full text-search-placeholder transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+										exit={{ opacity: 0, scale: 0.9, filter: "blur(2px)" }}
+										initial={{ opacity: 0, scale: 0.9, filter: "blur(2px)" }}
+										key="clear"
+										onClick={(event) => {
+											event.preventDefault();
+											event.stopPropagation();
+											setSearchTerm("");
+											searchInputRef.current?.focus();
+										}}
+										transition={{
+											duration: 0.16,
+											ease: [0.22, 0.61, 0.36, 1],
+										}}
+										type="button"
+										whileTap={{ scale: 0.9 }}
+									>
+										<IconDeleteLeftFill18
+											className={cn(
+												"transition-colors duration-150",
+												isSearchFocused
+													? "text-foreground"
+													: "text-search-placeholder"
+											)}
+											size="18px"
+										/>
+									</motion.button>
+								) : (
+									<motion.div
+										animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+										aria-hidden
+										className="flex items-center justify-center"
+										exit={{ opacity: 0, scale: 0.9, filter: "blur(2px)" }}
+										initial={{ opacity: 0, scale: 0.9, filter: "blur(2px)" }}
+										key="search"
+										transition={{
+											duration: 0.16,
+											ease: [0.22, 0.61, 0.36, 1],
+										}}
+									>
+										<Search
+											aria-hidden
+											className={cn(
+												"size-4 transition-colors duration-150",
+												isSearchFocused
+													? "text-foreground"
+													: "text-search-placeholder"
+											)}
+										/>
+									</motion.div>
+								)}
+							</AnimatePresence>
+						</div>
 					</motion.label>
 					{/* Primary action: add a single client (same pill style as trattative "Aggiungi"). */}
 					<button
