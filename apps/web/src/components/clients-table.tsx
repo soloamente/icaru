@@ -94,6 +94,15 @@ export default function ClientsTable() {
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
 	// Ref for the search input so the clear icon can return focus to the field after clearing.
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
+	/** true when viewport is sm (640px) or wider; used to only animate search width on desktop */
+	const [isSmViewport, setIsSmViewport] = useState(false);
+	useEffect(() => {
+		const mq = window.matchMedia("(min-width: 640px)");
+		const handle = () => setIsSmViewport(mq.matches);
+		handle();
+		mq.addEventListener("change", handle);
+		return () => mq.removeEventListener("change", handle);
+	}, []);
 	/**
 	 * Keep track of which clients currently have **no** negotiations using the
 	 * dedicated backend helper `/api/clients/without-negotiations`. We only
@@ -255,22 +264,28 @@ export default function ClientsTable() {
 	).length;
 	const clientsWithCount = visibleClients.length - clientsWithoutCount;
 
+	/** Search pill width: only animate on sm+; on mobile undefined so flex-1 controls width */
+	let searchAnimateWidth: string | undefined;
+	if (isSmViewport) {
+		searchAnimateWidth = isSearchFocused ? "21rem" : "15rem";
+	} else {
+		searchAnimateWidth = undefined;
+	}
+
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
-			{/* Header: title on the left, search + Import button aligned to the right on the same row */}
-			<div className="relative flex w-full items-center justify-between gap-4.5">
-				<h1 className="flex items-center justify-center gap-3.5">
+		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}
+			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
+				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
 					{/* Usiamo la stessa icona della voce "Clienti" nella Sidebar per coerenza visiva. */}
 					<IconPeople aria-hidden size={24} />
 					<span>Clienti</span>
 				</h1>
-				<div className="flex items-center justify-end gap-2">
-					{/* Search pill expands on focus (same behavior as trattative page). */}
+				<div className="flex flex-row flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
+					{/* Search: on mobile full width (flex-1) on same line as buttons, no expand; on sm+ pill expands on focus. Larger tap target on mobile (min-h, py-3) for easier tapping. */}
 					<motion.label
-						animate={{
-							width: isSearchFocused ? "21rem" : "15rem",
-						}}
-						className="flex items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
+						animate={{ width: searchAnimateWidth }}
+						className="flex min-h-[48px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-3 text-base shadow-[-18px_0px_14px_var(--color-card)] sm:min-h-0 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:text-sm"
 						htmlFor="clients-search"
 						initial={false}
 						transition={{
@@ -279,7 +294,7 @@ export default function ClientsTable() {
 						}}
 					>
 						<input
-							className="w-full truncate placeholder:text-search-placeholder focus:outline-none"
+							className="w-full truncate text-base placeholder:text-search-placeholder focus:outline-none sm:text-sm"
 							id="clients-search"
 							onBlur={() => setIsSearchFocused(false)}
 							onChange={(e) => setSearchTerm(e.target.value)}
@@ -349,25 +364,25 @@ export default function ClientsTable() {
 							</AnimatePresence>
 						</div>
 					</motion.label>
-					{/* Primary action: add a single client (same pill style as trattative "Aggiungi"). */}
+					{/* Primary action: add a single client. Icon-only on mobile to save space; label on sm+. Larger tap target on mobile (min 48px) for easier tapping. */}
 					<button
 						aria-label="Aggiungi cliente"
-						className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons px-3.75 py-1.75 text-sm"
+						className="flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm"
 						onClick={() => setIsAddClientDialogOpen(true)}
 						type="button"
 					>
-						Aggiungi
-						<Plus className="size-4 text-button-secondary" />
+						<span className="hidden sm:inline">Aggiungi</span>
+						<Plus className="size-4 shrink-0 text-button-secondary" />
 					</button>
-					{/* Import from Excel/CSV; same pill style, placed to the right of Aggiungi. */}
+					{/* Import from Excel/CSV. Icon-only on mobile; label on sm+. Larger tap target on mobile (min 48px) for easier tapping. */}
 					<button
 						aria-label="Importa clienti"
-						className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons px-3.75 py-1.75 text-sm"
+						className="flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm"
 						onClick={() => setIsImportDialogOpen(true)}
 						type="button"
 					>
-						Importa
-						<Download4 className="size-4 text-button-secondary" />
+						<span className="hidden sm:inline">Importa</span>
+						<Download4 className="size-4 shrink-0 text-button-secondary" />
 					</button>
 				</div>
 			</div>
@@ -438,83 +453,85 @@ export default function ClientsTable() {
 					</div>
 				</div>
 
-				{/* Table */}
+				{/* Table: single scroll container so header and body scroll horizontally together on mobile */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					{/* Header: align background with table container using the same CSS variable */}
-					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
-						<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
-							<div>Ragione sociale</div>
-							<div>Email</div>
-							<div>P.IVA</div>
-							<div>Telefono</div>
-							<div>Tipologia</div>
-							<div>Sede</div>
-							<div>Trattativa</div>
-						</div>
-					</div>
-					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-scroll">
-						{loading && (
-							<div className="flex h-full items-center justify-center p-8">
-								<p className="text-stats-title">Caricamento…</p>
+					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-auto">
+						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
+						<div className="flex min-w-max flex-col">
+							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
+							<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
+								<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
+									<div>Ragione sociale</div>
+									<div>Email</div>
+									<div>P.IVA</div>
+									<div>Telefono</div>
+									<div>Tipologia</div>
+									<div>Sede</div>
+									<div>Trattativa</div>
+								</div>
 							</div>
-						)}
-						{!loading && error && (
-							<div className="flex h-full items-center justify-center p-8">
-								<p className="text-center text-destructive">{error}</p>
-							</div>
-						)}
-						{!(loading || error) && visibleClients.length === 0 && (
-							<AnimatedEmptyState
-								cta={
-									debouncedSearch.length > 0
-										? undefined
-										: {
-												label: "Aggiungi cliente",
-												icon: <IconCirclePlusFilled aria-hidden size={16} />,
-												onClick: () => setIsAddClientDialogOpen(true),
-											}
-								}
-								heading={
-									debouncedSearch.length > 0
-										? "Nessun risultato"
-										: "Non hai ancora clienti"
-								}
-								icon={
-									debouncedSearch.length > 0 ? (
-										<div className="opacity-50">
-											<Search className="text-muted-foreground" size={64} />
-										</div>
-									) : (
-										<div className="opacity-50">
-											<IconPeople
-												aria-hidden
-												className="text-muted-foreground"
-												size={64}
-											/>
-										</div>
-									)
-								}
-								subtitle={
-									debouncedSearch.length > 0
-										? "Prova con un altro termine di ricerca"
-										: "Aggiungi il tuo primo cliente per iniziare"
-								}
-							/>
-						)}
-						{!(loading || error) &&
-							visibleClients.length > 0 &&
-							visibleClients.map((c) => {
-								// A client is considered "senza trattative" when its id appears in the
-								// dedicated helper list. Everyone else is grouped under "ha almeno una
-								// trattativa" so we can show a simple, binary status pill.
-								const hasNoNegotiations =
-									clientsWithoutNegotiationsIds.size > 0 &&
-									clientsWithoutNegotiationsIds.has(c.id);
+							{loading && (
+								<div className="flex h-full items-center justify-center p-8">
+									<p className="text-stats-title">Caricamento…</p>
+								</div>
+							)}
+							{!loading && error && (
+								<div className="flex h-full items-center justify-center p-8">
+									<p className="text-center text-destructive">{error}</p>
+								</div>
+							)}
+							{!(loading || error) && visibleClients.length === 0 && (
+								<AnimatedEmptyState
+									cta={
+										debouncedSearch.length > 0
+											? undefined
+											: {
+													label: "Aggiungi cliente",
+													icon: <IconCirclePlusFilled aria-hidden size={16} />,
+													onClick: () => setIsAddClientDialogOpen(true),
+												}
+									}
+									heading={
+										debouncedSearch.length > 0
+											? "Nessun risultato"
+											: "Non hai ancora clienti"
+									}
+									icon={
+										debouncedSearch.length > 0 ? (
+											<div className="opacity-50">
+												<Search className="text-muted-foreground" size={64} />
+											</div>
+										) : (
+											<div className="opacity-50">
+												<IconPeople
+													aria-hidden
+													className="text-muted-foreground"
+													size={64}
+												/>
+											</div>
+										)
+									}
+									subtitle={
+										debouncedSearch.length > 0
+											? "Prova con un altro termine di ricerca"
+											: "Aggiungi il tuo primo cliente per iniziare"
+									}
+								/>
+							)}
+							{!(loading || error) &&
+								visibleClients.length > 0 &&
+								visibleClients.map((c) => {
+									// A client is considered "senza trattative" when its id appears in the
+									// dedicated helper list. Everyone else is grouped under "ha almeno una
+									// trattativa" so we can show a simple, binary status pill.
+									const hasNoNegotiations =
+										clientsWithoutNegotiationsIds.size > 0 &&
+										clientsWithoutNegotiationsIds.has(c.id);
 
-								return (
-									// biome-ignore lint/a11y/useSemanticElements: row contains inner buttons (Aggiungi/Ha trattativa); native <button> would be invalid HTML (nested interactive).
-									<div
-										/* Riga tabellare con hover visivo; l'intera riga è cliccabile
+									return (
+										// biome-ignore lint/a11y/useSemanticElements: row contains inner buttons (Aggiungi/Ha trattativa); native <button> would be invalid HTML (nested interactive).
+										<div
+											/* Riga tabellare con hover visivo; l'intera riga è cliccabile
 										   per aprire la pagina di dettaglio cliente. Non usiamo un
 										   `<button>` per la riga perché conterrebbe altri pulsanti
 										   (Aggiungi / Ha trattativa), nesting invalido in HTML che
@@ -522,153 +539,158 @@ export default function ClientsTable() {
 										   usiamo div + role="button" + stopPropagation sui pulsanti
 										   della colonna "Trattativa" così solo la riga reagisce al
 										   click sulle celle, non sulle pill. */
-										className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
-										key={c.id}
-										onClick={() => handleOpenClientDetail(c.id)}
-										onKeyDown={(event) => {
-											if (event.key === "Enter" || event.key === " ") {
-												event.preventDefault();
-												handleOpenClientDetail(c.id);
-											}
-										}}
-										role="button"
-										tabIndex={0}
-									>
-										<div className="grid grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 text-base">
-											<div className="truncate">
-												<span className="w-full truncate text-left">
-													{getClientDisplay(c)}
-												</span>
-											</div>
-											<div className="truncate">
-												{c.email ? (
-													c.email
-												) : (
-													<span className="text-stats-title">—</span>
-												)}
-											</div>
-											<div className="truncate tabular-nums">
-												{c.p_iva ? (
-													c.p_iva
-												) : (
-													<span className="text-stats-title">—</span>
-												)}
-											</div>
-											<div className="truncate tabular-nums">
-												{c.telefono ? (
-													c.telefono
-												) : (
-													<span className="text-stats-title">—</span>
-												)}
-											</div>
-											<div className="truncate">
-												{c.tipologia ? (
-													c.tipologia
-												) : (
-													<span className="text-stats-title">—</span>
-												)}
-											</div>
-											<div
-												className="flex min-w-0 items-center gap-2"
-												title={formatAddress(c.address) || undefined}
-											>
-												<span className="min-w-0 truncate">
-													{formatAddress(c.address) || (
+											className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
+											key={c.id}
+											onClick={() => handleOpenClientDetail(c.id)}
+											onKeyDown={(event) => {
+												if (event.key === "Enter" || event.key === " ") {
+													event.preventDefault();
+													handleOpenClientDetail(c.id);
+												}
+											}}
+											role="button"
+											tabIndex={0}
+										>
+											<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 text-base sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
+												<div className="truncate">
+													<span className="w-full truncate text-left">
+														{getClientDisplay(c)}
+													</span>
+												</div>
+												<div className="truncate">
+													{c.email ? (
+														c.email
+													) : (
 														<span className="text-stats-title">—</span>
 													)}
-												</span>
-												{/* Geocoding failed: show warning pill so user knows client won't appear on map. */}
-												{c.address?.geocoding_failed && (
-													<div className="group relative shrink-0">
-														<span
-															aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
-															className="inline-flex items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text"
-															role="img"
-														>
-															<IconEarthAlertFill18 size="18px" />
-														</span>
-														<span
-															aria-live="polite"
-															className="xl pointer-events-none absolute top-full left-1/2 z-20 mt-4 flex w-[350px] -translate-x-1/2 flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left opacity-0 shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset transition-opacity duration-200 ease-out group-hover:opacity-100"
-														>
-															{/* "Attenzione" pill overlapping the top edge. */}
-															<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
-																<IconTriangleWarningFill18 size="14px" />
-																Attenzione
+												</div>
+												<div className="truncate tabular-nums">
+													{c.p_iva ? (
+														c.p_iva
+													) : (
+														<span className="text-stats-title">—</span>
+													)}
+												</div>
+												<div className="truncate tabular-nums">
+													{c.telefono ? (
+														c.telefono
+													) : (
+														<span className="text-stats-title">—</span>
+													)}
+												</div>
+												<div className="truncate">
+													{c.tipologia ? (
+														c.tipologia
+													) : (
+														<span className="text-stats-title">—</span>
+													)}
+												</div>
+												<div
+													className="flex min-w-0 items-center gap-2"
+													title={formatAddress(c.address) || undefined}
+												>
+													<span className="min-w-0 truncate">
+														{formatAddress(c.address) || (
+															<span className="text-stats-title">—</span>
+														)}
+													</span>
+													{/* Geocoding failed: show warning pill so user knows client won't appear on map. */}
+													{c.address?.geocoding_failed && (
+														<div className="group relative shrink-0">
+															<span
+																aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
+																className="inline-flex items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text"
+																role="img"
+															>
+																<IconEarthAlertFill18 size="18px" />
 															</span>
-															{/* Content: icon + text, horizontal layout. */}
-															<div className="flex items-center gap-3">
-																<IconFrame69 size="40px" />
-
-																<span className="min-w-0 flex-1 leading-none">
-																	<span className="text-geocoding-title text-md leading-none">
-																		Indirizzo errato o incompleto
-																	</span>
-																	<span className="mt-1 block text-balance font-normal text-geocoding-desc text-sm leading-none">
-																		Il cliente non verrà visualizzato sulla
-																		mappa.
-																	</span>
+															<span
+																aria-live="polite"
+																className="xl pointer-events-none absolute top-full left-1/2 z-20 mt-4 flex w-[350px] -translate-x-1/2 flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left opacity-0 shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset transition-opacity duration-200 ease-out group-hover:opacity-100"
+															>
+																{/* "Attenzione" pill overlapping the top edge. */}
+																<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
+																	<IconTriangleWarningFill18 size="14px" />
+																	Attenzione
 																</span>
-															</div>
-														</span>
-													</div>
-												)}
-											</div>
-											<div className="flex items-center justify-start">
-												{hasNoNegotiations ? (
-													<button
-														// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
-														// invece di navigare a /trattative/aperte.
-														// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-														// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
-														className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
-														onClick={(event) => {
-															event.stopPropagation();
-															setClientIdForNewNegotiation(c.id);
-														}}
-														type="button"
-													>
-														{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
-														<IconCirclePlusFilled aria-hidden size={18} />
-														<span>Aggiungi</span>
-													</button>
-												) : (
-													// Wrapper "group" per mostrare un tooltip custom al passaggio del mouse sulla pill "Ha trattativa".
-													<div className="group relative inline-flex">
+																{/* Content: icon + text, horizontal layout. */}
+																<div className="flex items-center gap-3">
+																	<IconFrame69 size="40px" />
+
+																	<span className="min-w-0 flex-1 leading-none">
+																		<span className="text-geocoding-title text-md leading-none">
+																			Indirizzo errato o incompleto
+																		</span>
+																		<span className="mt-1 block text-balance font-normal text-geocoding-desc text-sm leading-none">
+																			Il cliente non verrà visualizzato sulla
+																			mappa.
+																		</span>
+																	</span>
+																</div>
+															</span>
+														</div>
+													)}
+												</div>
+												<div className="flex items-center justify-start">
+													{hasNoNegotiations ? (
 														<button
-															// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+															// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
+															// invece di navigare a /trattative/aperte.
 															// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-															// così che "Ha trattativa" appaia come uno stato concluso coerente.
-															className="inline-flex items-center justify-center gap-2 rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
-															// Manteniamo anche il title per avere un fallback nativo su browser/touch.
+															// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
+															className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
 															onClick={(event) => {
-																// Anche qui blocchiamo la propagazione per evitare
-																// che la riga cliccabile porti al dettaglio cliente
-																// quando l'utente vuole aprire direttamente la trattativa.
 																event.stopPropagation();
-																handleOpenClientNegotiation(c.id);
+																setClientIdForNewNegotiation(c.id);
 															}}
-															title="Clicca per visualizzare la trattativa"
 															type="button"
 														>
-															{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
-															<IconEyeFill12 />
-															<span>Mostra trattativa</span>
+															{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
+															<IconCirclePlusFilled aria-hidden size={18} />
+															<span>Aggiungi</span>
 														</button>
-														{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
-														<span
-															aria-live="polite"
-															className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
-														>
-															Clicca per visualizzare la trattativa
-														</span>
-													</div>
-												)}
+													) : (
+														// Wrapper "group" per mostrare un tooltip custom al passaggio del mouse sulla pill "Ha trattativa".
+														<div className="group relative inline-flex">
+															<button
+																// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+																// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+																// così che "Ha trattativa" appaia come uno stato concluso coerente.
+																className="inline-flex items-center justify-center gap-2 rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
+																// Manteniamo anche il title per avere un fallback nativo su browser/touch.
+																onClick={(event) => {
+																	// Anche qui blocchiamo la propagazione per evitare
+																	// che la riga cliccabile porti al dettaglio cliente
+																	// quando l'utente vuole aprire direttamente la trattativa.
+																	event.stopPropagation();
+																	handleOpenClientNegotiation(c.id);
+																}}
+																title="Clicca per visualizzare la trattativa"
+																type="button"
+															>
+																{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
+																<IconEyeFill12 />
+																{/* On mobile show short label to save space; full label on sm+. */}
+																<span className="sm:hidden">Mostra</span>
+																<span className="hidden sm:inline">
+																	Mostra trattativa
+																</span>
+															</button>
+															{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
+															<span
+																aria-live="polite"
+																className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
+															>
+																Clicca per visualizzare la trattativa
+															</span>
+														</div>
+													)}
+												</div>
 											</div>
 										</div>
-									</div>
-								);
-							})}
+									);
+								})}
+						</div>
 					</div>
 				</div>
 			</div>

@@ -116,6 +116,11 @@ const SPANCO_STAGE_COLORS: Record<
 const DIALOG_FIELD_CONTAINER_CLASSES =
 	"flex items-center justify-between gap-2 rounded-2xl bg-table-header px-3.75 py-2.25";
 
+/** Table grid: same column template for header and rows. On mobile the "Data apertura" column
+ *  is wider (minmax(115px,1fr)) for readability; from sm up the original narrow column is used. */
+const TRATTATIVE_TABLE_GRID =
+	"grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(115px,1fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)] sm:grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(90px,0.7fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)]";
+
 /** Text styling for field labels inside dialog pills.
  *  Slightly smaller than values to establish hierarchy; muted color for secondary
  *  status so the user's eye goes first to the editable value area.
@@ -1379,6 +1384,15 @@ export default function TrattativeTable({
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
 	// Controls the animated width of the search input container (motion.label).
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
+	/** true when viewport is sm (640px) or wider; used to only animate search width on desktop */
+	const [isSmViewport, setIsSmViewport] = useState(false);
+	useEffect(() => {
+		const mq = window.matchMedia("(min-width: 640px)");
+		const handle = () => setIsSmViewport(mq.matches);
+		handle();
+		mq.addEventListener("change", handle);
+		return () => mq.removeEventListener("change", handle);
+	}, []);
 	// Local SPANCO filter: lets the user restrict visible rows to a single SPANCO stage or see them all.
 	const [spancoFilter, setSpancoFilter] = useState<SpancoStage | "all">("all");
 	// Local stato filter: lets the user restrict visible rows to Aperta, Conclusa, or Abbandonata.
@@ -1601,14 +1615,19 @@ export default function TrattativeTable({
 	// Reusable search field element so we can place it either on its own row
 	// (when filters are present) or inline accanto al bottone "Aggiungi"
 	// quando non ci sono filtri header (es. pagina "Trattative concluse").
+	// On mobile: full width (flex-1), no expand when typing; on sm+ animate width on focus.
+	let searchAnimateWidth: string | undefined;
+	if (isSmViewport) {
+		searchAnimateWidth = isSearchFocused ? "21rem" : "15rem";
+	} else {
+		searchAnimateWidth = undefined;
+	}
 	const searchField = (
-		<div className="flex items-center justify-center">
+		<div className="flex min-w-0 flex-1 sm:flex-initial">
 			<motion.label
 				/* Search bar background follows table buttons color for consistency. */
-				animate={{
-					width: isSearchFocused ? "21rem" : "15rem",
-				}}
-				className="flex items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)]"
+				animate={{ width: searchAnimateWidth }}
+				className="flex min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)] sm:flex-initial"
 				htmlFor="trattative-search"
 				initial={false}
 				transition={{ duration: 0.5, ease: [0.541, 0.232, 0.226, 1.002] }}
@@ -1691,11 +1710,11 @@ export default function TrattativeTable({
 	);
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
-			{/* Header */}
-			<div className="relative flex w-full flex-col gap-4.5">
-				{/* Header - title and primary action */}
-				<div className="flex items-center justify-between gap-2.5">
+		<main className="m-0 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+			{/* Header: mobile = stacked (title, then filters row, then search+button); desktop = title row + filters row per design */}
+			<div className="relative flex w-full flex-col gap-4 sm:gap-4.5">
+				{/* Header - title and primary action: on mobile stacked/centered, on desktop single row justify-between */}
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
 					<h1 className="flex items-center justify-center gap-3.5">
 						<SignatureIcon aria-hidden size={24} />
 						<span>
@@ -1705,35 +1724,29 @@ export default function TrattativeTable({
 							{filter === "abbandonate" && "Trattative abbandonate"}
 						</span>
 					</h1>
-					<div className="flex items-center justify-center gap-2.5">
-						{/* When there are no header filters (e.g. pagina "concluse"),
-						 * keep search and primary action on the same line: search to the
-						 * left, "Aggiungi" button to the right.
-						 */}
+					{/* Desktop: search (when no filters) + Aggiungi, same row. Mobile: when hasHeaderFilters, search+button move to row below. */}
+					<div className="flex flex-row flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:items-center sm:justify-center sm:gap-2.5">
 						{!hasHeaderFilters && searchField}
 						<button
-							/* Use table buttons token for primary table actions */
-							className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons py-1.75 pr-2.5 pl-3.75 text-sm"
+							aria-label="Aggiungi trattativa"
+							className={cn(
+								"flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-2.5 text-sm",
+								"sm:py-1.75 sm:pr-2.5 sm:pl-3.75",
+								hasHeaderFilters && "hidden sm:flex"
+							)}
 							onClick={() => setIsCreateDialogOpen(true)}
 							type="button"
 						>
-							Aggiungi
-							<Plus className="size-4 text-button-secondary" />
+							<span className="hidden sm:inline">Aggiungi</span>
+							<Plus className="size-4 shrink-0 text-button-secondary" />
 						</button>
 					</div>
 				</div>
-				{/* Header - filters & search row placed on its own line for chiarezza
-				 * quando sono presenti filtri header. Se non ci sono filtri, la search
-				 * viene mostrata accanto al bottone "Aggiungi" nella riga sopra.
-				 */}
+				{/* Header - filters: mobile = two rows (filters one line, then search+Aggiungi); desktop = one row (filters + search) */}
 				{hasHeaderFilters && (
-					<div className="flex items-center justify-between gap-2">
-						{/* Header - left side filters (local, client-side).
-						 * - Date filter (preset) sempre visibile su tutte le tabelle trattative
-						 * - SPANCO filter su tutte le viste eccetto "concluse"
-						 * - Stato filter (Aperta/Conclusa/Abbandonata) solo su "tutte"
-						 */}
-						<div className="flex w-full flex-wrap items-center justify-start gap-1.25">
+					<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+						{/* Filters: single line on mobile (scroll), wrap on desktop */}
+						<div className="flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
 							{/* Filtro data apertura: sempre visibile su tutte le viste */}
 							<DateRangeFilter
 								align="start"
@@ -1775,8 +1788,7 @@ export default function TrattativeTable({
 									value={spancoFilter === "all" ? null : spancoFilter}
 								>
 									<Select.Trigger
-										// Use the same background token as the search input to keep header controls visually consistent.
-										className="flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
 										id="trattative-spanco-filter"
 									>
 										<Select.Value
@@ -1850,7 +1862,7 @@ export default function TrattativeTable({
 								>
 									<Select.Trigger
 										// Match the search input background token so all header filters share the same visual weight.
-										className="flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
 										id="trattative-stato-filter"
 									>
 										<Select.Value
@@ -1927,10 +1939,19 @@ export default function TrattativeTable({
 								</Select.Root>
 							)}
 						</div>
-						{/* Header - search input aligned to the right, on its own row.
-						 * We use motion.label to animate the width smoothly instead of a pure CSS transition.
-						 */}
-						{searchField}
+						{/* Row 2 (mobile): search + Aggiungi; desktop: search only (Aggiungi is in title row), same row as filters */}
+						<div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0">
+							{searchField}
+							<button
+								aria-label="Aggiungi trattativa"
+								className="flex shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-2.5 text-sm sm:hidden sm:px-3.75 sm:py-1.75"
+								onClick={() => setIsCreateDialogOpen(true)}
+								type="button"
+							>
+								<span className="hidden sm:inline">Aggiungi</span>
+								<Plus className="size-4 shrink-0 text-button-secondary" />
+							</button>
+						</div>
 					</div>
 				)}
 			</div>
@@ -2057,312 +2078,346 @@ export default function TrattativeTable({
 					</div>
 				</div>
 
-				{/* Table: 8 colonne (Cliente, Referente, Data apertura, Col2 per filter, Spanco, Importo, Percentuale, Stato). Note rimossa per evitare troppe colonne. */}
+				{/* Table: single scroll container so header and body scroll horizontally together on mobile */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					{/* Header: align background with table container using the same CSS variable */}
-					<div className="table-header-bg shrink-0 rounded-xl px-3 py-2.25">
-						<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(90px,0.7fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)] items-center gap-4 font-medium text-sm text-table-header-foreground">
-							<div>Cliente</div>
-							<div>Referente</div>
-							{/* Data apertura: colonna ordinabile */}
-							<button
-								aria-label={dataAperturaSortAriaLabel}
-								aria-pressed={dataAperturaSortDirection !== null}
-								className={cn(
-									"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-									dataAperturaSortDirection !== null && "text-primary"
-								)}
-								onClick={() => handleToggleSort("data_apertura")}
-								type="button"
-							>
-								<span className="font-medium">Data apertura</span>
-								<ChevronDown
-									aria-hidden
-									className={cn(
-										"size-3.5 transition-transform",
-										dataAperturaSortDirection === "asc" && "-rotate-180",
-										dataAperturaSortDirection === null
-											? "opacity-40"
-											: "opacity-100"
-									)}
-								/>
-							</button>
-							{/* Colonna 4: Data chiusura (concluse), Data abbandono (abbandonate) o Telefono (tutte/aperte) */}
-							{filter === "concluse" && (
-								<button
-									aria-label={dataChiusuraSortAriaLabel}
-									aria-pressed={dataChiusuraSortDirection !== null}
-									className={cn(
-										"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-										dataChiusuraSortDirection !== null && "text-primary"
-									)}
-									onClick={() => handleToggleSort("data_chiusura")}
-									type="button"
-								>
-									<span className="font-medium">Data chiusura</span>
-									<ChevronDown
-										aria-hidden
-										className={cn(
-											"size-3.5 transition-transform",
-											dataChiusuraSortDirection === "asc" && "-rotate-180",
-											dataChiusuraSortDirection === null
-												? "opacity-40"
-												: "opacity-100"
-										)}
-									/>
-								</button>
+					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-auto">
+						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling.
+						    When showing empty/loading/error, use w-full (no min-w-max) so the empty state centers horizontally within the viewport on mobile. */}
+						<div
+							className={cn(
+								"flex flex-col",
+								loading ||
+									error ||
+									(filteredNegotiations.length === 0 && !loading && !error)
+									? "min-h-full w-full flex-1"
+									: "min-w-max"
 							)}
-							{filter === "abbandonate" && (
-								<button
-									aria-label={dataAbbandonoSortAriaLabel}
-									aria-pressed={dataAbbandonoSortDirection !== null}
+						>
+							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
+							<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
+								<div
 									className={cn(
-										"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-										dataAbbandonoSortDirection !== null && "text-primary"
+										TRATTATIVE_TABLE_GRID,
+										"items-center gap-4 font-medium text-sm text-table-header-foreground"
 									)}
-									onClick={() => handleToggleSort("data_abbandono")}
-									type="button"
 								>
-									<span className="font-medium">Data abbandono</span>
-									<ChevronDown
-										aria-hidden
+									<div>Cliente</div>
+									<div>Referente</div>
+									{/* Data apertura: colonna ordinabile */}
+									<button
+										aria-label={dataAperturaSortAriaLabel}
+										aria-pressed={dataAperturaSortDirection !== null}
 										className={cn(
-											"size-3.5 transition-transform",
-											dataAbbandonoSortDirection === "asc" && "-rotate-180",
-											dataAbbandonoSortDirection === null
-												? "opacity-40"
-												: "opacity-100"
+											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+											dataAperturaSortDirection !== null && "text-primary"
 										)}
-									/>
-								</button>
-							)}
-							{(filter === "all" || filter === "aperte") && <div>Telefono</div>}
-							<button
-								aria-label={spancoSortAriaLabel}
-								aria-pressed={spancoSortDirection !== null}
-								className={cn(
-									"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-									spancoSortDirection !== null && "text-primary"
-								)}
-								onClick={() => handleToggleSort("spanco")}
-								type="button"
-							>
-								<span className="font-medium">Spanco</span>
-								<ChevronDown
-									aria-hidden
-									className={cn(
-										"size-3.5 transition-transform",
-										spancoSortDirection === "asc" && "-rotate-180",
-										spancoSortDirection === null ? "opacity-40" : "opacity-100"
-									)}
-								/>
-							</button>
-							{/* Align importo sort control to the start to match requested layout */}
-							<button
-								aria-label={importSortAriaLabel}
-								aria-pressed={importSortDirection !== null}
-								className={cn(
-									"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-									importSortDirection !== null && "text-primary"
-								)}
-								onClick={() => handleToggleSort("importo")}
-								type="button"
-							>
-								<span className="font-medium">Importo</span>
-								<ChevronDown
-									aria-hidden
-									className={cn(
-										"size-3.5 transition-transform",
-										importSortDirection === "asc" && "-rotate-180",
-										importSortDirection === null ? "opacity-40" : "opacity-100"
-									)}
-								/>
-							</button>
-							<button
-								aria-label={percentSortAriaLabel}
-								aria-pressed={percentSortDirection !== null}
-								className={cn(
-									"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-									percentSortDirection !== null && "text-primary"
-								)}
-								onClick={() => handleToggleSort("percentuale")}
-								type="button"
-							>
-								<span className="font-medium">Percentuale</span>
-								<ChevronDown
-									aria-hidden
-									className={cn(
-										"size-3.5 transition-transform",
-										percentSortDirection === "asc" && "-rotate-180",
-										percentSortDirection === null ? "opacity-40" : "opacity-100"
-									)}
-								/>
-							</button>
-							<div>Stato</div>
-						</div>
-					</div>
-					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-scroll">
-						{loading && (
-							<div className="flex h-full items-center justify-center p-8">
-								<p className="text-stats-title">Caricamento...</p>
-							</div>
-						)}
-						{!loading && error && (
-							<div className="flex h-full items-center justify-center p-8">
-								<p className="text-center text-destructive">{error}</p>
-							</div>
-						)}
-						{!(loading || error) && filteredNegotiations.length === 0 && (
-							<AnimatedEmptyState
-								cta={
-									negotiations.length > 0
-										? undefined
-										: {
-												label: "Aggiungi trattativa",
-												icon: <IconCirclePlusFilled aria-hidden size={16} />,
-												onClick: () => setIsCreateDialogOpen(true),
-											}
-								}
-								heading={
-									negotiations.length > 0
-										? "Nessun risultato"
-										: "Non hai ancora trattative"
-								}
-								icon={
-									negotiations.length > 0 ? (
-										<div className="opacity-50">
-											<Search className="text-muted-foreground" size={64} />
-										</div>
-									) : (
-										<div className="opacity-50">
-											<SignatureIcon
-												aria-hidden
-												className="text-muted-foreground"
-												size={56}
-											/>
-										</div>
-									)
-								}
-								subtitle={
-									negotiations.length > 0
-										? "Prova a modificare i filtri o il termine di ricerca"
-										: "Aggiungi la tua prima trattativa per iniziare"
-								}
-							/>
-						)}
-						{!(loading || error) &&
-							sortedNegotiations.length > 0 &&
-							sortedNegotiations.map((n) => {
-								const statusUi = getNegotiationStatusUi(n);
-								// Clamp percentuale defensively to keep the progress "slider" within 0-100%
-								const clampedPercent = clampPercentuale(n.percentuale);
-								return (
-									// biome-ignore lint/a11y/useSemanticElements: div + role="button" avoids native button active/press animation on the row while keeping keyboard access.
-									<div
-										aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
-										/* Row hover uses dedicated table hover token; row is clickable but not a native button so it doesn't animate on press. */
-										className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
-										key={n.id}
-										onClick={() => handleOpenUpdate(n)}
-										onKeyDown={(event) => {
-											if (event.key === "Enter" || event.key === " ") {
-												event.preventDefault();
-												handleOpenUpdate(n);
-											}
-										}}
-										role="button"
-										tabIndex={0}
+										onClick={() => handleToggleSort("data_apertura")}
+										type="button"
 									>
-										<div className="grid grid-cols-[minmax(80px,1fr)_minmax(120px,1fr)_minmax(90px,0.7fr)_minmax(100px,0.8fr)_minmax(60px,0.5fr)_minmax(80px,0.5fr)_minmax(80px,0.9fr)_minmax(100px,0.8fr)] items-center gap-4 text-base">
-											<div className="truncate">{getClientDisplay(n)}</div>
-											<div className="truncate">{n.referente}</div>
-											<div className="truncate tabular-nums">
-												{formatNegotiationDate(
-													n.data_apertura ?? n.created_at ?? undefined
+										<span className="font-medium">Data apertura</span>
+										<ChevronDown
+											aria-hidden
+											className={cn(
+												"size-3.5 transition-transform",
+												dataAperturaSortDirection === "asc" && "-rotate-180",
+												dataAperturaSortDirection === null
+													? "opacity-40"
+													: "opacity-100"
+											)}
+										/>
+									</button>
+									{/* Colonna 4: Data chiusura (concluse), Data abbandono (abbandonate) o Telefono (tutte/aperte) */}
+									{filter === "concluse" && (
+										<button
+											aria-label={dataChiusuraSortAriaLabel}
+											aria-pressed={dataChiusuraSortDirection !== null}
+											className={cn(
+												"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+												dataChiusuraSortDirection !== null && "text-primary"
+											)}
+											onClick={() => handleToggleSort("data_chiusura")}
+											type="button"
+										>
+											<span className="font-medium">Data chiusura</span>
+											<ChevronDown
+												aria-hidden
+												className={cn(
+													"size-3.5 transition-transform",
+													dataChiusuraSortDirection === "asc" && "-rotate-180",
+													dataChiusuraSortDirection === null
+														? "opacity-40"
+														: "opacity-100"
 												)}
-											</div>
-											<div className="truncate">
-												{filter === "concluse" &&
-													formatNegotiationDate(
-														n.data_chiusura ?? n.updated_at ?? undefined
-													)}
-												{filter === "abbandonate" &&
-													formatNegotiationDate(
-														n.data_abbandono ?? n.updated_at ?? undefined
-													)}
-												{(filter === "all" || filter === "aperte") &&
-													(n.client?.telefono?.trim()
-														? n.client.telefono.trim()
-														: "—")}
-											</div>
-											<div className="truncate">
-												<span
-													className={SPANCO_PILL_CLASSES}
-													style={{
-														// Text uses the solid main color, background uses a soft tint of the same color
-														backgroundColor:
-															SPANCO_STAGE_COLORS[n.spanco].softBg,
-														color: SPANCO_STAGE_COLORS[n.spanco].main,
-													}}
-												>
-													{SPANCO_LABELS[n.spanco]}
-												</span>
-											</div>
-											<div className="truncate tabular-nums">
-												{formatImporto(n.importo)}
-											</div>
-											<div className="flex items-center">
-												{/* Visual progress bar: track uses soft tint, fill uses main color (same as SPANCO pills) */}
-												<div
-													aria-label={`Avanzamento trattativa al ${clampedPercent}%`}
-													className="relative flex h-6 w-full items-center justify-center overflow-hidden rounded-full"
-													role="img"
-													style={{
-														backgroundColor:
-															SPANCO_STAGE_COLORS[n.spanco].softBg,
-													}}
-												>
-													<div
-														className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-150"
-														style={{
-															width: `${clampedPercent}%`,
-															backgroundColor:
-																SPANCO_STAGE_COLORS[n.spanco].main,
-														}}
+											/>
+										</button>
+									)}
+									{filter === "abbandonate" && (
+										<button
+											aria-label={dataAbbandonoSortAriaLabel}
+											aria-pressed={dataAbbandonoSortDirection !== null}
+											className={cn(
+												"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+												dataAbbandonoSortDirection !== null && "text-primary"
+											)}
+											onClick={() => handleToggleSort("data_abbandono")}
+											type="button"
+										>
+											<span className="font-medium">Data abbandono</span>
+											<ChevronDown
+												aria-hidden
+												className={cn(
+													"size-3.5 transition-transform",
+													dataAbbandonoSortDirection === "asc" && "-rotate-180",
+													dataAbbandonoSortDirection === null
+														? "opacity-40"
+														: "opacity-100"
+												)}
+											/>
+										</button>
+									)}
+									{(filter === "all" || filter === "aperte") && (
+										<div>Telefono</div>
+									)}
+									<button
+										aria-label={spancoSortAriaLabel}
+										aria-pressed={spancoSortDirection !== null}
+										className={cn(
+											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+											spancoSortDirection !== null && "text-primary"
+										)}
+										onClick={() => handleToggleSort("spanco")}
+										type="button"
+									>
+										<span className="font-medium">Spanco</span>
+										<ChevronDown
+											aria-hidden
+											className={cn(
+												"size-3.5 transition-transform",
+												spancoSortDirection === "asc" && "-rotate-180",
+												spancoSortDirection === null
+													? "opacity-40"
+													: "opacity-100"
+											)}
+										/>
+									</button>
+									{/* Align importo sort control to the start to match requested layout */}
+									<button
+										aria-label={importSortAriaLabel}
+										aria-pressed={importSortDirection !== null}
+										className={cn(
+											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+											importSortDirection !== null && "text-primary"
+										)}
+										onClick={() => handleToggleSort("importo")}
+										type="button"
+									>
+										<span className="font-medium">Importo</span>
+										<ChevronDown
+											aria-hidden
+											className={cn(
+												"size-3.5 transition-transform",
+												importSortDirection === "asc" && "-rotate-180",
+												importSortDirection === null
+													? "opacity-40"
+													: "opacity-100"
+											)}
+										/>
+									</button>
+									<button
+										aria-label={percentSortAriaLabel}
+										aria-pressed={percentSortDirection !== null}
+										className={cn(
+											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+											percentSortDirection !== null && "text-primary"
+										)}
+										onClick={() => handleToggleSort("percentuale")}
+										type="button"
+									>
+										<span className="font-medium">Percentuale</span>
+										<ChevronDown
+											aria-hidden
+											className={cn(
+												"size-3.5 transition-transform",
+												percentSortDirection === "asc" && "-rotate-180",
+												percentSortDirection === null
+													? "opacity-40"
+													: "opacity-100"
+											)}
+										/>
+									</button>
+									<div>Stato</div>
+								</div>
+							</div>
+							{loading && (
+								<div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8">
+									<p className="text-stats-title">Caricamento...</p>
+								</div>
+							)}
+							{!loading && error && (
+								<div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8">
+									<p className="text-center text-destructive">{error}</p>
+								</div>
+							)}
+							{!(loading || error) && filteredNegotiations.length === 0 && (
+								<div className="flex min-h-0 flex-1 flex-col">
+									<AnimatedEmptyState
+										cta={
+											negotiations.length > 0
+												? undefined
+												: {
+														label: "Aggiungi trattativa",
+														icon: (
+															<IconCirclePlusFilled aria-hidden size={16} />
+														),
+														onClick: () => setIsCreateDialogOpen(true),
+													}
+										}
+										heading={
+											negotiations.length > 0
+												? "Nessun risultato"
+												: "Non hai ancora trattative"
+										}
+										icon={
+											negotiations.length > 0 ? (
+												<div className="opacity-50">
+													<Search className="text-muted-foreground" size={64} />
+												</div>
+											) : (
+												<div className="opacity-50">
+													<SignatureIcon
+														aria-hidden
+														className="text-muted-foreground"
+														size={56}
 													/>
-													{/* Use card-foreground so the percentage is readable on the light track in dataweb light theme (text-foreground is light there and would be unreadable). */}
-													<span className="relative z-10 block w-full px-2 text-center font-medium text-card-foreground text-xs tabular-nums">
-														{clampedPercent}%
+												</div>
+											)
+										}
+										subtitle={
+											negotiations.length > 0
+												? "Prova a modificare i filtri o il termine di ricerca"
+												: "Aggiungi la tua prima trattativa per iniziare"
+										}
+									/>
+								</div>
+							)}
+							{!(loading || error) &&
+								sortedNegotiations.length > 0 &&
+								sortedNegotiations.map((n) => {
+									const statusUi = getNegotiationStatusUi(n);
+									// Clamp percentuale defensively to keep the progress "slider" within 0-100%
+									const clampedPercent = clampPercentuale(n.percentuale);
+									return (
+										// biome-ignore lint/a11y/useSemanticElements: div + role="button" avoids native button active/press animation on the row while keeping keyboard access.
+										<div
+											aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
+											/* Row hover uses dedicated table hover token; row is clickable but not a native button so it doesn't animate on press. */
+											className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
+											key={n.id}
+											onClick={() => handleOpenUpdate(n)}
+											onKeyDown={(event) => {
+												if (event.key === "Enter" || event.key === " ") {
+													event.preventDefault();
+													handleOpenUpdate(n);
+												}
+											}}
+											role="button"
+											tabIndex={0}
+										>
+											<div
+												className={cn(
+													TRATTATIVE_TABLE_GRID,
+													"items-center gap-4 text-base"
+												)}
+											>
+												<div className="truncate">{getClientDisplay(n)}</div>
+												<div className="truncate">{n.referente}</div>
+												<div className="truncate tabular-nums">
+													{formatNegotiationDate(
+														n.data_apertura ?? n.created_at ?? undefined
+													)}
+												</div>
+												<div className="truncate">
+													{filter === "concluse" &&
+														formatNegotiationDate(
+															n.data_chiusura ?? n.updated_at ?? undefined
+														)}
+													{filter === "abbandonate" &&
+														formatNegotiationDate(
+															n.data_abbandono ?? n.updated_at ?? undefined
+														)}
+													{(filter === "all" || filter === "aperte") &&
+														(n.client?.telefono?.trim()
+															? n.client.telefono.trim()
+															: "—")}
+												</div>
+												<div className="truncate">
+													<span
+														className={SPANCO_PILL_CLASSES}
+														style={{
+															// Text uses the solid main color, background uses a soft tint of the same color
+															backgroundColor:
+																SPANCO_STAGE_COLORS[n.spanco].softBg,
+															color: SPANCO_STAGE_COLORS[n.spanco].main,
+														}}
+													>
+														{SPANCO_LABELS[n.spanco]}
+													</span>
+												</div>
+												<div className="truncate tabular-nums">
+													{formatImporto(n.importo)}
+												</div>
+												<div className="flex items-center">
+													{/* Visual progress bar: track uses soft tint, fill uses main color (same as SPANCO pills) */}
+													<div
+														aria-label={`Avanzamento trattativa al ${clampedPercent}%`}
+														className="relative flex h-6 w-full items-center justify-center overflow-hidden rounded-full"
+														role="img"
+														style={{
+															backgroundColor:
+																SPANCO_STAGE_COLORS[n.spanco].softBg,
+														}}
+													>
+														<div
+															className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-150"
+															style={{
+																width: `${clampedPercent}%`,
+																backgroundColor:
+																	SPANCO_STAGE_COLORS[n.spanco].main,
+															}}
+														/>
+														{/* Use card-foreground so the percentage is readable on the light track in dataweb light theme (text-foreground is light there and would be unreadable). */}
+														<span className="relative z-10 block w-full px-2 text-center font-medium text-card-foreground text-xs tabular-nums">
+															{clampedPercent}%
+														</span>
+													</div>
+												</div>
+												<div>
+													<span
+														className={cn(
+															"inline-flex items-center justify-center gap-2 rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+															statusUi.classes
+														)}
+													>
+														{statusUi.icon === "close" && (
+															<CircleXmarkFilled aria-hidden size={18} />
+														)}
+														{statusUi.icon === "circle-plus" && (
+															<IconCirclePlusFilled aria-hidden size={18} />
+														)}
+														{statusUi.icon === "check" && (
+															<CheckIcon aria-hidden size={18} />
+														)}
+														{statusUi.label}
 													</span>
 												</div>
 											</div>
-											<div>
-												<span
-													className={cn(
-														"inline-flex items-center justify-center gap-2 rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
-														statusUi.classes
-													)}
-												>
-													{statusUi.icon === "close" && (
-														<CircleXmarkFilled aria-hidden size={18} />
-													)}
-													{statusUi.icon === "circle-plus" && (
-														<IconCirclePlusFilled aria-hidden size={18} />
-													)}
-													{statusUi.icon === "check" && (
-														<CheckIcon aria-hidden size={18} />
-													)}
-													{statusUi.label}
-												</span>
-											</div>
 										</div>
-									</div>
-								);
-							})}
+									);
+								})}
+						</div>
 					</div>
 				</div>
 			</div>
-
 			<CreateNegotiationDialog
 				initialClientId={
 					capturedInitialClientId ??

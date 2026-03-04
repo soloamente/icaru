@@ -151,9 +151,10 @@ export function TeamsView() {
 	// Seller view: minimal "I miei team"
 	if (!isDirector) {
 		return (
-			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
-				<div className="relative flex w-full items-center justify-between gap-4.5">
-					<h1 className="flex items-center justify-center gap-3.5">
+			<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+				{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, row layout */}
+				<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
+					<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
 						<UserGroupIcon aria-hidden size={24} />
 						<span>I miei team</span>
 					</h1>
@@ -238,10 +239,10 @@ export function TeamsView() {
 	);
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
-			{/* Header */}
-			<div className="relative flex w-full items-center justify-between gap-4.5">
-				<h1 className="flex items-center justify-center gap-3.5">
+		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+			{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, actions right */}
+			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
+				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
 					<UserGroupIcon aria-hidden size={24} />
 					<span>Team</span>
 				</h1>

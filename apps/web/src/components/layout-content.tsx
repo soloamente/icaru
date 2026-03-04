@@ -106,6 +106,20 @@ function SidebarLeftAnimatedLayout({
 	const openLeft = hasMounted ? baseOpenLeft * fontSizeScale : baseOpenLeft;
 	const spring = dialParams?.content?.spring ?? CONTENT_PANEL_SPRING_DEFAULT;
 
+	// On mobile: keep content panel full width and translate it right when sidebar opens,
+	// so the content moves instead of being squashed. On desktop: keep current behavior
+	// (panel left edge moves so its width shrinks and it sits beside the sidebar).
+	const isMobile = sidebarOpen.isMobile;
+	let contentPanelLeft: number;
+	let contentPanelX: number;
+	if (isMobile) {
+		contentPanelLeft = 0;
+		contentPanelX = isOpen ? openLeft : 0;
+	} else {
+		contentPanelLeft = isOpen ? openLeft : 0;
+		contentPanelX = 0;
+	}
+
 	return (
 		<div className="relative h-screen overflow-hidden">
 			{/* Sidebar: width from SIDEBAR_OPEN_WIDTH_PX so the right-hand content container gets smaller by that amount */}
@@ -119,9 +133,13 @@ function SidebarLeftAnimatedLayout({
 					variant="sidebar-left"
 				/>
 			</div>
-			{/* Content panel: transparent background; animates left to reveal (open) or cover (closed) the sidebar. */}
+			{/* Content panel: transparent background; animates left to reveal (open) or cover (closed) the sidebar.
+			 * On mobile we keep full width and use translateX so content moves right without resizing. */}
 			<motion.div
-				animate={{ left: isOpen ? openLeft : 0 }}
+				animate={{
+					left: contentPanelLeft,
+					x: contentPanelX,
+				}}
 				className="absolute top-0 right-0 bottom-0 z-10 flex min-h-0 flex-col bg-transparent"
 				initial={false}
 				onClick={() => {
@@ -129,6 +147,7 @@ function SidebarLeftAnimatedLayout({
 						sidebarOpen.setOpen(false);
 					}
 				}}
+				style={isMobile ? { left: 0, right: 0 } : undefined}
 				transition={spring}
 			>
 				{/* Toggle: when sidebar is closed, show menu button so user can open it */}
