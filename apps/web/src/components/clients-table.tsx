@@ -273,7 +273,7 @@ export default function ClientsTable() {
 	}
 
 	return (
-		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main className="m-3 flex flex-1 flex-col gap-2.5 rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
 			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
 				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
@@ -390,8 +390,9 @@ export default function ClientsTable() {
 			{/* Body: use table container background token for the shell */}
 			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
 				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
-				<div className="flex flex-wrap items-start gap-3.75">
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+				{/* Ultra‑compact stats cards: further reduced padding, gap, and icon/number sizes so they visually read as lightweight badges instead of large tiles. */}
+				<div className="flex flex-wrap items-start gap-2">
+					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -399,19 +400,19 @@ export default function ClientsTable() {
 							<IconPeople
 								aria-hidden
 								className="text-black dark:text-white"
-								size={56}
+								size={32}
 							/>
 						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Totale clienti
 						</h3>
 						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
+							<AnimateNumber className="text-base tabular-nums leading-none">
 								{visibleClients.length}
 							</AnimateNumber>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -419,19 +420,19 @@ export default function ClientsTable() {
 							<IconCirclePlusFilled
 								aria-hidden
 								className="text-black dark:text-white"
-								size={56}
+								size={32}
 							/>
 						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Clienti senza trattativa
 						</h3>
 						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
+							<AnimateNumber className="text-base tabular-nums leading-none">
 								{clientsWithoutCount}
 							</AnimateNumber>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -439,14 +440,14 @@ export default function ClientsTable() {
 							<CheckIcon
 								aria-hidden
 								className="text-black dark:text-white"
-								size={56}
+								size={32}
 							/>
 						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Clienti con trattativa
 						</h3>
 						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
+							<AnimateNumber className="text-base tabular-nums leading-none">
 								{clientsWithCount}
 							</AnimateNumber>
 						</div>

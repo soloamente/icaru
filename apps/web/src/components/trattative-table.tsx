@@ -1710,7 +1710,7 @@ export default function TrattativeTable({
 	);
 
 	return (
-		<main className="m-0 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main className="m-3 flex flex-1 flex-col gap-2.5 rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
 			{/* Header: mobile = stacked (title, then filters row, then search+button); desktop = title row + filters row per design */}
 			<div className="relative flex w-full flex-col gap-4 sm:gap-4.5">
 				{/* Header - title and primary action: on mobile stacked/centered, on desktop single row justify-between */}
@@ -1962,10 +1962,13 @@ export default function TrattativeTable({
 				 * We wrap every value in AnimateNumber so all counters share the same
 				 * subtle entrance animation instead of only the last one.
 				 */}
-				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità, applicata sul wrapper div e non direttamente sull'icona). */}
-				<div className="flex flex-wrap items-start gap-3.75">
+				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità, applicata sul wrapper div e non direttamente sull'icona).
+				 * Su questa pagina usiamo una variante più compatta delle stat cards (padding ridotto,
+				 * icone più piccole e numeri in `text-base`) per evitare che occupino troppo spazio
+				 * verticale, specialmente su mobile, mantenendo comunque gerarchia e leggibilità. */}
+				<div className="flex flex-wrap items-start gap-2">
 					{(filter === "all" || filter === "aperte") && (
-						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 							<div
 								aria-hidden
 								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -1973,21 +1976,21 @@ export default function TrattativeTable({
 								<IconFilePlusFill18
 									aria-hidden
 									className="text-black dark:text-white"
-									size={56}
+									size={32}
 								/>
 							</div>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative aperte
 							</h3>
 							<div className="flex items-center justify-start">
-								<AnimateNumber className="text-xl tabular-nums leading-none">
+								<AnimateNumber className="text-base tabular-nums leading-none">
 									{openCount}
 								</AnimateNumber>
 							</div>
 						</div>
 					)}
 					{(filter === "all" || filter === "concluse") && (
-						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 							<div
 								aria-hidden
 								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -1995,21 +1998,21 @@ export default function TrattativeTable({
 								<CheckIcon
 									aria-hidden
 									className="text-black dark:text-white"
-									size={56}
+									size={32}
 								/>
 							</div>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative concluse
 							</h3>
 							<div className="flex items-center justify-start">
-								<AnimateNumber className="text-xl tabular-nums leading-none">
+								<AnimateNumber className="text-base tabular-nums leading-none">
 									{completedCount}
 								</AnimateNumber>
 							</div>
 						</div>
 					)}
 					{(filter === "all" || filter === "abbandonate") && (
-						<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+						<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 							<div
 								aria-hidden
 								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -2017,20 +2020,20 @@ export default function TrattativeTable({
 								<CircleXmarkFilled
 									aria-hidden
 									className="text-black dark:text-white"
-									size={56}
+									size={32}
 								/>
 							</div>
 							<h3 className="font-medium text-sm text-stats-title leading-none">
 								Trattative abbandonate
 							</h3>
 							<div className="flex items-center justify-start">
-								<AnimateNumber className="text-xl tabular-nums leading-none">
+								<AnimateNumber className="text-base tabular-nums leading-none">
 									{abandonedCount}
 								</AnimateNumber>
 							</div>
 						</div>
 					)}
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -2038,22 +2041,22 @@ export default function TrattativeTable({
 							<IconVault3Fill18
 								aria-hidden
 								className="text-black dark:text-white"
-								size={56}
+								size={32}
 							/>
 						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Totale importo
 						</h3>
 						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
+							<AnimateNumber className="text-base tabular-nums leading-none">
 								{totalImporto}
 							</AnimateNumber>
-							<span className="ml-0.5 text-stats-title text-xl leading-none">
+							<span className="ml-0.5 text-base text-stats-title leading-none">
 								€
 							</span>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
+					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -2061,17 +2064,17 @@ export default function TrattativeTable({
 							<IconCurrencyExchangeFill18
 								aria-hidden
 								className="text-black dark:text-white"
-								size={56}
+								size={32}
 							/>
 						</div>
 						<h3 className="font-medium text-sm text-stats-title leading-none">
 							Importo medio
 						</h3>
 						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-xl tabular-nums leading-none">
+							<AnimateNumber className="text-base tabular-nums leading-none">
 								{averageImporto}
 							</AnimateNumber>
-							<span className="ml-0.5 text-stats-title text-xl leading-none">
+							<span className="ml-0.5 text-base text-stats-title leading-none">
 								€
 							</span>
 						</div>
