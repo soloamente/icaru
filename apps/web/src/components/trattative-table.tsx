@@ -1710,7 +1710,7 @@ export default function TrattativeTable({
 	);
 
 	return (
-		<main className="m-3 flex flex-1 flex-col gap-2.5 rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
 			{/* Header: mobile = stacked (title, then filters row, then search+button); desktop = title row + filters row per design */}
 			<div className="relative flex w-full flex-col gap-4 sm:gap-4.5">
 				{/* Header - title and primary action: on mobile stacked/centered, on desktop single row justify-between */}

@@ -273,7 +273,7 @@ export default function ClientsTable() {
 	}
 
 	return (
-		<main className="m-3 flex flex-1 flex-col gap-2.5 rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
 			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
 				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
