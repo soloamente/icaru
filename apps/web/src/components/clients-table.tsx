@@ -454,9 +454,11 @@ export default function ClientsTable() {
 					</div>
 				</div>
 
-				{/* Table: single scroll container so header and body scroll horizontally together on mobile */}
+				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
+				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
+				    così il fade non copre i titoli di colonna. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-auto">
+					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 						<div className="flex min-w-max flex-col">
 							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
@@ -471,57 +473,64 @@ export default function ClientsTable() {
 									<div>Trattativa</div>
 								</div>
 							</div>
-							{loading && (
-								<div className="flex h-full items-center justify-center p-8">
-									<p className="text-stats-title">Caricamento…</p>
-								</div>
-							)}
-							{!loading && error && (
-								<div className="flex h-full items-center justify-center p-8">
-									<p className="text-center text-destructive">{error}</p>
-								</div>
-							)}
-							{!(loading || error) && visibleClients.length === 0 && (
-								<AnimatedEmptyState
-									cta={
-										debouncedSearch.length > 0
-											? undefined
-											: {
-													label: "Aggiungi cliente",
-													icon: <IconCirclePlusFilled aria-hidden size={16} />,
-													onClick: () => setIsAddClientDialogOpen(true),
-												}
-									}
-									heading={
-										debouncedSearch.length > 0
-											? "Nessun risultato"
-											: "Non hai ancora clienti"
-									}
-									icon={
-										debouncedSearch.length > 0 ? (
-											<div className="opacity-50">
-												<Search className="text-muted-foreground" size={64} />
-											</div>
-										) : (
-											<div className="opacity-50">
-												<IconPeople
-													aria-hidden
-													className="text-muted-foreground"
-													size={64}
-												/>
-											</div>
-										)
-									}
-									subtitle={
-										debouncedSearch.length > 0
-											? "Prova con un altro termine di ricerca"
-											: "Aggiungi il tuo primo cliente per iniziare"
-									}
-								/>
-							)}
-							{!(loading || error) &&
-								visibleClients.length > 0 &&
-								visibleClients.map((c) => {
+							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
+							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
+								{loading && (
+									<div className="flex h-full items-center justify-center p-8">
+										<p className="text-stats-title">Caricamento…</p>
+									</div>
+								)}
+								{!loading && error && (
+									<div className="flex h-full items-center justify-center p-8">
+										<p className="text-center text-destructive">{error}</p>
+									</div>
+								)}
+								{!(loading || error) && visibleClients.length === 0 && (
+									<AnimatedEmptyState
+										cta={
+											debouncedSearch.length > 0
+												? undefined
+												: {
+														label: "Aggiungi cliente",
+														icon: (
+															<IconCirclePlusFilled aria-hidden size={16} />
+														),
+														onClick: () => setIsAddClientDialogOpen(true),
+													}
+										}
+										heading={
+											debouncedSearch.length > 0
+												? "Nessun risultato"
+												: "Non hai ancora clienti"
+										}
+										icon={
+											debouncedSearch.length > 0 ? (
+												<div className="opacity-50">
+													<Search
+														className="text-muted-foreground"
+														size={64}
+													/>
+												</div>
+											) : (
+												<div className="opacity-50">
+													<IconPeople
+														aria-hidden
+														className="text-muted-foreground"
+														size={64}
+													/>
+												</div>
+											)
+										}
+										subtitle={
+											debouncedSearch.length > 0
+												? "Prova con un altro termine di ricerca"
+												: "Aggiungi il tuo primo cliente per iniziare"
+										}
+									/>
+								)}
+								{!(loading || error) &&
+									visibleClients.length > 0 &&
+									visibleClients.map((c) => {
 									// A client is considered "senza trattative" when its id appears in the
 									// dedicated helper list. Everyone else is grouped under "ha almeno una
 									// trattativa" so we can show a simple, binary status pill.

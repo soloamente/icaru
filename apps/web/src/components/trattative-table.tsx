@@ -2081,9 +2081,11 @@ export default function TrattativeTable({
 					</div>
 				</div>
 
-				{/* Table: single scroll container so header and body scroll horizontally together on mobile */}
+				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
+				    Applichiamo l'effetto scroll-fade-y solo sul blocco delle righe (e sugli stati vuoto/loading),
+				    non sull'header, così che il fade non copra i titoli di colonna. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="scroll-fade-y flex h-full min-h-0 flex-1 flex-col overflow-auto">
+					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling.
 						    When showing empty/loading/error, use w-full (no min-w-max) so the empty state centers horizontally within the viewport on mobile. */}
 						<div
@@ -2251,172 +2253,178 @@ export default function TrattativeTable({
 									<div>Stato</div>
 								</div>
 							</div>
-							{loading && (
-								<div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8">
-									<p className="text-stats-title">Caricamento...</p>
-								</div>
-							)}
-							{!loading && error && (
-								<div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8">
-									<p className="text-center text-destructive">{error}</p>
-								</div>
-							)}
-							{!(loading || error) && filteredNegotiations.length === 0 && (
-								<div className="flex min-h-0 flex-1 flex-col">
-									<AnimatedEmptyState
-										cta={
-											negotiations.length > 0
-												? undefined
-												: {
-														label: "Aggiungi trattativa",
-														icon: (
-															<IconCirclePlusFilled aria-hidden size={16} />
-														),
-														onClick: () => setIsCreateDialogOpen(true),
-													}
-										}
-										heading={
-											negotiations.length > 0
-												? "Nessun risultato"
-												: "Non hai ancora trattative"
-										}
-										icon={
-											negotiations.length > 0 ? (
-												<div className="opacity-50">
-													<Search className="text-muted-foreground" size={64} />
-												</div>
-											) : (
-												<div className="opacity-50">
-													<SignatureIcon
-														aria-hidden
-														className="text-muted-foreground"
-														size={56}
-													/>
-												</div>
-											)
-										}
-										subtitle={
-											negotiations.length > 0
-												? "Prova a modificare i filtri o il termine di ricerca"
-												: "Aggiungi la tua prima trattativa per iniziare"
-										}
-									/>
-								</div>
-							)}
-							{!(loading || error) &&
-								sortedNegotiations.length > 0 &&
-								sortedNegotiations.map((n) => {
-									const statusUi = getNegotiationStatusUi(n);
-									// Clamp percentuale defensively to keep the progress "slider" within 0-100%
-									const clampedPercent = clampPercentuale(n.percentuale);
-									return (
-										// biome-ignore lint/a11y/useSemanticElements: div + role="button" avoids native button active/press animation on the row while keeping keyboard access.
-										<div
-											aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
-											/* Row hover uses dedicated table hover token; row is clickable but not a native button so it doesn't animate on press. */
-											className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
-											key={n.id}
-											onClick={() => handleOpenUpdate(n)}
-											onKeyDown={(event) => {
-												if (event.key === "Enter" || event.key === " ") {
-													event.preventDefault();
-													handleOpenUpdate(n);
-												}
-											}}
-											role="button"
-											tabIndex={0}
-										>
-											<div
-												className={cn(
-													TRATTATIVE_TABLE_GRID,
-													"items-center gap-4 text-base"
-												)}
-											>
-												<div className="truncate">{getClientDisplay(n)}</div>
-												<div className="truncate">{n.referente}</div>
-												<div className="truncate tabular-nums">
-													{formatNegotiationDate(
-														n.data_apertura ?? n.created_at ?? undefined
-													)}
-												</div>
-												<div className="truncate">
-													{filter === "concluse" &&
-														formatNegotiationDate(
-															n.data_chiusura ?? n.updated_at ?? undefined
-														)}
-													{filter === "abbandonate" &&
-														formatNegotiationDate(
-															n.data_abbandono ?? n.updated_at ?? undefined
-														)}
-													{(filter === "all" || filter === "aperte") &&
-														(n.client?.telefono?.trim()
-															? n.client.telefono.trim()
-															: "—")}
-												</div>
-												<div className="truncate">
-													<span
-														className={SPANCO_PILL_CLASSES}
-														style={{
-															// Text uses the solid main color, background uses a soft tint of the same color
-															backgroundColor:
-																SPANCO_STAGE_COLORS[n.spanco].softBg,
-															color: SPANCO_STAGE_COLORS[n.spanco].main,
-														}}
-													>
-														{SPANCO_LABELS[n.spanco]}
-													</span>
-												</div>
-												<div className="truncate tabular-nums">
-													{formatImporto(n.importo)}
-												</div>
-												<div className="flex items-center">
-													{/* Visual progress bar: track uses soft tint, fill uses main color (same as SPANCO pills) */}
-													<div
-														aria-label={`Avanzamento trattativa al ${clampedPercent}%`}
-														className="relative flex h-6 w-full items-center justify-center overflow-hidden rounded-full"
-														role="img"
-														style={{
-															backgroundColor:
-																SPANCO_STAGE_COLORS[n.spanco].softBg,
-														}}
-													>
-														<div
-															className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-150"
-															style={{
-																width: `${clampedPercent}%`,
-																backgroundColor:
-																	SPANCO_STAGE_COLORS[n.spanco].main,
-															}}
+							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
+							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
+								{loading && (
+									<div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8">
+										<p className="text-stats-title">Caricamento...</p>
+									</div>
+								)}
+								{!loading && error && (
+									<div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8">
+										<p className="text-center text-destructive">{error}</p>
+									</div>
+								)}
+								{!(loading || error) && filteredNegotiations.length === 0 && (
+									<div className="flex min-h-0 flex-1 flex-col">
+										<AnimatedEmptyState
+											cta={
+												negotiations.length > 0
+													? undefined
+													: {
+															label: "Aggiungi trattativa",
+															icon: (
+																<IconCirclePlusFilled aria-hidden size={16} />
+															),
+															onClick: () => setIsCreateDialogOpen(true),
+														}
+											}
+											heading={
+												negotiations.length > 0
+													? "Nessun risultato"
+													: "Non hai ancora trattative"
+											}
+											icon={
+												negotiations.length > 0 ? (
+													<div className="opacity-50">
+														<Search
+															className="text-muted-foreground"
+															size={64}
 														/>
-														{/* Use card-foreground so the percentage is readable on the light track in dataweb light theme (text-foreground is light there and would be unreadable). */}
-														<span className="relative z-10 block w-full px-2 text-center font-medium text-card-foreground text-xs tabular-nums">
-															{clampedPercent}%
+													</div>
+												) : (
+													<div className="opacity-50">
+														<SignatureIcon
+															aria-hidden
+															className="text-muted-foreground"
+															size={56}
+														/>
+													</div>
+												)
+											}
+											subtitle={
+												negotiations.length > 0
+													? "Prova a modificare i filtri o il termine di ricerca"
+													: "Aggiungi la tua prima trattativa per iniziare"
+											}
+										/>
+									</div>
+								)}
+								{!(loading || error) &&
+									sortedNegotiations.length > 0 &&
+									sortedNegotiations.map((n) => {
+										const statusUi = getNegotiationStatusUi(n);
+										// Clamp percentuale defensively to keep the progress "slider" within 0-100%
+										const clampedPercent = clampPercentuale(n.percentuale);
+										return (
+											// biome-ignore lint/a11y/useSemanticElements: div + role="button" avoids native button active/press animation on the row while keeping keyboard access.
+											<div
+												aria-label={`Trattativa ${n.id} - ${getClientDisplay(n)}`}
+												/* Row hover uses dedicated table hover token; row is clickable but not a native button so it doesn't animate on press. */
+												className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
+												key={n.id}
+												onClick={() => handleOpenUpdate(n)}
+												onKeyDown={(event) => {
+													if (event.key === "Enter" || event.key === " ") {
+														event.preventDefault();
+														handleOpenUpdate(n);
+													}
+												}}
+												role="button"
+												tabIndex={0}
+											>
+												<div
+													className={cn(
+														TRATTATIVE_TABLE_GRID,
+														"items-center gap-4 text-base"
+													)}
+												>
+													<div className="truncate">{getClientDisplay(n)}</div>
+													<div className="truncate">{n.referente}</div>
+													<div className="truncate tabular-nums">
+														{formatNegotiationDate(
+															n.data_apertura ?? n.created_at ?? undefined
+														)}
+													</div>
+													<div className="truncate">
+														{filter === "concluse" &&
+															formatNegotiationDate(
+																n.data_chiusura ?? n.updated_at ?? undefined
+															)}
+														{filter === "abbandonate" &&
+															formatNegotiationDate(
+																n.data_abbandono ?? n.updated_at ?? undefined
+															)}
+														{(filter === "all" || filter === "aperte") &&
+															(n.client?.telefono?.trim()
+																? n.client.telefono.trim()
+																: "—")}
+													</div>
+													<div className="truncate">
+														<span
+															className={SPANCO_PILL_CLASSES}
+															style={{
+																// Text uses the solid main color, background uses a soft tint of the same color
+																backgroundColor:
+																	SPANCO_STAGE_COLORS[n.spanco].softBg,
+																color: SPANCO_STAGE_COLORS[n.spanco].main,
+															}}
+														>
+															{SPANCO_LABELS[n.spanco]}
+														</span>
+													</div>
+													<div className="truncate tabular-nums">
+														{formatImporto(n.importo)}
+													</div>
+													<div className="flex items-center">
+														{/* Visual progress bar: track uses soft tint, fill uses main color (same as SPANCO pills) */}
+														<div
+															aria-label={`Avanzamento trattativa al ${clampedPercent}%`}
+															className="relative flex h-6 w-full items-center justify-center overflow-hidden rounded-full"
+															role="img"
+															style={{
+																backgroundColor:
+																	SPANCO_STAGE_COLORS[n.spanco].softBg,
+															}}
+														>
+															<div
+																className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-150"
+																style={{
+																	width: `${clampedPercent}%`,
+																	backgroundColor:
+																		SPANCO_STAGE_COLORS[n.spanco].main,
+																}}
+															/>
+															{/* Use card-foreground so the percentage is readable on the light track in dataweb light theme (text-foreground is light there and would be unreadable). */}
+															<span className="relative z-10 block w-full px-2 text-center font-medium text-card-foreground text-xs tabular-nums">
+																{clampedPercent}%
+															</span>
+														</div>
+													</div>
+													<div>
+														<span
+															className={cn(
+																"inline-flex items-center justify-center gap-2 rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+																statusUi.classes
+															)}
+														>
+															{statusUi.icon === "close" && (
+																<CircleXmarkFilled aria-hidden size={18} />
+															)}
+															{statusUi.icon === "circle-plus" && (
+																<IconCirclePlusFilled aria-hidden size={18} />
+															)}
+															{statusUi.icon === "check" && (
+																<CheckIcon aria-hidden size={18} />
+															)}
+															{statusUi.label}
 														</span>
 													</div>
 												</div>
-												<div>
-													<span
-														className={cn(
-															"inline-flex items-center justify-center gap-2 rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
-															statusUi.classes
-														)}
-													>
-														{statusUi.icon === "close" && (
-															<CircleXmarkFilled aria-hidden size={18} />
-														)}
-														{statusUi.icon === "circle-plus" && (
-															<IconCirclePlusFilled aria-hidden size={18} />
-														)}
-														{statusUi.icon === "check" && (
-															<CheckIcon aria-hidden size={18} />
-														)}
-														{statusUi.label}
-													</span>
-												</div>
 											</div>
-										</div>
-									);
-								})}
+										);
+									})}
+							</div>
 						</div>
 					</div>
 				</div>
