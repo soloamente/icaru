@@ -288,7 +288,7 @@ export default function ClientsTable() {
 	return (
 		<main
 			className={cn(
-				"m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+				"m-3 flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
 			)}
 		>
