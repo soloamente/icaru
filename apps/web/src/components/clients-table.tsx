@@ -454,13 +454,11 @@ export default function ClientsTable() {
 					</div>
 				</div>
 
-				{/* Table: horizontal scroll container wraps header + body so they scroll insieme su mobile.
-				    Lo scroll verticale è invece limitato al solo blocco delle righe (scroll-fade-y) così
-				    che l'header e le stat cards restino fissi mentre la lista scorre su mobile. */}
+				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
+				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
+				    così il fade non copre i titoli di colonna. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					{/* overflow-x-auto per permettere lo scroll orizzontale dell'intera tabella (header + righe);
-					    lo scroll verticale viene gestito esclusivamente dal contenitore scroll-fade-y più sotto. */}
-					<div className="flex h-full min-h-0 flex-1 flex-col overflow-x-auto">
+					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 						<div className="flex min-w-max flex-col">
 							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
@@ -475,10 +473,8 @@ export default function ClientsTable() {
 									<div>Trattativa</div>
 								</div>
 							</div>
-							{/* Scroll-fade + overflow-y-auto applicati solo al blocco dei contenuti
-							    (vuoto / error / righe) così che su mobile l'utente scorra
-							    esclusivamente la lista e non l'intera card/pagina. */}
-							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col overflow-y-auto">
+							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
+							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
 								{loading && (
 									<div className="flex h-full items-center justify-center p-8">
 										<p className="text-stats-title">Caricamento…</p>
