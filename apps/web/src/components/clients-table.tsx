@@ -75,6 +75,40 @@ function formatAddress(addr: ApiClientAddress | null | undefined): string {
 	return parts.join(", ");
 }
 
+/**
+ * Local, defensive filtering so that the search input always works even if
+ * the backend ignores or only partially supports the `search` query param.
+ * Match by ragione sociale, email, P.IVA, telefono, tipologia, indirizzo (case-insensitive).
+ * Estratta fuori da `ClientsTable` per ridurre la complessità cognitiva del componente.
+ */
+function getVisibleClientsForSearch(
+	clients: ApiClient[],
+	debouncedSearch: string
+): ApiClient[] {
+	const normalizedSearch = debouncedSearch.toLowerCase().trim();
+	if (normalizedSearch.length === 0) {
+		return clients;
+	}
+
+	return clients.filter((client) => {
+		const name = getClientDisplay(client).toLowerCase();
+		const pIva = client.p_iva?.toLowerCase() ?? "";
+		const email = client.email?.toLowerCase() ?? "";
+		const telefono = client.telefono ?? "";
+		const tipologia = client.tipologia?.toLowerCase() ?? "";
+		const sede = formatAddress(client.address).toLowerCase();
+
+		return (
+			name.includes(normalizedSearch) ||
+			pIva.includes(normalizedSearch) ||
+			email.includes(normalizedSearch) ||
+			telefono.includes(normalizedSearch) ||
+			tipologia.includes(normalizedSearch) ||
+			sede.includes(normalizedSearch)
+		);
+	});
+}
+
 export default function ClientsTable() {
 	const { token } = useAuth();
 	const router = useRouter();
@@ -84,9 +118,9 @@ export default function ClientsTable() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-	/** Opens dialog to add a single client. */
+	/* Opens dialog to add a single client. */
 	const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
-	/** When set, "Nuova trattativa" dialog is open with this client pre-selected (from row "Aggiungi"). */
+	/* When set, "Nuova trattativa" dialog is open with this client pre-selected (from row "Aggiungi"). */
 	const [clientIdForNewNegotiation, setClientIdForNewNegotiation] = useState<
 		number | null
 	>(null);
@@ -232,31 +266,8 @@ export default function ClientsTable() {
 		fetchClientsWithoutNegotiations();
 	}, [fetchClientsWithoutNegotiations]);
 
-	/**
-	 * Local, defensive filtering so that the search input always works even if
-	 * the backend ignores or only partially supports the `search` query param.
-	 * Match by ragione sociale, email, P.IVA, telefono, tipologia, indirizzo (case-insensitive).
-	 */
-	const normalizedSearch = debouncedSearch.toLowerCase();
-	const visibleClients =
-		normalizedSearch.length > 0
-			? clients.filter((client) => {
-					const name = getClientDisplay(client).toLowerCase();
-					const pIva = client.p_iva?.toLowerCase() ?? "";
-					const email = client.email?.toLowerCase() ?? "";
-					const telefono = client.telefono ?? "";
-					const tipologia = client.tipologia?.toLowerCase() ?? "";
-					const sede = formatAddress(client.address).toLowerCase();
-					return (
-						name.includes(normalizedSearch) ||
-						pIva.includes(normalizedSearch) ||
-						email.includes(normalizedSearch) ||
-						telefono.includes(normalizedSearch) ||
-						tipologia.includes(normalizedSearch) ||
-						sede.includes(normalizedSearch)
-					);
-				})
-			: clients;
+	// Local, defensive filtering delegata a una funzione di supporto per mantenere il corpo del componente più lineare.
+	const visibleClients = getVisibleClientsForSearch(clients, debouncedSearch);
 
 	// Stats per le card: totale visibili, senza trattativa (in lista without-negotiations), con almeno una trattativa.
 	const clientsWithoutCount = visibleClients.filter((c) =>
