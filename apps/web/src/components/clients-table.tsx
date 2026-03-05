@@ -398,10 +398,16 @@ export default function ClientsTable() {
 				</div>
 			</div>
 
-			{/* Body: shell grafica della tabella. Manteniamo overflow-hidden qui per evitare scroll doppi
-			    sui bordi della card; su mobile lo scroll avviene comunque sul wrapper <main>, mentre
-			    su desktop la lista usa un contenitore interno con overflow. */}
-			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 overflow-hidden rounded-t-3xl px-5.5 pt-6.25">
+			{/* Body: shell grafica della tabella.
+			    - Desktop: usiamo min-h-0 + flex-1 + overflow-hidden, lo scroll verticale è confinato alla lista.
+			    - Mobile: lasciamo che il contenuto definisca l'altezza (niente flex-1/overflow qui) così che lo scroll
+			      avvenga sull'intero <main> e non ci siano scroll doppi. */}
+			<div
+				className={cn(
+					"table-container-bg flex flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25",
+					isMobile ? undefined : "min-h-0 flex-1 overflow-hidden"
+				)}
+			>
 				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
 				{/* Ultra‑compact stats cards: further reduced padding, gap, and icon/number sizes so they visually read as lightweight badges instead of large tiles. */}
 				<div className="flex flex-wrap items-start gap-2">
@@ -470,13 +476,23 @@ export default function ClientsTable() {
 				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
 				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
 				    così il fade non copre i titoli di colonna. */}
-				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+				<div
+					className={cn(
+						"flex rounded-xl",
+						// Su desktop il wrapper occupa tutta l'altezza disponibile e confina lo scroll alla lista;
+						// su mobile evitiamo min-h-0/flex-1 qui per permettere al contenuto di espandersi e delegare
+						// lo scroll al <main>.
+						isMobile
+							? "flex-col"
+							: "h-full min-h-0 flex-1 flex-col overflow-hidden"
+					)}
+				>
 					<div
 						className={cn(
-							"flex h-full min-h-0 flex-1 flex-col",
-							// Su desktop la tabella interna ha il proprio scroll verticale (solo le righe scorrono);
-							// su mobile rimuoviamo l'overflow qui così lo scroll avviene sull'intera pagina/card.
-							isMobile ? undefined : "overflow-auto"
+							"flex flex-col",
+							// Desktop: la tabella interna ha il proprio scroll verticale (solo le righe scorrono).
+							// Mobile: nessun overflow qui, lo scroll è gestito dal wrapper <main>.
+							isMobile ? undefined : "h-full min-h-0 flex-1 overflow-auto"
 						)}
 					>
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
@@ -493,8 +509,15 @@ export default function ClientsTable() {
 									<div>Trattativa</div>
 								</div>
 							</div>
-							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
-							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
+							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe).
+							    Su desktop manteniamo min-h-0 + flex-1 per riempire l'area scrollabile; su mobile
+							    lasciamo che il contenuto determini l'altezza così che lo scroll avvenga sul main. */}
+							<div
+								className={cn(
+									"scroll-fade-y flex flex-col",
+									isMobile ? undefined : "min-h-0 flex-1"
+								)}
+							>
 								{loading && (
 									<div className="flex h-full items-center justify-center p-8">
 										<p className="text-stats-title">Caricamento…</p>
