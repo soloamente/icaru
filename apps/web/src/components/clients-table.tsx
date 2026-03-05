@@ -10,7 +10,6 @@ import {
 	IconCirclePlusFilled,
 	IconPeople,
 } from "@/components/icons";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	listClientsMe,
 	listClientsWithoutNegotiations,
@@ -79,6 +78,8 @@ function formatAddress(addr: ApiClientAddress | null | undefined): string {
 export default function ClientsTable() {
 	const { token } = useAuth();
 	const router = useRouter();
+	// Individua la viewport mobile (usato per differenziare il comportamento di scroll tra mobile e desktop).
+	const isMobile = useIsMobile();
 	const [clients, setClients] = useState<ApiClient[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -276,8 +277,11 @@ export default function ClientsTable() {
 	return (
 		<main
 			className={cn(
+				// Wrapper principale della card: su mobile diventa il contenitore scrollabile dell'intera pagina
+				// (header + stats + tabella scorrono insieme), mentre su desktop manteniamo lo scroll confinato
+				// alla sola lista all'interno della tabella per allinearci alle altre pagine tabellari.
 				"m-3 flex flex-1 flex-col gap-2.5 rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-				useIsMobile() ? "overflow-auto" : "overflow-hidden"
+				isMobile ? "overflow-auto" : "overflow-hidden"
 			)}
 		>
 			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}
@@ -393,8 +397,10 @@ export default function ClientsTable() {
 				</div>
 			</div>
 
-			{/* Body: use table container background token for the shell */}
-			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
+			{/* Body: shell grafica della tabella. Manteniamo overflow-hidden qui per evitare scroll doppi
+			    sui bordi della card; su mobile lo scroll avviene comunque sul wrapper <main>, mentre
+			    su desktop la lista usa un contenitore interno con overflow. */}
+			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 overflow-hidden rounded-t-3xl px-5.5 pt-6.25">
 				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
 				{/* Ultra‑compact stats cards: further reduced padding, gap, and icon/number sizes so they visually read as lightweight badges instead of large tiles. */}
 				<div className="flex flex-wrap items-start gap-2">
@@ -464,7 +470,14 @@ export default function ClientsTable() {
 				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
 				    così il fade non copre i titoli di colonna. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
+					<div
+						className={cn(
+							"flex h-full min-h-0 flex-1 flex-col",
+							// Su desktop la tabella interna ha il proprio scroll verticale (solo le righe scorrono);
+							// su mobile rimuoviamo l'overflow qui così lo scroll avviene sull'intera pagina/card.
+							isMobile ? undefined : "overflow-auto"
+						)}
+					>
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 						<div className="flex min-w-max flex-col">
 							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
