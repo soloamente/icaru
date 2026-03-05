@@ -93,7 +93,7 @@ function SidebarLeftAnimatedLayout({
 
 	if (!sidebarOpen) {
 		return (
-			<div className="flex h-screen overflow-hidden">
+			<div className="flex h-screen overflow-y-auto overflow-x-hidden">
 				<Sidebar user={user} variant="sidebar-left" />
 				{children}
 			</div>
@@ -121,7 +121,7 @@ function SidebarLeftAnimatedLayout({
 	}
 
 	return (
-		<div className="relative h-screen overflow-hidden">
+		<div className="relative h-screen overflow-y-auto overflow-x-hidden">
 			{/* Sidebar: width from SIDEBAR_OPEN_WIDTH_PX so the right-hand content container gets smaller by that amount */}
 			<div
 				className="absolute top-0 left-0 z-0 h-full shrink-0"
