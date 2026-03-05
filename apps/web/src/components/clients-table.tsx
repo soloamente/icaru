@@ -273,7 +273,7 @@ export default function ClientsTable() {
 	}
 
 	return (
-		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main className="m-3 flex flex-col gap-2.5 rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5 sm:flex-1 sm:overflow-hidden">
 			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
 				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
@@ -388,7 +388,7 @@ export default function ClientsTable() {
 			</div>
 
 			{/* Body: use table container background token for the shell */}
-			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
+			<div className="table-container-bg flex flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25 sm:min-h-0 sm:flex-1">
 				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
 				{/* Ultra‑compact stats cards: further reduced padding, gap, and icon/number sizes so they visually read as lightweight badges instead of large tiles. */}
 				<div className="flex flex-wrap items-start gap-2">
@@ -457,8 +457,8 @@ export default function ClientsTable() {
 				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
 				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
 				    così il fade non copre i titoli di colonna. */}
-				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
+				<div className="flex flex-col rounded-xl sm:h-full sm:min-h-0 sm:flex-1 sm:overflow-hidden">
+					<div className="flex flex-col sm:h-full sm:min-h-0 sm:flex-1 sm:overflow-auto">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 						<div className="flex min-w-max flex-col">
 							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
