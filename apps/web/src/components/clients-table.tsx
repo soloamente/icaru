@@ -78,8 +78,6 @@ function formatAddress(addr: ApiClientAddress | null | undefined): string {
 export default function ClientsTable() {
 	const { token } = useAuth();
 	const router = useRouter();
-	// Individua la viewport mobile (usato per differenziare il comportamento di scroll tra mobile e desktop).
-	const isMobile = useIsMobile();
 	const [clients, setClients] = useState<ApiClient[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
