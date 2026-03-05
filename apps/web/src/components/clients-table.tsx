@@ -10,6 +10,7 @@ import {
 	IconCirclePlusFilled,
 	IconPeople,
 } from "@/components/icons";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	listClientsMe,
 	listClientsWithoutNegotiations,
