@@ -67,7 +67,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
 	return (
 		<html
-			className={`${inter.variable} ${sfProRounded.variable} h-svh overflow-hidden font-sf-pro-rounded`}
+			className={`${inter.variable} ${sfProRounded.variable} h-dvh overflow-hidden font-sf-pro-rounded`}
 			lang="en"
 			suppressHydrationWarning
 		>
@@ -81,7 +81,7 @@ export default function RootLayout({
 					/>
 				)}
 			</head>
-			<body className="h-svh overflow-hidden">
+			<body className="h-dvh overflow-hidden">
 				<Providers>
 					{/* Keep the main app shell (sidebar + content chrome) visible while
 					 * routes and data are loading so the Loader appears inside the same

@@ -584,10 +584,10 @@ html[data-font-size="large"] {
 		@apply border-border outline-ring/50;
 	}
 	html {
-		@apply h-full overflow-hidden;
+		@apply h-dvh overflow-hidden;
 	}
 	body {
-		@apply bg-background text-foreground h-full overflow-hidden;
+		@apply bg-background text-foreground h-dvh overflow-hidden;
 	}
 
 	/* Button press animation */
