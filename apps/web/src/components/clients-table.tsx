@@ -288,8 +288,8 @@ export default function ClientsTable() {
 	return (
 		<main
 			className={cn(
-				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
 		>
 			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}

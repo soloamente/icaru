@@ -269,8 +269,8 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 		return (
 			<main
 				className={cn(
-					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-					isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+					isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 				)}
 			>
 				{/* Header: back button + title */}
@@ -346,8 +346,8 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 		return (
 			<main
 				className={cn(
-					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-					isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+					isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 				)}
 			>
 				<div className="relative flex w-full flex-col gap-4.5">
@@ -385,8 +385,8 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 	return (
 		<main
 			className={cn(
-				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
 		>
 			{/* Header: back + title on left, Cancel + Save on right — same pattern as /clienti/[id] */}

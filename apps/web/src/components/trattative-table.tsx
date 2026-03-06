@@ -1714,8 +1714,8 @@ export default function TrattativeTable({
 	return (
 		<main
 			className={cn(
-				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
 		>
 			{/* Header: mobile = stacked (title, then filters row, then search+button); desktop = title row + filters row per design */}

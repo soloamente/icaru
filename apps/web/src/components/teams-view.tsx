@@ -156,8 +156,8 @@ export function TeamsView() {
 		return (
 			<main
 				className={cn(
-					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-					isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+					isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 				)}
 			>
 				{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, row layout */}
@@ -249,8 +249,8 @@ export function TeamsView() {
 	return (
 		<main
 			className={cn(
-				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
-				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
 		>
 			{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, actions right */}
