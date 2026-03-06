@@ -20,6 +20,7 @@ import {
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	createNegotiation,
 	listClientsWithoutNegotiations,
@@ -1445,6 +1446,7 @@ export default function TrattativeTable({
 	// - Date filter (preset) is always shown on all trattative tables.
 	const showSpancoFilter = filter !== "concluse";
 	const showStatoFilter = filter === "all";
+	const isMobile = useIsMobile();
 	// When at least one header filter is visible we keep the two-row header layout.
 	const hasHeaderFilters = true; /* date filter sempre visibile */
 
@@ -1625,9 +1627,9 @@ export default function TrattativeTable({
 	const searchField = (
 		<div className="flex min-w-0 flex-1 sm:flex-initial">
 			<motion.label
-				/* Search bar background follows table buttons color for consistency. */
+				/* Search bar background follows table buttons color for consistency. Larger tap target on mobile (min 48px) like clienti page. */
 				animate={{ width: searchAnimateWidth }}
-				className="flex min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-3.75 py-1.75 text-sm shadow-[-18px_0px_14px_var(--color-card)] sm:flex-initial"
+				className="flex min-h-[48px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-3 text-base shadow-[-18px_0px_14px_var(--color-card)] sm:min-h-0 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:text-sm"
 				htmlFor="trattative-search"
 				initial={false}
 				transition={{ duration: 0.5, ease: [0.541, 0.232, 0.226, 1.002] }}
@@ -1710,7 +1712,12 @@ export default function TrattativeTable({
 	);
 
 	return (
-		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main
+			className={cn(
+				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+			)}
+		>
 			{/* Header: mobile = stacked (title, then filters row, then search+button); desktop = title row + filters row per design */}
 			<div className="relative flex w-full flex-col gap-4 sm:gap-4.5">
 				{/* Header - title and primary action: on mobile stacked/centered, on desktop single row justify-between */}
@@ -1730,8 +1737,7 @@ export default function TrattativeTable({
 						<button
 							aria-label="Aggiungi trattativa"
 							className={cn(
-								"flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-2.5 text-sm",
-								"sm:py-1.75 sm:pr-2.5 sm:pl-3.75",
+								"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
 								hasHeaderFilters && "hidden sm:flex"
 							)}
 							onClick={() => setIsCreateDialogOpen(true)}
@@ -1745,8 +1751,8 @@ export default function TrattativeTable({
 				{/* Header - filters: mobile = two rows (filters one line, then search+Aggiungi); desktop = one row (filters + search) */}
 				{hasHeaderFilters && (
 					<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-						{/* Filters: single line on mobile (scroll), wrap on desktop */}
-						<div className="flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
+						{/* Filters: single line on mobile (scroll), wrap on desktop. scroll-fade-x hints more filters on left/right when horizontally scrollable. */}
+						<div className="scroll-fade-x flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
 							{/* Filtro data apertura: sempre visibile su tutte le viste */}
 							<DateRangeFilter
 								align="start"
@@ -1944,7 +1950,7 @@ export default function TrattativeTable({
 							{searchField}
 							<button
 								aria-label="Aggiungi trattativa"
-								className="flex shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-2.5 text-sm sm:hidden sm:px-3.75 sm:py-1.75"
+								className="flex min-h-[48px] min-w-[48px] shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:hidden"
 								onClick={() => setIsCreateDialogOpen(true)}
 								type="button"
 							>
@@ -1963,12 +1969,10 @@ export default function TrattativeTable({
 				 * subtle entrance animation instead of only the last one.
 				 */}
 				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità, applicata sul wrapper div e non direttamente sull'icona).
-				 * Su questa pagina usiamo una variante più compatta delle stat cards (padding ridotto,
-				 * icone più piccole e numeri in `text-base`) per evitare che occupino troppo spazio
-				 * verticale, specialmente su mobile, mantenendo comunque gerarchia e leggibilità. */}
-				<div className="flex flex-wrap items-start gap-2">
+				 * Single row with horizontal scroll + scroll-fade-x (like clienti) so more table rows fit on screen. */}
+				<div className="scroll-fade-x flex shrink-0 flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden">
 					{(filter === "all" || filter === "aperte") && (
-						<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+						<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 							<div
 								aria-hidden
 								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -1990,7 +1994,7 @@ export default function TrattativeTable({
 						</div>
 					)}
 					{(filter === "all" || filter === "concluse") && (
-						<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+						<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 							<div
 								aria-hidden
 								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -2012,7 +2016,7 @@ export default function TrattativeTable({
 						</div>
 					)}
 					{(filter === "all" || filter === "abbandonate") && (
-						<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+						<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 							<div
 								aria-hidden
 								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -2033,7 +2037,7 @@ export default function TrattativeTable({
 							</div>
 						</div>
 					)}
-					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -2056,7 +2060,7 @@ export default function TrattativeTable({
 							</span>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"

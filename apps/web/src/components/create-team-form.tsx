@@ -123,7 +123,12 @@ export function CreateTeamForm() {
 	const sectionCardClasses = cn(SECTION_CARD_CLASSES, isMobile && "flex-col");
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+		<main
+			className={cn(
+				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+			)}
+		>
 			{/* Header: back + title on left, Annulla + Crea Team on right (same pattern as dettagli trattative/clienti). */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">

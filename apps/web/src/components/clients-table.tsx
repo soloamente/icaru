@@ -23,11 +23,11 @@ import { cn } from "@/lib/utils";
 import { AddClientDialog } from "./add-client-dialog";
 import { AnimatedEmptyState } from "./animated-empty-state";
 import IconDeleteLeftFill18 from "./icons/delete-left-fill-18";
-import Download4 from "./icons/download-4";
 import IconEarthAlertFill18 from "./icons/icon-earth-alert-fill-18";
 import IconEyeFill12 from "./icons/icon-eye-fill-12";
 import IconFrame69 from "./icons/icon-frame-69";
 import IconTriangleWarningFill18 from "./icons/icon-triangle-warning-fill-18";
+import IconUpload4 from "./icons/icon-upload-4";
 import { ImportClientsDialog } from "./import-clients-dialog";
 import { CreateNegotiationDialog } from "./trattative-table";
 
@@ -288,7 +288,7 @@ export default function ClientsTable() {
 	return (
 		<main
 			className={cn(
-				"m-3 flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
 			)}
 		>
@@ -400,7 +400,7 @@ export default function ClientsTable() {
 						type="button"
 					>
 						<span className="hidden sm:inline">Importa</span>
-						<Download4 className="size-4 shrink-0 text-button-secondary" />
+						<IconUpload4 className="size-4 shrink-0 text-button-secondary" />
 					</button>
 				</div>
 			</div>
@@ -410,9 +410,9 @@ export default function ClientsTable() {
 			    rimanga stabile dentro il layout a viewport fissa. */}
 			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
 				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
-				{/* Ultra‑compact stats cards: further reduced padding, gap, and icon/number sizes so they visually read as lightweight badges instead of large tiles. */}
-				<div className="flex flex-wrap items-start gap-2">
-					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+				{/* Ultra‑compact stats cards: single row with horizontal scroll so more table rows fit on screen; scroll-fade-x hints more content on left/right. */}
+				<div className="scroll-fade-x flex shrink-0 flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden">
+					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -432,7 +432,7 @@ export default function ClientsTable() {
 							</AnimateNumber>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
@@ -452,7 +452,7 @@ export default function ClientsTable() {
 							</AnimateNumber>
 						</div>
 					</div>
-					<div className="relative flex flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
 						<div
 							aria-hidden
 							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"

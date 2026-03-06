@@ -4,9 +4,11 @@ import { Plus } from "lucide-react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { listMyTeams, listTeams } from "@/lib/api/client";
 import type { ApiTeam, ApiTeamMinimal } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { cn } from "@/lib/utils";
 import { AnimatedEmptyState } from "./animated-empty-state";
 import { IconArrowUpRightFill12 } from "./icons/icon-arrow-up-right-fill-12";
 import { UserGroupIcon } from "./icons/user-group";
@@ -21,6 +23,7 @@ import { Skeleton } from "./ui/skeleton";
 export function TeamsView() {
 	const { token, role } = useAuth();
 	const router = useRouter();
+	const isMobile = useIsMobile();
 	const isDirector = role === "director";
 
 	// Director state: full team list
@@ -151,7 +154,12 @@ export function TeamsView() {
 	// Seller view: minimal "I miei team"
 	if (!isDirector) {
 		return (
-			<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+			<main
+				className={cn(
+					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+					isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				)}
+			>
 				{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, row layout */}
 				<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
 					<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
@@ -239,7 +247,12 @@ export function TeamsView() {
 	);
 
 	return (
-		<main className="m-3 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5">
+		<main
+			className={cn(
+				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+			)}
+		>
 			{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, actions right */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
 				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">

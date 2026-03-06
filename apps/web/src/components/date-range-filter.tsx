@@ -3,7 +3,7 @@
 import { Popover } from "@base-ui/react/popover";
 import { format, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { Check, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
 	DayPicker,
@@ -173,7 +173,7 @@ export function DateRangeFilter({
 					<Popover.Trigger
 						aria-label={`Filtro ${label.toLowerCase()}: ${triggerLabel}`}
 						className={cn(
-							"border-none bg-transparent px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+							"flex items-center justify-between gap-2 border-none bg-transparent px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
 							variant === "table" && "text-stats-title",
 							// When filter is active, use full-bright primary color so the user clearly sees it's applied
 							hasRange && variant === "table" && "text-primary",
@@ -181,6 +181,7 @@ export function DateRangeFilter({
 						)}
 					>
 						<span className="whitespace-nowrap">{triggerLabel}</span>
+						<ChevronDown aria-hidden className="size-3.5 shrink-0" />
 					</Popover.Trigger>
 					{hasRange && (
 						<button

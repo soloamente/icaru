@@ -51,4 +51,57 @@
 			--fb: 0px;
 		}
 	}
+
+	/* Horizontal scroll fade (left/right), e.g. for stats row. */
+	@property --fl {
+		syntax: "<length>";
+		inherits: false;
+		initial-value: 0px;
+	}
+
+	@property --fr {
+		syntax: "<length>";
+		inherits: false;
+		initial-value: 40px;
+	}
+
+	.scroll-fade-x {
+		--fl: 0px;
+		--fr: 40px;
+		mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			#000 var(--fl),
+			#000 calc(100% - var(--fr)),
+			transparent 100%
+		);
+		mask-size: 100% 100%;
+		mask-repeat: no-repeat;
+		animation:
+			fadeLeft 1 linear both,
+			fadeRight 1 linear both;
+		/* Drive timeline by horizontal scroll (inline axis) so fade responds to overflow-x scroll. */
+		animation-timeline: scroll(self inline), scroll(self inline);
+		animation-range:
+			0% 12%,
+			88% 100%;
+	}
+
+	@keyframes fadeLeft {
+		from {
+			--fl: 0px;
+		}
+		to {
+			--fl: 40px;
+		}
+	}
+
+	@keyframes fadeRight {
+		from {
+			--fr: 40px;
+		}
+		to {
+			--fr: 0px;
+		}
+	}
 }

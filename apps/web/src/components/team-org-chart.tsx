@@ -267,7 +267,12 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 	// Loading skeleton — mirrors the detail page layout: header, stats (director), form, org chart.
 	if (loading) {
 		return (
-			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+			<main
+				className={cn(
+					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+					isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				)}
+			>
 				{/* Header: back button + title */}
 				<div className="flex items-center gap-3.5">
 					<Skeleton aria-hidden className="size-11 shrink-0 rounded-lg" />
@@ -339,7 +344,12 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 
 	if (error && !team) {
 		return (
-			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+			<main
+				className={cn(
+					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+					isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+				)}
+			>
 				<div className="relative flex w-full flex-col gap-4.5">
 					<div className="flex items-center justify-start gap-2.5">
 						<button
@@ -373,7 +383,12 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 	}
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+		<main
+			className={cn(
+				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium sm:m-2.5",
+				isMobile ? "m-2 overflow-y-scroll" : "m-3 overflow-y-hidden"
+			)}
+		>
 			{/* Header: back + title on left, Cancel + Save on right — same pattern as /clienti/[id] */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
