@@ -93,7 +93,7 @@ function SidebarLeftAnimatedLayout({
 
 	if (!sidebarOpen) {
 		return (
-			<div className="flex h-screen overflow-hidden">
+			<div className="flex h-svh overflow-hidden">
 				<Sidebar user={user} variant="sidebar-left" />
 				{children}
 			</div>
@@ -121,7 +121,7 @@ function SidebarLeftAnimatedLayout({
 	}
 
 	return (
-		<div className="relative h-screen overflow-hidden">
+		<div className="relative h-svh overflow-hidden">
 			{/* Sidebar: width from SIDEBAR_OPEN_WIDTH_PX so the right-hand content container gets smaller by that amount */}
 			<div
 				className="absolute top-0 left-0 z-0 h-full shrink-0"
@@ -213,7 +213,7 @@ export default function LayoutContent({
 		return (
 			<>
 				<GlobalSearchCommand />
-				<div className="flex h-screen overflow-hidden">{children}</div>
+				<div className="flex h-svh overflow-hidden">{children}</div>
 			</>
 		);
 	}
@@ -237,7 +237,7 @@ export default function LayoutContent({
 		return (
 			<>
 				<GlobalSearchCommand />
-				<div className="flex h-screen overflow-hidden">
+				<div className="flex h-svh overflow-hidden">
 					{children}
 					<Sidebar user={user} variant="sidebar-right" />
 				</div>
@@ -250,7 +250,7 @@ export default function LayoutContent({
 		return (
 			<>
 				<GlobalSearchCommand />
-				<div className="flex h-screen flex-col overflow-hidden">
+				<div className="flex h-svh flex-col overflow-hidden">
 					<Sidebar user={user} variant="top" />
 					<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 						{children}
@@ -265,7 +265,7 @@ export default function LayoutContent({
 		return (
 			<>
 				<GlobalSearchCommand />
-				<div className="flex h-screen flex-col overflow-hidden">
+				<div className="flex h-svh flex-col overflow-hidden">
 					<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 						{children}
 					</div>
@@ -279,7 +279,7 @@ export default function LayoutContent({
 	return (
 		<>
 			<GlobalSearchCommand />
-			<div className="flex h-screen overflow-hidden">
+			<div className="flex h-svh overflow-hidden">
 				<Sidebar user={user} variant="sidebar-left" />
 				{children}
 			</div>

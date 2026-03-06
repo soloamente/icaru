@@ -15,7 +15,7 @@ export default function TrattativePage() {
 	// While we redirect to the default "Tutte" view, center the loader in the
 	// available viewport area so the UI feels stable and balanced.
 	return (
-		<main className="flex min-h-screen items-center justify-center">
+		<main className="flex min-h-svh items-center justify-center">
 			<Loader />
 		</main>
 	);
