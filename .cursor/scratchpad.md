@@ -137,16 +137,17 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - **Criterio di successo:** un Direttore Vendite, aprendo `/team/[id]`, vede sia i KPI aggregati che la distribuzione SPANCO del team con lo stesso vocabolario visivo del grafico personale; nessun riferimento ai campi SPANCO rimossi dalla vecchia risposta Team.
 
 **Task 13: Vista di supervisione singolo membro del team** (nuova route, es. `apps/web/src/app/team/[teamId]/members/[memberId]/page.tsx` + componenti dedicati)
-- Definire una vista dedicata alla supervisione di un venditore all'interno di un team, accessibile da:
-  - click su un nodo membro dell'organigramma (`MemberNode`) o
-  - da una nuova azione contestuale nella pagina dettaglio team.
+- Definire una vista dedicata alla supervisione di un venditore, concettualmente unica (non esistono trattative "nel team" vs "fuori dal team"): tutte le trattative del venditore vengono conteggiate comunque nella statistica del team.
+- **Entrata principale:** bottone/CTA "Dettagli venditore" sul `MemberNode` dell'organigramma (`OrgChartSection` in `team-org-chart.tsx`), che porta a `/team/[teamId]/members/[memberId]`. In alternativa si può rendere l'intera card cliccabile (rigorosamente separata dal bottone "Rimuovi" tramite `stopPropagation`).
 - La vista deve:
-  - Mostrare i KPI personali del venditore nel contesto del team usando `getTeamMemberStatistics` (`GET /api/teams/{teamId}/members/{memberId}/stats`).
-  - Mostrare lo SPANCO personale del venditore usando `getTeamMemberSpancoStatistics` (`/spanco`), con stesso formato grafico della dashboard personale.
-  - Elencare tutte le trattative del venditore (`listTeamMemberNegotiations`) con le stesse colonne base di `TrattativeTable`, indicando chiaramente stato (aperta/conclusa/abbandonata).
-  - Esporre una mappa delle trattative non abbandonate con coordinate (`listTeamMemberNegotiationsWithCoordinates`) riusando il pattern di mappa già usato per `/negotiations/me/with-coordinates`.
-  - Gestire in modo esplicito il caso `403` ("Il Direttore può accedere ai dati di un venditore solo se è membro effettivo del team indicato"): messaggio chiaro + eventuale CTA per tornare al dettaglio team.
-- **Criterio di successo:** da `/team/[id]` un Direttore può entrare in una pagina di supervisione membro che offre, in una singola shell grafica coerente con `/dashboard`, i 6 KPI, lo SPANCO, la lista trattative e la mappa, e che rispetta i vincoli di autorizzazione descritti nella specifica.
+  - Riutilizzare la shell grafica delle pagine di dettaglio esistenti (header con "Torna al team", titolo "Venditore {Nome Cognome}", azioni contestuali se servono).
+  - Mostrare i **KPI personali** del venditore usando `getTeamMemberStatistics` (`GET /api/teams/{teamId}/members/{memberId}/stats`) in 3–4 stat cards in alto, con lo stesso linguaggio visivo dei KPI in `/dashboard`.
+  - Mostrare lo **SPANCO personale** del venditore usando `getTeamMemberSpancoStatistics` (`/spanco`), con un grafico ad anello riusando il componente `SpancoDonutChart` (stesso design della dashboard) ma alimentato con i dati del venditore.
+  - Esporre una **mappa** delle trattative non abbandonate con coordinate (`listTeamMemberNegotiationsWithCoordinates`), riutilizzando il pattern di mappa già usato per `/negotiations/me/with-coordinates` (cluster, tooltip, focus).
+  - Elencare **tutte le trattative del venditore** (`listTeamMemberNegotiations`) con le stesse colonne base e lo stesso look & feel di `TrattativeTable`, in una sezione tabellare sotto grafico e mappa, chiarendo lo stato (aperta/conclusa/abbandonata) con le stesse pill di stato.
+  - Gestire loading/error in modo coerente con le altre pagine (skeleton iniziali, banner di errore locale quando gli endpoint di supervisione falliscono).
+  - Gestire in modo esplicito il caso `403` ("Il Direttore può accedere ai dati di un venditore solo se è membro effettivo del team indicato"): messaggio chiaro + CTA "Torna al team" per rientrare in `/team/[teamId]`.
+- **Criterio di successo:** da `/team/[id]` un Direttore può entrare in una pagina di supervisione membro che offre, in una singola shell grafica coerente con `/dashboard`, i KPI, lo SPANCO ad anello, la mappa e la tabella delle trattative del venditore, con un flusso di entrata chiaro dalla card dell'organigramma e nel rispetto dei vincoli di autorizzazione descritti nella specifica.
 
 ## Project Status Board
 

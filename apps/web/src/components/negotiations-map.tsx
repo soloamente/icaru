@@ -22,7 +22,10 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listNegotiationsMeWithCoordinates } from "@/lib/api/client";
+import {
+	listNegotiationsMeWithCoordinates,
+	listTeamMemberNegotiationsWithCoordinates,
+} from "@/lib/api/client";
 import type { ApiNegotiation, SpancoStage } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import { usePreferencesOptional } from "@/lib/preferences/preferences-context";
@@ -245,8 +248,15 @@ interface MapboxMapWithAtmosphere {
 /** Inner map content — rendered only when Mapbox token is available. */
 function NegotiationsMapInner({
 	accessToken,
+	scope = "me",
+	teamId,
+	memberId,
 }: {
 	accessToken: string;
+	/** "me" = tratttative personali; "team-member" = trattative di un singolo membro del team. */
+	scope?: "me" | "team-member";
+	teamId?: number;
+	memberId?: number;
 }): ReactNode {
 	// Store map instance from onLoad for imperative calls (flyTo, atmospheric effects).
 	const mapInstanceRef = useRef<MapboxMapWithAtmosphere | null>(null);
@@ -286,7 +296,16 @@ function NegotiationsMapInner({
 		setIsMapLoading(true);
 		setMapError(null);
 
-		listNegotiationsMeWithCoordinates(auth.token).then((result) => {
+		const fetchPromise =
+			scope === "team-member" && teamId != null && memberId != null
+				? listTeamMemberNegotiationsWithCoordinates(
+						auth.token,
+						teamId,
+						memberId
+					)
+				: listNegotiationsMeWithCoordinates(auth.token);
+
+		fetchPromise.then((result) => {
 			if (cancelled) {
 				return;
 			}
@@ -304,7 +323,7 @@ function NegotiationsMapInner({
 		return () => {
 			cancelled = true;
 		};
-	}, [auth?.token]);
+	}, [auth?.token, scope, teamId, memberId]);
 
 	const points = useMemo(
 		() => negotiationsToPoints(negotiations),
@@ -599,6 +618,7 @@ function NegotiationsMapInner({
 					style={{ width: "100%", height: "100%" }}
 				>
 					{!isMapLoading &&
+						// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: cluster + marker rendering is intentionally verbose for tooltip and navigation behaviour in a single map render pass.
 						sortedClusters.map((cluster) => {
 							const [longitude, latitude] = cluster.geometry.coordinates;
 							const props = cluster.properties as
@@ -825,7 +845,45 @@ export function NegotiationsMap(): ReactNode {
 		);
 	}
 
-	return <NegotiationsMapInner accessToken={mapboxToken} />;
+	return <NegotiationsMapInner accessToken={mapboxToken} scope="me" />;
+}
+
+/**
+ * Map of Italy for a specific team member (supervisione venditore).
+ * Uses /api/teams/{teamId}/members/{memberId}/map for data.
+ * Shares the same visual design and interactions as NegotiationsMap.
+ */
+export function TeamMemberNegotiationsMap(props: {
+	teamId: number;
+	memberId: number;
+}): ReactNode {
+	const mapboxToken =
+		typeof process !== "undefined"
+			? process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+			: null;
+
+	if (!mapboxToken) {
+		return (
+			<div className="flex h-[360px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center sm:h-[440px] md:h-[520px]">
+				<p className="text-muted-foreground text-sm">
+					Configura{" "}
+					<code className="rounded bg-muted px-1 text-xs">
+						NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+					</code>{" "}
+					per visualizzare la mappa.
+				</p>
+			</div>
+		);
+	}
+
+	return (
+		<NegotiationsMapInner
+			accessToken={mapboxToken}
+			memberId={props.memberId}
+			scope="team-member"
+			teamId={props.teamId}
+		/>
+	);
 }
 
 /** Skeleton for the map section while loading. Same heights as map/donut for layout consistency. */

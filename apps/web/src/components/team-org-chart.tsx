@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
@@ -660,6 +660,7 @@ function OrgChartSection({
 	onTeamUpdate,
 	onError,
 }: OrgChartSectionProps) {
+	const router = useRouter();
 	const { token, user } = useAuth();
 	const [isAddOpen, setIsAddOpen] = useState(false);
 	const [addingMemberId, setAddingMemberId] = useState<number | null>(null);
@@ -801,6 +802,15 @@ function OrgChartSection({
 		await handleToggleCreatorParticipates();
 	}, [handleToggleCreatorParticipates]);
 
+	/** Navigate to the supervisione venditore page for the given member. */
+	const handleOpenMemberDetails = useCallback(
+		(memberId: number) => {
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic segment path
+			router.push(`/team/${teamId}/members/${memberId}` as any);
+		},
+		[router, teamId]
+	);
+
 	const members = team.users ?? [];
 	const currentMemberIds = new Set(members.map((u: ApiTeamUser) => u.id));
 	const filteredAvailable = availableMembers.filter(
@@ -876,6 +886,7 @@ function OrgChartSection({
 											isDirector={isDirector}
 											isRemoving={removingUserId === member.id}
 											member={member}
+											onOpenDetails={() => handleOpenMemberDetails(member.id)}
 											onRemove={() => handleRemoveMember(member.id)}
 										/>
 									</div>
@@ -1012,6 +1023,8 @@ interface MemberNodeProps {
 	isDirector: boolean;
 	isRemoving: boolean;
 	onRemove: () => void;
+	/** Open the supervision page for this member (stats + SPANCO + mappa + trattative). */
+	onOpenDetails: () => void;
 }
 
 /** Member card in the org chart grid. */
@@ -1020,6 +1033,7 @@ function MemberNode({
 	isDirector,
 	isRemoving,
 	onRemove,
+	onOpenDetails,
 }: MemberNodeProps) {
 	const fullName = `${member.nome} ${member.cognome}`;
 
@@ -1041,6 +1055,17 @@ function MemberNode({
 			<span className="max-w-full truncate text-center text-muted-foreground text-xs leading-none">
 				{member.email}
 			</span>
+
+			{/* Dettagli venditore: CTA visibile a tutti, separata dal bottone di rimozione. */}
+			<button
+				aria-label={`Visualizza i dettagli delle trattative di ${fullName}`}
+				className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 font-medium text-[11px] text-stats-title transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+				onClick={onOpenDetails}
+				type="button"
+			>
+				<span>Dettagli venditore</span>
+				<ArrowUpRight aria-hidden className="size-3.5" />
+			</button>
 
 			{/* Remove button (directors only) */}
 			{isDirector && (
