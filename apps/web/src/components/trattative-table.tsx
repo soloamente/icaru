@@ -13,6 +13,7 @@ import type { DateRange as DayPickerDateRange } from "react-day-picker";
 import { Drawer } from "vaul";
 import {
 	CheckIcon,
+	IconChartBarTrendUp,
 	IconCirclePlusFilled,
 	IconCurrencyExchangeFill18,
 	IconFilePlusFill18,
@@ -1447,6 +1448,8 @@ export default function TrattativeTable({
 	const showSpancoFilter = filter !== "concluse";
 	const showStatoFilter = filter === "all";
 	const isMobile = useIsMobile();
+	// Mobile-only toggle that collapses the stats row so more table content fits on small screens.
+	const [statsOpen, setStatsOpen] = useState(false);
 	// When at least one header filter is visible we keep the two-row header layout.
 	const hasHeaderFilters = true; /* date filter sempre visibile */
 
@@ -1505,6 +1508,9 @@ export default function TrattativeTable({
 		}
 		return passesSearchFilter(n, searchTerm, getClientDisplay);
 	});
+
+	// True when the table should show the dedicated empty state (no rows after filters/search).
+	const isEmptyState = !(loading || error) && filteredNegotiations.length === 0;
 
 	// Statistiche di riepilogo: aperte, concluse, abbandonate in base alle regole sopra.
 	const openCount = filteredNegotiations.filter((n) =>
@@ -1963,127 +1969,161 @@ export default function TrattativeTable({
 			</div>
 
 			{/* Body: use table container background token for the shell */}
-			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
-				{/* Stats: show only the relevant stat per page; all three on "tutte".
-				 * We wrap every value in AnimateNumber so all counters share the same
-				 * subtle entrance animation instead of only the last one.
-				 */}
-				{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità, applicata sul wrapper div e non direttamente sull'icona).
-				 * Single row with horizontal scroll + scroll-fade-x (like clienti) so more table rows fit on screen. */}
-				<div className="scroll-fade-x flex shrink-0 flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden">
-					{(filter === "all" || filter === "aperte") && (
-						<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-							<div
-								aria-hidden
-								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+			<div className="table-container-bg flex min-h-0 flex-1 flex-col rounded-t-3xl px-5.5 pt-6.25">
+				{/* Stats: hide completely when showing the empty state so the layout focuses on the empty illustration. */}
+				{!isEmptyState && (
+					<div className="shrink-0">
+						{isMobile && (
+							<button
+								aria-expanded={statsOpen}
+								className="mb-2.5 flex items-center gap-1.5 rounded-full bg-table-header px-3 py-1.5 font-medium text-sm text-stats-title transition-colors hover:bg-table-hover"
+								onClick={() => setStatsOpen((v) => !v)}
+								type="button"
 							>
-								<IconFilePlusFill18
-									aria-hidden
-									className="text-black dark:text-white"
-									size={32}
-								/>
-							</div>
-							<h3 className="font-medium text-sm text-stats-title leading-none">
-								Trattative aperte
-							</h3>
-							<div className="flex items-center justify-start">
-								<AnimateNumber className="text-base tabular-nums leading-none">
-									{openCount}
-								</AnimateNumber>
-							</div>
-						</div>
-					)}
-					{(filter === "all" || filter === "concluse") && (
-						<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-							<div
-								aria-hidden
-								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
-							>
-								<CheckIcon
-									aria-hidden
-									className="text-black dark:text-white"
-									size={32}
-								/>
-							</div>
-							<h3 className="font-medium text-sm text-stats-title leading-none">
-								Trattative concluse
-							</h3>
-							<div className="flex items-center justify-start">
-								<AnimateNumber className="text-base tabular-nums leading-none">
-									{completedCount}
-								</AnimateNumber>
-							</div>
-						</div>
-					)}
-					{(filter === "all" || filter === "abbandonate") && (
-						<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-							<div
-								aria-hidden
-								className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
-							>
-								<CircleXmarkFilled
-									aria-hidden
-									className="text-black dark:text-white"
-									size={32}
-								/>
-							</div>
-							<h3 className="font-medium text-sm text-stats-title leading-none">
-								Trattative abbandonate
-							</h3>
-							<div className="flex items-center justify-start">
-								<AnimateNumber className="text-base tabular-nums leading-none">
-									{abandonedCount}
-								</AnimateNumber>
-							</div>
-						</div>
-					)}
-					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-						<div
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
-						>
-							<IconVault3Fill18
-								aria-hidden
-								className="text-black dark:text-white"
-								size={32}
-							/>
-						</div>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Totale importo
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-base tabular-nums leading-none">
-								{totalImporto}
-							</AnimateNumber>
-							<span className="ml-0.5 text-base text-stats-title leading-none">
-								€
-							</span>
-						</div>
+								{/* Match the analytics iconography used elsewhere to suggest performance metrics. */}
+								<IconChartBarTrendUp aria-hidden size={14} />
+								<span>Statistiche</span>
+								{/* Same chevron pattern as filters and clients stats for consistent disclosure affordance. */}
+								<motion.span
+									animate={{ rotate: statsOpen ? 180 : 0 }}
+									className="ml-0.5 inline-flex shrink-0"
+									transition={{ duration: 0.2 }}
+								>
+									<ChevronDown
+										aria-hidden
+										className="size-3.5 text-button-secondary"
+									/>
+								</motion.span>
+							</button>
+						)}
+						<AnimatePresence initial={false}>
+							{(!isMobile || statsOpen) && (
+								<motion.div
+									animate={{ opacity: 1, height: "auto" }}
+									className="scroll-fade-x mb-4 flex flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden"
+									exit={{ opacity: 0, height: 0 }}
+									initial={{ opacity: 0, height: 0 }}
+									transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+								>
+									{/* Icona fill in bg per ogni card: stessa pattern della dashboard (decorativa, bassa opacità, applicata sul wrapper div e non direttamente sull'icona).
+									 * Single row with horizontal scroll + scroll-fade-x (like clienti) so more table rows fit on screen. */}
+									{(filter === "all" || filter === "aperte") && (
+										<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+											<div
+												aria-hidden
+												className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+											>
+												<IconFilePlusFill18
+													aria-hidden
+													className="text-black dark:text-white"
+													size={32}
+												/>
+											</div>
+											<h3 className="font-medium text-sm text-stats-title leading-none">
+												Trattative aperte
+											</h3>
+											<div className="flex items-center justify-start">
+												<AnimateNumber className="text-base tabular-nums leading-none">
+													{openCount}
+												</AnimateNumber>
+											</div>
+										</div>
+									)}
+									{(filter === "all" || filter === "concluse") && (
+										<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+											<div
+												aria-hidden
+												className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+											>
+												<CheckIcon
+													aria-hidden
+													className="text-black dark:text-white"
+													size={32}
+												/>
+											</div>
+											<h3 className="font-medium text-sm text-stats-title leading-none">
+												Trattative concluse
+											</h3>
+											<div className="flex items-center justify-start">
+												<AnimateNumber className="text-base tabular-nums leading-none">
+													{completedCount}
+												</AnimateNumber>
+											</div>
+										</div>
+									)}
+									{(filter === "all" || filter === "abbandonate") && (
+										<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+											<div
+												aria-hidden
+												className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+											>
+												<CircleXmarkFilled
+													aria-hidden
+													className="text-black dark:text-white"
+													size={32}
+												/>
+											</div>
+											<h3 className="font-medium text-sm text-stats-title leading-none">
+												Trattative abbandonate
+											</h3>
+											<div className="flex items-center justify-start">
+												<AnimateNumber className="text-base tabular-nums leading-none">
+													{abandonedCount}
+												</AnimateNumber>
+											</div>
+										</div>
+									)}
+									<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+										<div
+											aria-hidden
+											className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+										>
+											<IconVault3Fill18
+												aria-hidden
+												className="text-black dark:text-white"
+												size={32}
+											/>
+										</div>
+										<h3 className="font-medium text-sm text-stats-title leading-none">
+											Totale importo
+										</h3>
+										<div className="flex items-center justify-start">
+											<AnimateNumber className="text-base tabular-nums leading-none">
+												{totalImporto}
+											</AnimateNumber>
+											<span className="ml-0.5 text-base text-stats-title leading-none">
+												€
+											</span>
+										</div>
+									</div>
+									<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+										<div
+											aria-hidden
+											className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+										>
+											<IconCurrencyExchangeFill18
+												aria-hidden
+												className="text-black dark:text-white"
+												size={32}
+											/>
+										</div>
+										<h3 className="font-medium text-sm text-stats-title leading-none">
+											Importo medio
+										</h3>
+										<div className="flex items-center justify-start">
+											<AnimateNumber className="text-base tabular-nums leading-none">
+												{averageImporto}
+											</AnimateNumber>
+											<span className="ml-0.5 text-base text-stats-title leading-none">
+												€
+											</span>
+										</div>
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
 					</div>
-					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-						<div
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
-						>
-							<IconCurrencyExchangeFill18
-								aria-hidden
-								className="text-black dark:text-white"
-								size={32}
-							/>
-						</div>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Importo medio
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-base tabular-nums leading-none">
-								{averageImporto}
-							</AnimateNumber>
-							<span className="ml-0.5 text-base text-stats-title leading-none">
-								€
-							</span>
-						</div>
-					</div>
-				</div>
+				)}
 
 				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
 				    Applichiamo l'effetto scroll-fade-y solo sul blocco delle righe (e sugli stati vuoto/loading),
@@ -2092,171 +2132,167 @@ export default function TrattativeTable({
 					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling.
 						    When showing empty/loading/error, use w-full (no min-w-max) so the empty state centers horizontally within the viewport on mobile. */}
-						<div
-							className={cn(
-								"flex flex-col",
-								loading ||
-									error ||
-									(filteredNegotiations.length === 0 && !loading && !error)
-									? "min-h-full w-full flex-1"
-									: "min-w-max"
-							)}
-						>
-							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
-							<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
-								<div
-									className={cn(
-										TRATTATIVE_TABLE_GRID,
-										"items-center gap-4 font-medium text-sm text-table-header-foreground"
-									)}
-								>
-									<div>Cliente</div>
-									<div>Referente</div>
-									{/* Data apertura: colonna ordinabile */}
-									<button
-										aria-label={dataAperturaSortAriaLabel}
-										aria-pressed={dataAperturaSortDirection !== null}
+						<div className="flex min-w-max flex-col">
+							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width.
+							    Hidden when showing the empty state so only the empty illustration is visible. */}
+							{!isEmptyState && (
+								<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
+									<div
 										className={cn(
-											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-											dataAperturaSortDirection !== null && "text-primary"
+											TRATTATIVE_TABLE_GRID,
+											"items-center gap-4 font-medium text-sm text-table-header-foreground"
 										)}
-										onClick={() => handleToggleSort("data_apertura")}
-										type="button"
 									>
-										<span className="font-medium">Data apertura</span>
-										<ChevronDown
-											aria-hidden
-											className={cn(
-												"size-3.5 transition-transform",
-												dataAperturaSortDirection === "asc" && "-rotate-180",
-												dataAperturaSortDirection === null
-													? "opacity-40"
-													: "opacity-100"
-											)}
-										/>
-									</button>
-									{/* Colonna 4: Data chiusura (concluse), Data abbandono (abbandonate) o Telefono (tutte/aperte) */}
-									{filter === "concluse" && (
+										<div>Cliente</div>
+										<div>Referente</div>
+										{/* Data apertura: colonna ordinabile */}
 										<button
-											aria-label={dataChiusuraSortAriaLabel}
-											aria-pressed={dataChiusuraSortDirection !== null}
+											aria-label={dataAperturaSortAriaLabel}
+											aria-pressed={dataAperturaSortDirection !== null}
 											className={cn(
 												"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-												dataChiusuraSortDirection !== null && "text-primary"
+												dataAperturaSortDirection !== null && "text-primary"
 											)}
-											onClick={() => handleToggleSort("data_chiusura")}
+											onClick={() => handleToggleSort("data_apertura")}
 											type="button"
 										>
-											<span className="font-medium">Data chiusura</span>
+											<span className="font-medium">Data apertura</span>
 											<ChevronDown
 												aria-hidden
 												className={cn(
 													"size-3.5 transition-transform",
-													dataChiusuraSortDirection === "asc" && "-rotate-180",
-													dataChiusuraSortDirection === null
+													dataAperturaSortDirection === "asc" && "-rotate-180",
+													dataAperturaSortDirection === null
 														? "opacity-40"
 														: "opacity-100"
 												)}
 											/>
 										</button>
-									)}
-									{filter === "abbandonate" && (
+										{/* Colonna 4: Data chiusura (concluse), Data abbandono (abbandonate) o Telefono (tutte/aperte) */}
+										{filter === "concluse" && (
+											<button
+												aria-label={dataChiusuraSortAriaLabel}
+												aria-pressed={dataChiusuraSortDirection !== null}
+												className={cn(
+													"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+													dataChiusuraSortDirection !== null && "text-primary"
+												)}
+												onClick={() => handleToggleSort("data_chiusura")}
+												type="button"
+											>
+												<span className="font-medium">Data chiusura</span>
+												<ChevronDown
+													aria-hidden
+													className={cn(
+														"size-3.5 transition-transform",
+														dataChiusuraSortDirection === "asc" &&
+															"-rotate-180",
+														dataChiusuraSortDirection === null
+															? "opacity-40"
+															: "opacity-100"
+													)}
+												/>
+											</button>
+										)}
+										{filter === "abbandonate" && (
+											<button
+												aria-label={dataAbbandonoSortAriaLabel}
+												aria-pressed={dataAbbandonoSortDirection !== null}
+												className={cn(
+													"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+													dataAbbandonoSortDirection !== null && "text-primary"
+												)}
+												onClick={() => handleToggleSort("data_abbandono")}
+												type="button"
+											>
+												<span className="font-medium">Data abbandono</span>
+												<ChevronDown
+													aria-hidden
+													className={cn(
+														"size-3.5 transition-transform",
+														dataAbbandonoSortDirection === "asc" &&
+															"-rotate-180",
+														dataAbbandonoSortDirection === null
+															? "opacity-40"
+															: "opacity-100"
+													)}
+												/>
+											</button>
+										)}
+										{(filter === "all" || filter === "aperte") && (
+											<div>Telefono</div>
+										)}
 										<button
-											aria-label={dataAbbandonoSortAriaLabel}
-											aria-pressed={dataAbbandonoSortDirection !== null}
+											aria-label={spancoSortAriaLabel}
+											aria-pressed={spancoSortDirection !== null}
 											className={cn(
 												"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-												dataAbbandonoSortDirection !== null && "text-primary"
+												spancoSortDirection !== null && "text-primary"
 											)}
-											onClick={() => handleToggleSort("data_abbandono")}
+											onClick={() => handleToggleSort("spanco")}
 											type="button"
 										>
-											<span className="font-medium">Data abbandono</span>
+											<span className="font-medium">Spanco</span>
 											<ChevronDown
 												aria-hidden
 												className={cn(
 													"size-3.5 transition-transform",
-													dataAbbandonoSortDirection === "asc" && "-rotate-180",
-													dataAbbandonoSortDirection === null
+													spancoSortDirection === "asc" && "-rotate-180",
+													spancoSortDirection === null
 														? "opacity-40"
 														: "opacity-100"
 												)}
 											/>
 										</button>
-									)}
-									{(filter === "all" || filter === "aperte") && (
-										<div>Telefono</div>
-									)}
-									<button
-										aria-label={spancoSortAriaLabel}
-										aria-pressed={spancoSortDirection !== null}
-										className={cn(
-											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-											spancoSortDirection !== null && "text-primary"
-										)}
-										onClick={() => handleToggleSort("spanco")}
-										type="button"
-									>
-										<span className="font-medium">Spanco</span>
-										<ChevronDown
-											aria-hidden
+										{/* Align importo sort control to the start to match requested layout */}
+										<button
+											aria-label={importSortAriaLabel}
+											aria-pressed={importSortDirection !== null}
 											className={cn(
-												"size-3.5 transition-transform",
-												spancoSortDirection === "asc" && "-rotate-180",
-												spancoSortDirection === null
-													? "opacity-40"
-													: "opacity-100"
+												"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+												importSortDirection !== null && "text-primary"
 											)}
-										/>
-									</button>
-									{/* Align importo sort control to the start to match requested layout */}
-									<button
-										aria-label={importSortAriaLabel}
-										aria-pressed={importSortDirection !== null}
-										className={cn(
-											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-											importSortDirection !== null && "text-primary"
-										)}
-										onClick={() => handleToggleSort("importo")}
-										type="button"
-									>
-										<span className="font-medium">Importo</span>
-										<ChevronDown
-											aria-hidden
+											onClick={() => handleToggleSort("importo")}
+											type="button"
+										>
+											<span className="font-medium">Importo</span>
+											<ChevronDown
+												aria-hidden
+												className={cn(
+													"size-3.5 transition-transform",
+													importSortDirection === "asc" && "-rotate-180",
+													importSortDirection === null
+														? "opacity-40"
+														: "opacity-100"
+												)}
+											/>
+										</button>
+										<button
+											aria-label={percentSortAriaLabel}
+											aria-pressed={percentSortDirection !== null}
 											className={cn(
-												"size-3.5 transition-transform",
-												importSortDirection === "asc" && "-rotate-180",
-												importSortDirection === null
-													? "opacity-40"
-													: "opacity-100"
+												"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+												percentSortDirection !== null && "text-primary"
 											)}
-										/>
-									</button>
-									<button
-										aria-label={percentSortAriaLabel}
-										aria-pressed={percentSortDirection !== null}
-										className={cn(
-											"group flex items-center justify-start gap-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-											percentSortDirection !== null && "text-primary"
-										)}
-										onClick={() => handleToggleSort("percentuale")}
-										type="button"
-									>
-										<span className="font-medium">Percentuale</span>
-										<ChevronDown
-											aria-hidden
-											className={cn(
-												"size-3.5 transition-transform",
-												percentSortDirection === "asc" && "-rotate-180",
-												percentSortDirection === null
-													? "opacity-40"
-													: "opacity-100"
-											)}
-										/>
-									</button>
-									<div>Stato</div>
+											onClick={() => handleToggleSort("percentuale")}
+											type="button"
+										>
+											<span className="font-medium">Percentuale</span>
+											<ChevronDown
+												aria-hidden
+												className={cn(
+													"size-3.5 transition-transform",
+													percentSortDirection === "asc" && "-rotate-180",
+													percentSortDirection === null
+														? "opacity-40"
+														: "opacity-100"
+												)}
+											/>
+										</button>
+										<div>Stato</div>
+									</div>
 								</div>
-							</div>
+							)}
 							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
 							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
 								{loading && (
