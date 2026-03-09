@@ -23,6 +23,7 @@ import {
 import type {
 	ApiNegotiation,
 	ApiTeam,
+	SpancoStage,
 	SpancoStatistics,
 	TeamMemberStatistics,
 } from "@/lib/api/types";
