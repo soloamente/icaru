@@ -22,6 +22,7 @@ import type {
 	NegotiationsStatistics,
 	SearchResponse,
 	SpancoStatistics,
+	TeamMemberStatistics,
 	UpdateClientBody,
 	UpdateNegotiationBody,
 	UpdateTeamBody,
@@ -1269,7 +1270,7 @@ export async function removeTeamMember(
 }
 
 /**
- * GET /api/teams/{id}/stats — Statistiche aggregate del team (pipeline, concluse, abbandonate).
+ * GET /api/teams/{id}/stats — Statistiche aggregate del team (KPI allineati alla dashboard).
  * Basate sulle trattative dei membri effettivi (include creator se creator_participates).
  * Solo Direttore Vendite.
  */
@@ -1291,6 +1292,164 @@ export async function getTeamStats(
 			return { error: msg };
 		}
 		return { data: json as ApiTeamStats };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{id}/spanco — Statistiche SPANCO aggregate del team.
+ * Stesso formato di `/api/statistics/negotiations/spanco` ma calcolato sui membri effettivi.
+ */
+export async function getTeamSpancoStatistics(
+	accessToken: string,
+	teamId: number
+): Promise<{ data: SpancoStatistics } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/teams/${teamId}/spanco`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as SpancoStatistics | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche SPANCO del team";
+			return { error: msg };
+		}
+		return { data: json as SpancoStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{teamId}/members/{memberId}/stats — Statistiche KPI per un singolo membro.
+ * Accesso consentito solo se il membro è effettivamente parte del team, altrimenti 403.
+ */
+export async function getTeamMemberStatistics(
+	accessToken: string,
+	teamId: number,
+	memberId: number
+): Promise<{ data: TeamMemberStatistics } | { error: string }> {
+	try {
+		const res = await fetch(
+			`${BASE_URL}/teams/${teamId}/members/${memberId}/stats`,
+			{
+				method: "GET",
+				headers: getAuthHeaders(accessToken),
+			}
+		);
+		const json = (await res.json()) as
+			| TeamMemberStatistics
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche del membro";
+			return { error: msg };
+		}
+		return { data: json as TeamMemberStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{teamId}/members/{memberId}/spanco — Statistiche SPANCO per un membro.
+ * Stesso formato di `/api/statistics/negotiations/spanco`.
+ */
+export async function getTeamMemberSpancoStatistics(
+	accessToken: string,
+	teamId: number,
+	memberId: number
+): Promise<{ data: SpancoStatistics } | { error: string }> {
+	try {
+		const res = await fetch(
+			`${BASE_URL}/teams/${teamId}/members/${memberId}/spanco`,
+			{
+				method: "GET",
+				headers: getAuthHeaders(accessToken),
+			}
+		);
+		const json = (await res.json()) as SpancoStatistics | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche SPANCO del membro";
+			return { error: msg };
+		}
+		return { data: json as SpancoStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{teamId}/members/{memberId}/negotiations — Trattative del singolo membro.
+ * Include tutte le fasi (aperte, concluse, abbandonate).
+ */
+export async function listTeamMemberNegotiations(
+	accessToken: string,
+	teamId: number,
+	memberId: number
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const res = await fetch(
+			`${BASE_URL}/teams/${teamId}/members/${memberId}/negotiations`,
+			{
+				method: "GET",
+				headers: getAuthHeaders(accessToken),
+			}
+		);
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative del membro";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{teamId}/members/{memberId}/map — Trattative non abbandonate del membro
+ * con coordinate geografiche del cliente (per mappa). Stesso shape di /negotiations/me/with-coordinates.
+ */
+export async function listTeamMemberNegotiationsWithCoordinates(
+	accessToken: string,
+	teamId: number,
+	memberId: number
+): Promise<{ data: ApiNegotiation[] } | { error: string }> {
+	try {
+		const res = await fetch(
+			`${BASE_URL}/teams/${teamId}/members/${memberId}/map`,
+			{
+				method: "GET",
+				headers: getAuthHeaders(accessToken),
+			}
+		);
+		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle trattative del membro per la mappa";
+			return { error: msg };
+		}
+		return { data: json as ApiNegotiation[] };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };

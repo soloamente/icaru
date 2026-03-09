@@ -355,15 +355,27 @@ export function TeamsView() {
 					{!(loading || error) && teams.length > 0 && (
 						<div className="flex flex-wrap gap-4">
 							{teams.map((team) => {
-								// Use effective count when available, else users_count or users array length
+								// Use effective count when available, else users_count o lunghezza dell'array users.
 								const memberCount =
 									team.effective_members_count ??
 									team.users_count ??
 									team.users?.length ??
 									0;
+								// In alcune risposte il backend potrebbe non includere l'oggetto `creator` completo:
+								// in quel caso costruiamo un fallback minimo a partire da creator_id per evitare
+								// eccezioni a runtime quando accediamo a nome/cognome.
+								const creator =
+									team.creator ??
+									({
+										id: team.creator_id,
+										nome: "Creatore",
+										cognome: "",
+									} as const);
+								const creatorFullName =
+									`${creator.nome} ${creator.cognome}`.trim() || "Creatore";
 
 								return (
-									// biome-ignore lint/a11y/useSemanticElements: card contains nested action buttons
+									// biome-ignore lint/a11y/useSemanticElements: card contiene pulsanti annidati per le azioni
 									<div
 										className="group flex min-h-fit min-w-0 max-w-md flex-[1_1_100%] cursor-pointer flex-col justify-between gap-8 rounded-4xl bg-table-header p-5 transition-colors duration-200 hover:bg-table-hover md:flex-[1_1_calc(50%-0.5rem)] xl:flex-[1_1_calc(33.333%-0.67rem)]"
 										key={team.id}
@@ -393,13 +405,13 @@ export function TeamsView() {
 											<IconArrowUpRightFill12 className="size-4 shrink-0 text-muted-foreground transition-colors duration-200 group-hover:text-foreground" />
 										</div>
 										<div className="flex w-full flex-wrap items-stretch gap-2">
-											{/* Creatore — wrapper with title (more width). bg-team-info-card: Dataweb light uses pure white for contrast. */}
+											{/* Creatore — mostriamo sempre un nome anche se l'oggetto creator è parziale o assente. */}
 											<div className="flex min-w-0 flex-2 flex-col items-start justify-center rounded-2xl bg-team-info-card px-2.5 py-2.5 pr-4 font-medium text-muted-foreground text-xs leading-none">
 												<div className="flex items-center gap-2">
 													<Avatar aria-hidden>
 														<AvatarFallback
 															className="bg-card"
-															placeholderSeed={`${team.creator.nome} ${team.creator.cognome}`}
+															placeholderSeed={creatorFullName}
 														/>
 													</Avatar>
 													<div className="flex flex-col gap-1">
@@ -407,12 +419,12 @@ export function TeamsView() {
 															Creatore
 														</h4>
 														<span className="text-card-foreground text-sm leading-none">
-															{team.creator.nome} {team.creator.cognome}
+															{creatorFullName}
 														</span>
 													</div>
 												</div>
 											</div>
-											{/* Membri — shows only the count. bg-team-info-card: Dataweb light uses pure white for contrast. */}
+											{/* Membri — mostra il conteggio aggregato dei membri del team. */}
 											<div className="flex min-w-0 flex-1 flex-col items-start justify-center rounded-2xl bg-team-info-card px-2.5 py-2.5 pr-4 font-medium text-muted-foreground text-xs leading-none">
 												<h4 className="font-medium text-stats-title leading-none">
 													Membri

@@ -11,6 +11,7 @@ import { Drawer } from "vaul";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	addTeamMembers,
+	getNegotiationsStatistics,
 	getTeam,
 	getTeamStats,
 	listAvailableMembers,
@@ -22,6 +23,7 @@ import type {
 	ApiTeam,
 	ApiTeamStats,
 	ApiTeamUser,
+	NegotiationsStatistics,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
@@ -465,19 +467,25 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 					{isDirector && stats && (
 						<div className="flex flex-wrap items-start gap-3.75">
 							<StatCard
-								count={stats.pipeline.count}
-								importo={formatCurrency(stats.pipeline.total_importo)}
-								title="Pipeline"
+								primaryLabel="aperte"
+								primaryValue={stats.total_open_negotiations}
+								secondaryLabel="totale importo"
+								secondaryValue={Number(stats.total_open_amount)}
+								title="Trattative aperte"
 							/>
 							<StatCard
-								count={stats.concluded.count}
-								importo={formatCurrency(stats.concluded.total_importo)}
-								title="Concluse"
+								primaryLabel="importo medio aperte"
+								primaryValue={stats.average_open_amount}
+								secondaryLabel="importo medio concluse"
+								secondaryValue={stats.average_concluded_amount}
+								title="Importo medio"
 							/>
 							<StatCard
-								count={stats.abandoned.count}
-								importo={formatCurrency(stats.abandoned.total_importo)}
-								title="Abbandonate"
+								primaryLabel="percentuale conclusione"
+								primaryValue={stats.conclusion_percentage}
+								secondaryLabel="giorni medi chiusura"
+								secondaryValue={stats.average_closing_days}
+								title="Performance chiusura"
 							/>
 							<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
 								<h3 className="font-medium text-sm text-stats-title leading-none">
@@ -652,11 +660,22 @@ function OrgChartSection({
 	onTeamUpdate,
 	onError,
 }: OrgChartSectionProps) {
-	const { token } = useAuth();
+	const { token, user } = useAuth();
 	const [isAddOpen, setIsAddOpen] = useState(false);
 	const [addingMemberId, setAddingMemberId] = useState<number | null>(null);
 	const [removingUserId, setRemovingUserId] = useState<number | null>(null);
 	const [togglingParticipates, setTogglingParticipates] = useState(false);
+	// Local UI state for creator participation UX: tooltip (join) and confirm dialog (leave).
+	const [isJoinTooltipOpen, setIsJoinTooltipOpen] = useState(false);
+	const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+	// Cached personal statistics of the current user so we can show how many "stats"
+	// are added/removed from the team when the creator toggles participation.
+	const [personalStats, setPersonalStats] =
+		useState<NegotiationsStatistics | null>(null);
+	const [loadingPersonalStats, setLoadingPersonalStats] = useState(false);
+	const [personalStatsError, setPersonalStatsError] = useState<string | null>(
+		null
+	);
 	const addDropdownRef = useRef<HTMLDivElement>(null);
 
 	// Close add-member dropdown on click outside
@@ -674,6 +693,26 @@ function OrgChartSection({
 		}
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [isAddOpen]);
+
+	/**
+	 * Lazily load the personal KPI statistics for the logged-in user.
+	 * These stats are used to explain how many "stats" are added/removed
+	 * from the team when the creator participates or leaves.
+	 */
+	const ensurePersonalStats = useCallback(async () => {
+		if (!token || personalStats || loadingPersonalStats) {
+			return;
+		}
+		setLoadingPersonalStats(true);
+		setPersonalStatsError(null);
+		const result = await getNegotiationsStatistics(token);
+		setLoadingPersonalStats(false);
+		if ("error" in result) {
+			setPersonalStatsError(result.error);
+			return;
+		}
+		setPersonalStats(result.data);
+	}, [token, personalStats, loadingPersonalStats]);
 
 	const handleAddMember = useCallback(
 		async (userId: number) => {
@@ -728,11 +767,58 @@ function OrgChartSection({
 		onTeamUpdate(result.data);
 	}, [token, team, teamId, onTeamUpdate, onError]);
 
+	/**
+	 * Entry point for clicking the "Partecipa / Non partecipa" pill.
+	 * - Quando il creatore NON partecipa ancora: attiva subito la partecipazione
+	 *   ma mostra anche un tooltip esplicativo con i KPI personali che vengono aggiunti al team.
+	 * - Quando il creatore partecipa già: apre un dialog di conferma prima di rimuovere
+	 *   la partecipazione, mostrando quanti "stats" verranno tolti dal team.
+	 */
+	const handleCreatorToggleClick = useCallback(async () => {
+		if (!token) {
+			return;
+		}
+
+		if (!team.creator_participates) {
+			setIsJoinTooltipOpen(true);
+			ensurePersonalStats();
+			await handleToggleCreatorParticipates();
+			return;
+		}
+
+		setIsLeaveDialogOpen(true);
+		ensurePersonalStats();
+	}, [
+		token,
+		team.creator_participates,
+		handleToggleCreatorParticipates,
+		ensurePersonalStats,
+	]);
+
+	/** Confirm removal of creator participation after the dialog. */
+	const handleConfirmLeaveParticipation = useCallback(async () => {
+		setIsLeaveDialogOpen(false);
+		await handleToggleCreatorParticipates();
+	}, [handleToggleCreatorParticipates]);
+
 	const members = team.users ?? [];
 	const currentMemberIds = new Set(members.map((u: ApiTeamUser) => u.id));
 	const filteredAvailable = availableMembers.filter(
 		(m) => !currentMemberIds.has(m.id)
 	);
+	// Il backend dovrebbe sempre includere l'oggetto `creator`, ma per sicurezza
+	// gestiamo anche il caso in cui arrivi solo `creator_id` così da non rompere
+	// il rendering dell'organigramma in presenza di risposte parziali.
+	const safeCreator =
+		team.creator ??
+		({
+			id: team.creator_id,
+			nome: "Creatore",
+			cognome: "",
+		} as const);
+	// Solo il creatore del team può modificare il flag creator_participates.
+	const isCreatorDirector =
+		isDirector && user != null && user.id === safeCreator.id;
 	// Whether the "add member" skeleton is shown, and total items in the member row
 	const hasAddSkeleton = isDirector && filteredAvailable.length > 0;
 	const totalOrgItems = members.length + (hasAddSkeleton ? 1 : 0);
@@ -742,14 +828,33 @@ function OrgChartSection({
 			{/* Org chart card — same container as "Dati team" */}
 			<section className={`${SECTION_CARD_CLASSES} flex-col items-center`}>
 				{/* Tree group: no gap so connector lines actually touch creator ↔ stem ↔ row */}
-				<div className="flex flex-col items-center">
+				<div className="relative flex flex-col items-center">
 					<CreatorNode
-						creator={team.creator}
+						canToggleParticipates={isCreatorDirector}
+						creator={safeCreator}
 						creatorParticipates={team.creator_participates}
 						isDirector={isDirector}
 						isToggling={togglingParticipates}
-						onToggleParticipates={handleToggleCreatorParticipates}
+						onHoverParticipateTooltip={(open) => {
+							setIsJoinTooltipOpen(open);
+							if (open) {
+								ensurePersonalStats();
+							}
+						}}
+						onToggleParticipates={handleCreatorToggleClick}
 					/>
+
+					{/* Tooltip shown immediately after opting in to participate, explaining the effect. */}
+					<AnimatePresence>
+						{isJoinTooltipOpen && (
+							<CreatorParticipationTooltip
+								error={personalStatsError}
+								isLoading={loadingPersonalStats}
+								onClose={() => setIsJoinTooltipOpen(false)}
+								personalStats={personalStats}
+							/>
+						)}
+					</AnimatePresence>
 
 					{/* Connector lines + member cards */}
 					{totalOrgItems > 0 && (
@@ -796,6 +901,16 @@ function OrgChartSection({
 					)}
 				</div>
 			</section>
+
+			{/* Confirm dialog when the creator disables participation. Mirrors other confirmation dialogs. */}
+			<CreatorParticipationDialog
+				error={personalStatsError}
+				isLoading={loadingPersonalStats}
+				isOpen={isLeaveDialogOpen}
+				onClose={() => setIsLeaveDialogOpen(false)}
+				onConfirm={handleConfirmLeaveParticipation}
+				personalStats={personalStats}
+			/>
 		</>
 	);
 }
@@ -805,18 +920,23 @@ function OrgChartSection({
 interface CreatorNodeProps {
 	creator: { id: number; nome: string; cognome: string };
 	creatorParticipates: boolean;
+	canToggleParticipates: boolean;
 	isDirector: boolean;
 	isToggling: boolean;
 	onToggleParticipates: () => void;
+	/** Optional hover handler so the parent can show a tooltip when hovering the participate button. */
+	onHoverParticipateTooltip?: (isOpen: boolean) => void;
 }
 
 /** Creator card — top of the org chart with crown badge and participates toggle. */
 function CreatorNode({
 	creator,
 	creatorParticipates,
+	canToggleParticipates,
 	isDirector,
 	isToggling,
 	onToggleParticipates,
+	onHoverParticipateTooltip,
 }: CreatorNodeProps) {
 	const fullName = `${creator.nome} ${creator.cognome}`;
 
@@ -843,8 +963,8 @@ function CreatorNode({
 				Direttore Vendite
 			</span>
 
-			{/* Participates toggle (only directors can toggle) */}
-			{isDirector && (
+			{/* Participates toggle — solo il creatore del team (direttore) può modificarlo. */}
+			{isDirector && canToggleParticipates && (
 				<button
 					className={`mt-1 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
 						creatorParticipates
@@ -852,7 +972,27 @@ function CreatorNode({
 							: "bg-muted text-muted-foreground"
 					} ${isToggling ? "opacity-50" : "hover:opacity-80"}`}
 					disabled={isToggling}
+					onBlur={() => {
+						if (onHoverParticipateTooltip) {
+							onHoverParticipateTooltip(false);
+						}
+					}}
 					onClick={onToggleParticipates}
+					onFocus={() => {
+						if (!creatorParticipates && onHoverParticipateTooltip) {
+							onHoverParticipateTooltip(true);
+						}
+					}}
+					onMouseEnter={() => {
+						if (!creatorParticipates && onHoverParticipateTooltip) {
+							onHoverParticipateTooltip(true);
+						}
+					}}
+					onMouseLeave={() => {
+						if (onHoverParticipateTooltip) {
+							onHoverParticipateTooltip(false);
+						}
+					}}
 					type="button"
 				>
 					{creatorParticipates ? (
@@ -944,7 +1084,7 @@ function AddMemberSkeleton({
 				aria-expanded={isOpen}
 				aria-label="Aggiungi membro al team"
 				className={cn(
-					"flex w-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl bg-table-header px-3 py-6 transition-colors hover:bg-table-hover",
+					"group relative flex w-48 cursor-pointer flex-col items-center gap-1.5 rounded-2xl bg-table-header px-3 py-4 transition-colors duration-150 ease-out hover:bg-table-hover",
 					isOpen && "bg-table-hover"
 				)}
 				onClick={onToggle}
@@ -1028,12 +1168,20 @@ function AddMemberSkeleton({
 
 interface StatCardProps {
 	title: string;
-	count: number;
-	importo: string;
+	primaryLabel: string;
+	primaryValue: number;
+	secondaryLabel?: string;
+	secondaryValue?: number;
 }
 
 /** Stat card for team statistics — same bg-table-header style as /team list page. */
-function StatCard({ title, count, importo }: StatCardProps) {
+function StatCard({
+	title,
+	primaryLabel,
+	primaryValue,
+	secondaryLabel,
+	secondaryValue,
+}: StatCardProps) {
 	return (
 		<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
 			<h3 className="font-medium text-sm text-stats-title leading-none">
@@ -1041,15 +1189,24 @@ function StatCard({ title, count, importo }: StatCardProps) {
 			</h3>
 			<div className="flex items-center gap-2">
 				<AnimateNumber className="text-xl tabular-nums leading-none">
-					{count}
+					{Number.isFinite(primaryValue) ? primaryValue : 0}
 				</AnimateNumber>
 				<span className="text-muted-foreground text-sm leading-none">
-					trattative
+					{primaryLabel}
 				</span>
-				<div className="h-4 w-[2px] rounded-full bg-muted-foreground/25" />
-				<span className="font-medium text-sm tabular-nums leading-none">
-					{importo}
-				</span>
+				{secondaryValue != null &&
+					Number.isFinite(secondaryValue) &&
+					secondaryLabel && (
+						<>
+							<div className="h-4 w-[2px] rounded-full bg-muted-foreground/25" />
+							<span className="font-medium text-sm tabular-nums leading-none">
+								{secondaryValue}
+							</span>
+							<span className="text-muted-foreground text-xs leading-none">
+								{secondaryLabel}
+							</span>
+						</>
+					)}
 			</div>
 		</div>
 	);
@@ -1190,6 +1347,337 @@ function TeamLeaveDialog({ isOpen, onClose, onConfirm }: TeamLeaveDialogProps) {
 					<div className="min-h-0 flex-1 overflow-y-auto pt-2">
 						{dialogBody}
 					</div>
+				</Drawer.Content>
+			</Drawer.Portal>
+		</Drawer.Root>
+	);
+}
+
+// ─── Creator participation tooltip & confirm dialog ──────────────────────────
+
+interface CreatorParticipationTooltipProps {
+	personalStats: NegotiationsStatistics | null;
+	isLoading: boolean;
+	error: string | null;
+	onClose: () => void;
+}
+
+/**
+ * Small tooltip below the "Partecipa" pill that explains what the action implies
+ * and shows the personal KPI stats that are now contributing to the team.
+ */
+function CreatorParticipationTooltip({
+	personalStats,
+	isLoading,
+	error,
+	onClose,
+}: CreatorParticipationTooltipProps) {
+	const conclusionLabel =
+		personalStats != null
+			? `${new Intl.NumberFormat("it-IT", {
+					maximumFractionDigits: 1,
+				}).format(personalStats.conclusion_percentage)}%`
+			: null;
+
+	return (
+		<motion.div
+			animate={{ opacity: 1, y: 0 }}
+			className="pointer-events-auto absolute top-[46%] left-1/2 z-20 w-80 -translate-x-1/2 rounded-2xl bg-popover px-3.5 py-3.25 text-left text-popover-foreground text-xs shadow-lg"
+			exit={{ opacity: 0, y: -4 }}
+			initial={{ opacity: 0, y: -6 }}
+			role="status"
+		>
+			<div className="flex items-start justify-between gap-2">
+				<div className="space-y-1">
+					<p className="font-medium leading-snug">
+						Partecipando al team, le tue statistiche personali vengono sommate a
+						quelle del team.
+					</p>
+					<p className="text-[11px] text-muted-foreground leading-snug">
+						Questo ti permette di confrontare facilmente le performance del team
+						con il tuo contributo individuale. Puoi cambiare questa opzione in
+						qualsiasi momento.
+					</p>
+				</div>
+				<button
+					aria-label="Chiudi il dettaglio della partecipazione"
+					className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					onClick={onClose}
+					type="button"
+				>
+					<X aria-hidden className="size-3.5" />
+				</button>
+			</div>
+
+			<div className="mt-2.5 rounded-xl bg-background px-2.5 py-2.25">
+				{isLoading && (
+					<p className="text-[11px] text-muted-foreground leading-snug">
+						Caricamento delle tue statistiche personali…
+					</p>
+				)}
+
+				{!isLoading && error && (
+					<p className="text-[11px] text-destructive leading-snug">
+						Impossibile recuperare le tue statistiche personali: {error}
+					</p>
+				)}
+
+				{!(isLoading || error) && personalStats && (
+					<dl className="space-y-1.5 text-[11px]">
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">Trattative aperte</dt>
+							<dd className="tabular-nums">
+								{personalStats.total_open_negotiations}
+							</dd>
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">% conclusione</dt>
+							<dd className="tabular-nums">{conclusionLabel}</dd>
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">
+								Importo medio aperte (tu)
+							</dt>
+							<dd className="tabular-nums">
+								{formatCurrency(personalStats.average_open_amount)}
+							</dd>
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">
+								Importo medio concluse (tu)
+							</dt>
+							<dd className="tabular-nums">
+								{formatCurrency(personalStats.average_concluded_amount)}
+							</dd>
+						</div>
+					</dl>
+				)}
+
+				{!(isLoading || error || personalStats) && (
+					<p className="text-[11px] text-muted-foreground leading-snug">
+						Non siamo riusciti a recuperare le tue statistiche personali, ma la
+						tua partecipazione verrà comunque conteggiata nelle statistiche del
+						team.
+					</p>
+				)}
+			</div>
+		</motion.div>
+	);
+}
+
+interface CreatorParticipationDialogProps {
+	isOpen: boolean;
+	onClose: () => void;
+	onConfirm: () => void;
+	personalStats: NegotiationsStatistics | null;
+	isLoading: boolean;
+	error: string | null;
+}
+
+/**
+ * Dialog di conferma mostrato quando il creatore disattiva la partecipazione al team.
+ * Usa lo stesso pattern di TeamLeaveDialog (Dialog su desktop, Drawer su mobile) e
+ * visualizza anche i KPI personali che verranno rimossi dalle statistiche del team.
+ */
+function CreatorParticipationDialog({
+	isOpen,
+	onClose,
+	onConfirm,
+	personalStats,
+	isLoading,
+	error,
+}: CreatorParticipationDialogProps) {
+	const [layoutReady, setLayoutReady] = useState(false);
+	const [isDesktop, setIsDesktop] = useState(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		const mql = window.matchMedia("(max-width: 767px)");
+		const handleChange = () => {
+			setIsDesktop(!mql.matches);
+		};
+		handleChange();
+		setLayoutReady(true);
+		mql.addEventListener("change", handleChange);
+		return () => {
+			mql.removeEventListener("change", handleChange);
+		};
+	}, []);
+
+	const conclusionLabel =
+		personalStats != null
+			? `${new Intl.NumberFormat("it-IT", {
+					maximumFractionDigits: 1,
+				}).format(personalStats.conclusion_percentage)}%`
+			: null;
+
+	const body = (
+		<>
+			<div className="relative flex items-center justify-between gap-3 pb-4">
+				<h2 className="pr-10 font-bold text-2xl text-card-foreground tracking-tight">
+					Smettere di partecipare al team?
+				</h2>
+				<button
+					aria-label="Chiudi"
+					className="absolute top-0 right-0 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					onClick={onClose}
+					type="button"
+				>
+					<X aria-hidden className="size-4" />
+				</button>
+			</div>
+			<p className="text-balance text-muted-foreground text-sm">
+				<span className="text-foreground">
+					Se non partecipi al team, le tue trattative personali non verranno più
+					conteggiate nelle statistiche del team.
+				</span>{" "}
+				<br />
+				<br />{" "}
+				<span className="text-foreground">
+					Questo può modificare le statistiche aggregate
+				</span>{" "}
+				(numero trattative aperte, percentuale di conclusione, importi medi,
+				giorni medi di chiusura).
+			</p>
+			<div className="mt-4 rounded-xl bg-table-header px-3 py-3">
+				<h3 className="mb-2 font-medium text-stats-title text-xs leading-none">
+					Le tue statistiche che verranno rimosse dal team
+				</h3>
+				{isLoading && (
+					<p className="text-[11px] text-muted-foreground leading-snug">
+						Caricamento delle tue statistiche personali…
+					</p>
+				)}
+				{!isLoading && error && (
+					<p className="text-[11px] text-destructive leading-snug">
+						Impossibile recuperare le tue statistiche personali: {error}
+					</p>
+				)}
+				{!(isLoading || error) && personalStats && (
+					<dl className="space-y-1.5 text-[11px]">
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">Trattative aperte</dt>
+							<dd className="tabular-nums">
+								{personalStats.total_open_negotiations}
+							</dd>
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">% conclusione</dt>
+							<dd className="tabular-nums">{conclusionLabel}</dd>
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">
+								Importo medio aperte (tu)
+							</dt>
+							<dd className="tabular-nums">
+								{formatCurrency(personalStats.average_open_amount)}
+							</dd>
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							<dt className="text-muted-foreground">
+								Importo medio concluse (tu)
+							</dt>
+							<dd className="tabular-nums">
+								{formatCurrency(personalStats.average_concluded_amount)}
+							</dd>
+						</div>
+					</dl>
+				)}
+				{!(isLoading || error || personalStats) && (
+					<p className="text-[11px] text-muted-foreground leading-snug">
+						Non siamo riusciti a recuperare le tue statistiche personali, ma la
+						tua partecipazione verrà comunque rimossa dal team.
+					</p>
+				)}
+			</div>
+			<div className="mt-6 flex justify-between gap-3">
+				<Button
+					className="h-10 min-w-26 rounded-xl border-border bg-muted text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
+					onClick={onClose}
+					type="button"
+					variant="outline"
+				>
+					Annulla
+				</Button>
+				<Button
+					className="h-10 min-w-32 rounded-xl text-sm"
+					onClick={onConfirm}
+					type="button"
+					variant="destructive"
+				>
+					Conferma: non partecipo
+				</Button>
+			</div>
+		</>
+	);
+
+	if (!layoutReady) {
+		return null;
+	}
+
+	if (isDesktop) {
+		return (
+			<Dialog.Root
+				disablePointerDismissal={false}
+				onOpenChange={(open) => {
+					if (!open) {
+						onClose();
+					}
+				}}
+				open={isOpen}
+			>
+				<Dialog.Portal>
+					<Dialog.Backdrop
+						aria-hidden
+						className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
+					/>
+					<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+						<Dialog.Popup
+							aria-describedby="creator-participation-desc"
+							aria-labelledby="creator-participation-title"
+							className="data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-card px-6 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in"
+						>
+							<Dialog.Title
+								className="sr-only"
+								id="creator-participation-title"
+							>
+								Conferma rimozione partecipazione dal team
+							</Dialog.Title>
+							<p className="sr-only" id="creator-participation-desc">
+								Conferma se vuoi smettere di partecipare a questo team e
+								rimuovere le tue statistiche personali dal team.
+							</p>
+							<div className="overflow-y-auto">{body}</div>
+						</Dialog.Popup>
+					</div>
+				</Dialog.Portal>
+			</Dialog.Root>
+		);
+	}
+
+	return (
+		<Drawer.Root
+			onOpenChange={(open) => {
+				if (!open) {
+					onClose();
+				}
+			}}
+			open={isOpen}
+		>
+			<Drawer.Portal>
+				<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
+				<Drawer.Content className="fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]">
+					<Drawer.Title className="sr-only">
+						Conferma rimozione partecipazione dal team
+					</Drawer.Title>
+					<Drawer.Description className="sr-only">
+						Conferma se vuoi smettere di partecipare a questo team e rimuovere
+						le tue statistiche personali dal team.
+					</Drawer.Description>
+					<div className="mx-auto mt-0.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
+					<div className="min-h-0 flex-1 overflow-y-auto pt-2">{body}</div>
 				</Drawer.Content>
 			</Drawer.Portal>
 		</Drawer.Root>

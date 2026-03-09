@@ -404,21 +404,23 @@ export interface ApiTeamMinimal {
 	nome: string;
 	creator_name: string;
 }
-
-/** Stats bucket (count + total amount) for pipeline / concluded / abandoned. */
-export interface ApiTeamStatsBucket {
-	count: number;
-	total_importo: number;
-}
-
-/** Response from GET /api/teams/{id}/stats — aggregate metrics for team negotiations. */
-export interface ApiTeamStats {
+/**
+ * Response from GET /api/teams/{id}/stats — aggregate metrics for team negotiations.
+ * I KPI sono allineati a quelli della dashboard personale (`NegotiationsStatistics`)
+ * ma calcolati sui membri effettivi del team.
+ */
+export interface ApiTeamStats extends NegotiationsStatistics {
 	team_id: number;
 	effective_members_count: number;
-	member_ids: number[];
-	pipeline: ApiTeamStatsBucket;
-	concluded: ApiTeamStatsBucket;
-	abandoned: ApiTeamStatsBucket;
+}
+
+/**
+ * Statistiche per singolo membro del team (supervisione direttore) restituite da
+ * GET `/api/teams/{teamId}/members/{memberId}/stats`. Stessa struttura dei KPI
+ * della dashboard (`NegotiationsStatistics`) con l'aggiunta di `member_id`.
+ */
+export interface TeamMemberStatistics extends NegotiationsStatistics {
+	member_id: number;
 }
 
 /** Request body for POST /api/teams (create team). */

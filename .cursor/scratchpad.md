@@ -119,9 +119,41 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - Card cliccabile per aprire il dettaglio team
 - Pulsante elimina con stato di loading
 
+### Team Update — 2026-03-09 — Supervisione & SPANCO
+
+**Task 11: Allineare documentazione Teams all'ultima specifica** (`api_documentaion.md`)
+- Integrare una sezione dedicata ai Team che descriva:
+  - Regole di accesso per ruolo (Direttore Vendite, Venditore, Admin).
+  - Vincolo su `creator_participates` con messaggio di errore 403: "Solo il creatore del team può modificare la propria partecipazione.".
+  - Struttura e significato dei campi della risposta di `GET /api/teams/{id}/stats` allineati alla dashboard personale, con definizioni formali (aperte, concluse, abbandonate escluse).
+  - Nuovi endpoint di SPANCO del team (`GET /api/teams/{id}/spanco`) e di supervisione membro (`/api/teams/{teamId}/members/{memberId}/stats|spanco|negotiations|map`) con esempi di risposta.
+- **Criterio di successo:** il documento diventa l'unica fonte di verità leggibile per i Team, riflette tutto il contenuto della nota "Update — 2026-03-09 — Teams" e non contiene riferimenti a campi rimossi (`member_ids`, `pipeline`, `concluded`, `abandoned`).
+
+**Task 12: UI SPANCO del team nella pagina dettaglio** (`apps/web/src/components/team-org-chart.tsx` + eventuale componente grafico riusabile)
+- Estendere la pagina dettaglio team (`/team/[id]`, componente `TeamOrgChart`) con una sezione SPANCO di team che:
+  - Usa `getTeamSpancoStatistics` (client già presente) per chiamare `GET /api/teams/{id}/spanco`.
+  - Visualizza la distribuzione SPANCO in un grafico (idealmente riusando pattern/legenda del grafico personale SPANCO in dashboard) e/o in una lista tabellare leggibile.
+  - Gestisce chiaramente loading, errori 403/500 e stato "nessuna trattativa" con messaggi testuali coerenti con il resto dell'app.
+- **Criterio di successo:** un Direttore Vendite, aprendo `/team/[id]`, vede sia i KPI aggregati che la distribuzione SPANCO del team con lo stesso vocabolario visivo del grafico personale; nessun riferimento ai campi SPANCO rimossi dalla vecchia risposta Team.
+
+**Task 13: Vista di supervisione singolo membro del team** (nuova route, es. `apps/web/src/app/team/[teamId]/members/[memberId]/page.tsx` + componenti dedicati)
+- Definire una vista dedicata alla supervisione di un venditore all'interno di un team, accessibile da:
+  - click su un nodo membro dell'organigramma (`MemberNode`) o
+  - da una nuova azione contestuale nella pagina dettaglio team.
+- La vista deve:
+  - Mostrare i KPI personali del venditore nel contesto del team usando `getTeamMemberStatistics` (`GET /api/teams/{teamId}/members/{memberId}/stats`).
+  - Mostrare lo SPANCO personale del venditore usando `getTeamMemberSpancoStatistics` (`/spanco`), con stesso formato grafico della dashboard personale.
+  - Elencare tutte le trattative del venditore (`listTeamMemberNegotiations`) con le stesse colonne base di `TrattativeTable`, indicando chiaramente stato (aperta/conclusa/abbandonata).
+  - Esporre una mappa delle trattative non abbandonate con coordinate (`listTeamMemberNegotiationsWithCoordinates`) riusando il pattern di mappa già usato per `/negotiations/me/with-coordinates`.
+  - Gestire in modo esplicito il caso `403` ("Il Direttore può accedere ai dati di un venditore solo se è membro effettivo del team indicato"): messaggio chiaro + eventuale CTA per tornare al dettaglio team.
+- **Criterio di successo:** da `/team/[id]` un Direttore può entrare in una pagina di supervisione membro che offre, in una singola shell grafica coerente con `/dashboard`, i 6 KPI, lo SPANCO, la lista trattative e la mappa, e che rispetta i vincoli di autorizzazione descritti nella specifica.
+
 ## Project Status Board
 
 - [ ] `/team`: sostituire la vista tabellare dei team con una griglia di cards responsive (Director + Seller) e skeleton minimal con info essenziali durante il caricamento. **In attesa di validazione manuale utente**.
+- [ ] Aggiornare `api_documentaion.md` con una sezione completa dedicata ai Team (vincolo `creator_participates`, statistiche team, SPANCO team, supervisione membri) allineata alla specifica "Update — 2026-03-09 — Teams". **Implementato nella doc, in attesa di validazione manuale utente.**
+- [ ] Aggiungere nella pagina dettaglio team (`/team/[id]`) una sezione SPANCO di team che usa `getTeamSpancoStatistics` per visualizzare la distribuzione SPANCO con un grafico coerente con lo SPANCO personale.
+- [ ] Implementare una vista di supervisione per singolo membro del team (stats, SPANCO, lista trattative, mappa) basata sugli endpoint `/api/teams/{teamId}/members/{memberId}/stats|spanco|negotiations|map`, con gestione esplicita dei 403 quando il membro non appartiene al team.
 - [ ] Aggiornare il colore del nome/email dell'utente loggato nella `Sidebar` usando i token `sidebar-*`.
 - [ ] Aggiornare la palette dark per lo schema colore `"rich"` (tema **Dataweb**) definendo nuovi valori oklch in `globals.css` per migliorare contrasto e leggibilità.
 - [ ] Aggiungere pagina e voce di navigazione per le **trattative aperte** (`/trattative/aperte`) utilizzando `TrattativeTable` con filtro corretto.
@@ -151,6 +183,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 
 ## Executor's Feedback or Assistance Requests
 
+- Ho allineato `api_documentaion.md` alla specifica "Update — 2026-03-09 — Teams" aggiungendo una nuova sezione **3. Team** con: struttura e permessi dei team, CRUD completo (`/api/teams`, `/api/teams/my-teams`, gestione membri), vincolo su `creator_participates` con errore 403 e messaggio "Solo il creatore del team può modificare la propria partecipazione.", definizione dettagliata di `GET /api/teams/{id}/stats` (KPI identici alla dashboard personale e logica di calcolo), endpoint SPANCO del team (`/api/teams/{id}/spanco`) e tutti i nuovi endpoint di supervisione membro (`/api/teams/{teamId}/members/{memberId}/stats|spanco|negotiations|map`) con esempi di risposta. Chiedo una verifica che il testo della doc rifletta esattamente l’aggiornamento funzionale desiderato prima di marcare il relativo task nella board come completato.
 - Refinement applicato su `/team` dopo feedback UI: ho rimosso completamente bordi/ring dalle cards e dai relativi skeleton in `teams-view.tsx`, sostituendo i surface con background coerenti ai pattern del sito (`bg-table-header` + `hover:bg-table-hover`). Le cards ora seguono il linguaggio visivo usato nelle altre sezioni senza outline.
 - Ho implementato un nuovo refinement su `/team` in `apps/web/src/components/teams-view.tsx`: la vista Director non usa più tabella ma una griglia di cards responsive (1 col mobile, 2 tablet, 3 desktop), mantenendo le stats cards in alto. Ogni card mostra nome team, descrizione (o fallback), creator, conteggio membri, badge `Partecipa` se `creator_participates=true`, azioni `Dettaglio` e `Elimina` (con stato `Eliminazione…` durante DELETE). Ho applicato lo stesso pattern cards anche alla vista Seller.
 - Ho aggiunto skeleton minimal per il caricamento sia in Director sia in Seller: struttura card con heading/subheading e meta pills placeholder, coerente con il design system (`bg-background`, `border-border/60`, `rounded-4xl`, `shadow-sm`).
