@@ -127,6 +127,8 @@ export default function ClientsTable() {
 	>(null);
 	// Controls animated width of the search pill (expand on focus, like trattative page).
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
+	// Controls collapsible stats section on mobile.
+	const [statsOpen, setStatsOpen] = useState(false);
 	// Ref for the search input so the clear icon can return focus to the field after clearing.
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
 	/** true when viewport is sm (640px) or wider; used to only animate search width on desktop */
@@ -409,69 +411,98 @@ export default function ClientsTable() {
 			    lo scroll verticale è confinato al contenitore interno (scroll-fade-y) così che la card
 			    rimanga stabile dentro il layout a viewport fissa. */}
 			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 overflow-hidden rounded-t-3xl px-5.5 pt-6.25">
-				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
-				{/* Ultra‑compact stats cards: single row with horizontal scroll so more table rows fit on screen; scroll-fade-x hints more content on left/right. */}
-				<div className="scroll-fade-x flex shrink-0 flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden">
-					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-						<div
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+				{/* Stats: on mobile collapsible via toggle; always visible on sm+. */}
+				<div className="shrink-0">
+					{isMobile && (
+						<button
+							aria-expanded={statsOpen}
+							className="mb-2 flex items-center gap-1.5 rounded-full bg-table-header px-3 py-1.5 font-medium text-sm text-stats-title transition-colors hover:bg-table-hover"
+							onClick={() => setStatsOpen((v) => !v)}
+							type="button"
 						>
-							<IconPeople
-								aria-hidden
-								className="text-black dark:text-white"
-								size={32}
-							/>
-						</div>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Totale clienti
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-base tabular-nums leading-none">
-								{visibleClients.length}
-							</AnimateNumber>
-						</div>
-					</div>
-					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-						<div
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
-						>
-							<IconCirclePlusFilled
-								aria-hidden
-								className="text-black dark:text-white"
-								size={32}
-							/>
-						</div>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Clienti senza trattativa
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-base tabular-nums leading-none">
-								{clientsWithoutCount}
-							</AnimateNumber>
-						</div>
-					</div>
-					<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
-						<div
-							aria-hidden
-							className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
-						>
-							<CheckIcon
-								aria-hidden
-								className="text-black dark:text-white"
-								size={32}
-							/>
-						</div>
-						<h3 className="font-medium text-sm text-stats-title leading-none">
-							Clienti con trattativa
-						</h3>
-						<div className="flex items-center justify-start">
-							<AnimateNumber className="text-base tabular-nums leading-none">
-								{clientsWithCount}
-							</AnimateNumber>
-						</div>
-					</div>
+							<IconPeople aria-hidden size={14} />
+							<span>Statistiche</span>
+							<motion.span
+								animate={{ rotate: statsOpen ? 180 : 0 }}
+								className="ml-0.5 inline-flex"
+								transition={{ duration: 0.2 }}
+							>
+								▾
+							</motion.span>
+						</button>
+					)}
+					<AnimatePresence initial={false}>
+						{(!isMobile || statsOpen) && (
+							<motion.div
+								animate={{ opacity: 1, height: "auto" }}
+								className="scroll-fade-x flex flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden"
+								exit={{ opacity: 0, height: 0 }}
+								initial={{ opacity: 0, height: 0 }}
+								transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+							>
+								<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+									<div
+										aria-hidden
+										className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+									>
+										<IconPeople
+											aria-hidden
+											className="text-black dark:text-white"
+											size={32}
+										/>
+									</div>
+									<h3 className="font-medium text-sm text-stats-title leading-none">
+										Totale clienti
+									</h3>
+									<div className="flex items-center justify-start">
+										<AnimateNumber className="text-base tabular-nums leading-none">
+											{visibleClients.length}
+										</AnimateNumber>
+									</div>
+								</div>
+								<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+									<div
+										aria-hidden
+										className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+									>
+										<IconCirclePlusFilled
+											aria-hidden
+											className="text-black dark:text-white"
+											size={32}
+										/>
+									</div>
+									<h3 className="font-medium text-sm text-stats-title leading-none">
+										Clienti senza trattativa
+									</h3>
+									<div className="flex items-center justify-start">
+										<AnimateNumber className="text-base tabular-nums leading-none">
+											{clientsWithoutCount}
+										</AnimateNumber>
+									</div>
+								</div>
+								<div className="relative flex shrink-0 flex-col items-start justify-center gap-2 rounded-lg bg-table-header px-2.5 py-2">
+									<div
+										aria-hidden
+										className="pointer-events-none absolute right-0 bottom-0 opacity-[0.08]"
+									>
+										<CheckIcon
+											aria-hidden
+											className="text-black dark:text-white"
+											size={32}
+										/>
+									</div>
+									<h3 className="font-medium text-sm text-stats-title leading-none">
+										Clienti con trattativa
+									</h3>
+									<div className="flex items-center justify-start">
+										<AnimateNumber className="text-base tabular-nums leading-none">
+											{clientsWithCount}
+										</AnimateNumber>
+									</div>
+								</div>
+							</motion.div>
+						)}
+					</AnimatePresence>
 				</div>
 
 				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
@@ -738,11 +769,10 @@ export default function ClientsTable() {
 				open={isAddClientDialogOpen}
 			/>
 
-			{/* "Nuova trattativa" dialog opened from row "Aggiungi": client is pre-selected so user stays on /clienti. */}
 			<CreateNegotiationDialog
 				initialClientId={clientIdForNewNegotiation ?? undefined}
-				onOpenChange={(open: boolean) => {
-					if (!open) {
+				onOpenChange={(openValue: boolean) => {
+					if (!openValue) {
 						setClientIdForNewNegotiation(null);
 					}
 				}}
