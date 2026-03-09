@@ -140,7 +140,7 @@ function SidebarLeftAnimatedLayout({
 					left: contentPanelLeft,
 					x: contentPanelX,
 				}}
-				className="absolute top-0 right-0 bottom-0 z-10 flex min-h-0 flex-col bg-transparent"
+				className="absolute top-0 right-0 bottom-0 z-10 flex h-full min-h-0 flex-col bg-transparent"
 				initial={false}
 				onClick={() => {
 					if (sidebarOpen.isMobile && isOpen) {
