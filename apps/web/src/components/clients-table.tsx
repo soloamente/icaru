@@ -288,7 +288,7 @@ export default function ClientsTable() {
 	return (
 		<main
 			className={cn(
-				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
+				"flex h-full flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
 		>
@@ -478,7 +478,7 @@ export default function ClientsTable() {
 				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
 				    così il fade non copre i titoli di colonna. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
+					<div className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 						<div className="flex min-w-max flex-col">
 							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
