@@ -350,7 +350,8 @@ export default function TeamMemberSupervisionPage() {
 							aria-label="Torna al team"
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={() => {
-								router.push(backHref);
+								// biome-ignore lint/suspicious/noExplicitAny: dynamic route string not assignable to Next.js RouteImpl
+								router.push(backHref as any);
 							}}
 							type="button"
 						>
@@ -512,13 +513,19 @@ export default function TeamMemberSupervisionPage() {
 														key={n.id}
 														onClick={() => {
 															const stato = getNegotiationStatoSegment(n);
-															router.push(`/trattative/${stato}/${n.id}`);
+															router.push(
+																// biome-ignore lint/suspicious/noExplicitAny: dynamic route string not assignable to Next.js RouteImpl
+																`/trattative/${stato}/${n.id}` as any
+															);
 														}}
 														onKeyDown={(event) => {
 															if (event.key === "Enter" || event.key === " ") {
 																event.preventDefault();
 																const stato = getNegotiationStatoSegment(n);
-																router.push(`/trattative/${stato}/${n.id}`);
+																router.push(
+																	// biome-ignore lint/suspicious/noExplicitAny: dynamic route string not assignable to Next.js RouteImpl
+																	`/trattative/${stato}/${n.id}` as any
+																);
 															}
 														}}
 														role="button"
