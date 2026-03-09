@@ -1,12 +1,13 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { ChevronDown, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	CheckIcon,
+	IconChartBarTrendUp,
 	IconCirclePlusFilled,
 	IconPeople,
 } from "@/components/icons";
@@ -410,24 +411,29 @@ export default function ClientsTable() {
 			{/* Body: shell grafica della tabella. Seguiamo lo stesso pattern delle pagine trattative:
 			    lo scroll verticale è confinato al contenitore interno (scroll-fade-y) così che la card
 			    rimanga stabile dentro il layout a viewport fissa. */}
-			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 overflow-hidden rounded-t-3xl px-5.5 pt-6.25">
+			<div className="table-container-bg flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25">
 				{/* Stats: on mobile collapsible via toggle; always visible on sm+. */}
 				<div className="shrink-0">
 					{isMobile && (
 						<button
 							aria-expanded={statsOpen}
-							className="mb-2 flex items-center gap-1.5 rounded-full bg-table-header px-3 py-1.5 font-medium text-sm text-stats-title transition-colors hover:bg-table-hover"
+							className="mb-2.5 flex items-center gap-1.5 rounded-full bg-table-header px-3 py-1.5 font-medium text-sm text-stats-title transition-colors hover:bg-table-hover"
 							onClick={() => setStatsOpen((v) => !v)}
 							type="button"
 						>
-							<IconPeople aria-hidden size={14} />
+							{/* Use the same "chart trend up" icon as analytics cards to imply performance statistics. */}
+							<IconChartBarTrendUp aria-hidden size={14} />
 							<span>Statistiche</span>
+							{/* Use same chevron icon as table filters for a consistent disclosure affordance. */}
 							<motion.span
 								animate={{ rotate: statsOpen ? 180 : 0 }}
-								className="ml-0.5 inline-flex"
+								className="ml-0.5 inline-flex shrink-0"
 								transition={{ duration: 0.2 }}
 							>
-								▾
+								<ChevronDown
+									aria-hidden
+									className="size-3.5 text-button-secondary"
+								/>
 							</motion.span>
 						</button>
 					)}
@@ -435,7 +441,7 @@ export default function ClientsTable() {
 						{(!isMobile || statsOpen) && (
 							<motion.div
 								animate={{ opacity: 1, height: "auto" }}
-								className="scroll-fade-x flex flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden"
+								className="scroll-fade-x mb-4 flex flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden"
 								exit={{ opacity: 0, height: 0 }}
 								initial={{ opacity: 0, height: 0 }}
 								transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
