@@ -408,7 +408,7 @@ export default function ClientsTable() {
 			{/* Body: shell grafica della tabella. Seguiamo lo stesso pattern delle pagine trattative:
 			    lo scroll verticale è confinato al contenitore interno (scroll-fade-y) così che la card
 			    rimanga stabile dentro il layout a viewport fissa. */}
-			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 rounded-t-3xl px-5.5 pt-6.25">
+			<div className="table-container-bg flex min-h-0 flex-1 flex-col gap-6.25 overflow-hidden rounded-t-3xl px-5.5 pt-6.25">
 				{/* Stats: stessa pattern della pagina trattative — icona fill in bg (bottom-right, opacity bassa sul wrapper div, non sull'icona), AnimateNumber per tutti i numeri. */}
 				{/* Ultra‑compact stats cards: single row with horizontal scroll so more table rows fit on screen; scroll-fade-x hints more content on left/right. */}
 				<div className="scroll-fade-x flex shrink-0 flex-nowrap items-start gap-2 overflow-x-auto overflow-y-hidden">
