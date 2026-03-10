@@ -28,7 +28,16 @@ import type {
 import { useAuth } from "@/lib/auth/auth-context";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
-import { IconCrown2Fill18, IconUTurnToLeft } from "./icons";
+import {
+	IconChartBarTrendUp,
+	IconCrown2Fill18,
+	IconQuickstartFill18,
+	IconSackDollarFill18,
+	IconSuitcaseDollarFill18,
+	IconTarget,
+	IconUTurnToLeft,
+	IconVault3Fill18,
+} from "./icons";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -465,13 +474,14 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 				<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
 					{/* Stats cards — at the very top, same pattern as /team list page */}
 					{isDirector && stats && (
-						<div className="flex flex-wrap items-start gap-3.75">
+						<div className="flex w-full flex-wrap items-stretch gap-3.75">
 							<StatCard
 								primaryLabel="aperte"
 								primaryValue={stats.total_open_negotiations}
 								secondaryLabel="totale importo"
 								secondaryValue={Number(stats.total_open_amount)}
 								title="Trattative aperte"
+								variant="total-open"
 							/>
 							<StatCard
 								primaryLabel="importo medio aperte"
@@ -479,6 +489,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								secondaryLabel="importo medio concluse"
 								secondaryValue={stats.average_concluded_amount}
 								title="Importo medio"
+								variant="average-open-amount"
 							/>
 							<StatCard
 								primaryLabel="percentuale conclusione"
@@ -486,15 +497,14 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								secondaryLabel="giorni medi chiusura"
 								secondaryValue={stats.average_closing_days}
 								title="Performance chiusura"
+								variant="conclusion-pct"
 							/>
-							<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-								<h3 className="font-medium text-sm text-stats-title leading-none">
-									Membri effettivi
-								</h3>
-								<AnimateNumber className="text-xl tabular-nums leading-none">
-									{stats.effective_members_count}
-								</AnimateNumber>
-							</div>
+							<StatCard
+								primaryLabel="membri"
+								primaryValue={stats.effective_members_count}
+								title="Membri effettivi"
+								variant="members"
+							/>
 						</div>
 					)}
 
@@ -1197,40 +1207,139 @@ interface StatCardProps {
 	primaryValue: number;
 	secondaryLabel?: string;
 	secondaryValue?: number;
+	variant?:
+		| "total-open"
+		| "total-open-amount"
+		| "average-open-amount"
+		| "average-concluded-amount"
+		| "conclusion-pct"
+		| "average-closing-days"
+		| "members";
 }
 
-/** Stat card for team statistics — same bg-table-header style as /team list page. */
+/**
+ * Stat card for team statistics.
+ * Uses the same visual shell (spacing, typography, background) as the dashboard stat cards
+ * so that the KPI cards on the team detail page look and feel consistent with the dashboard.
+ */
 function StatCard({
 	title,
 	primaryLabel,
 	primaryValue,
 	secondaryLabel,
 	secondaryValue,
+	variant,
 }: StatCardProps) {
 	return (
-		<div className="flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75">
-			<h3 className="font-medium text-sm text-stats-title leading-none">
+		<div className="stat-card-bg relative flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1">
+			{/* Decorative background icons — mirrored from dashboard cards so layout feels identical. */}
+			{variant === "total-open" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconSuitcaseDollarFill18
+						aria-hidden="true"
+						className="text-sky-500 dark:text-sky-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "total-open-amount" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconSackDollarFill18
+						aria-hidden="true"
+						className="text-sky-500 dark:text-sky-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "average-open-amount" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconChartBarTrendUp
+						aria-hidden="true"
+						className="text-emerald-500 dark:text-emerald-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "average-concluded-amount" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconVault3Fill18
+						aria-hidden="true"
+						className="text-indigo-500 dark:text-indigo-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "conclusion-pct" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconTarget
+						aria-hidden="true"
+						className="text-amber-500 dark:text-amber-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "average-closing-days" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconQuickstartFill18
+						aria-hidden="true"
+						className="text-emerald-500 dark:text-emerald-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "members" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconChartBarTrendUp
+						aria-hidden="true"
+						className="text-sky-500 dark:text-sky-300"
+						size={96}
+					/>
+				</div>
+			)}
+
+			<h3 className="stat-card-text truncate font-medium text-muted-foreground text-sm">
 				{title}
 			</h3>
-			<div className="flex items-center gap-2">
-				<AnimateNumber className="text-xl tabular-nums leading-none">
+			<div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+				<AnimateNumber className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
 					{Number.isFinite(primaryValue) ? primaryValue : 0}
 				</AnimateNumber>
-				<span className="text-muted-foreground text-sm leading-none">
+				<span className="stat-card-text text-foreground text-sm leading-none opacity-70">
 					{primaryLabel}
 				</span>
 				{secondaryValue != null &&
 					Number.isFinite(secondaryValue) &&
 					secondaryLabel && (
-						<>
+						<div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
 							<div className="h-4 w-[2px] rounded-full bg-muted-foreground/25" />
-							<span className="font-medium text-sm tabular-nums leading-none">
+							<span className="stat-card-text font-semibold text-base text-foreground tabular-nums leading-none">
 								{secondaryValue}
 							</span>
-							<span className="text-muted-foreground text-xs leading-none">
+							<span className="stat-card-text text-muted-foreground text-xs leading-none">
 								{secondaryLabel}
 							</span>
-						</>
+						</div>
 					)}
 			</div>
 		</div>

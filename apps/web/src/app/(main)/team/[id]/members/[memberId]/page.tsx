@@ -1,12 +1,19 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { AnimateNumber } from "motion-plus/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
 	CheckIcon,
+	IconChartBarTrendUp,
 	IconCirclePlusFilled,
+	IconQuickstartFill18,
+	IconSackDollarFill18,
+	IconSuitcaseDollarFill18,
+	IconTarget,
 	IconUTurnToLeft,
+	IconVault3Fill18,
 } from "@/components/icons";
 import CircleXmarkFilled from "@/components/icons/circle-xmark-filled";
 import Loader from "@/components/loader";
@@ -154,6 +161,8 @@ export default function TeamMemberSupervisionPage() {
 		null
 	);
 	const [isNegotiationsLoading, setIsNegotiationsLoading] = useState(false);
+	// Local search term for filtering the member's negotiations table.
+	const [searchTerm, setSearchTerm] = useState("");
 
 	// Single page-level error for hard failures (es. 403 supervisione).
 	const [pageError, setPageError] = useState<string | null>(null);
@@ -335,6 +344,29 @@ export default function TeamMemberSupervisionPage() {
 		return null;
 	}
 
+	// Apply a simple, client-side search over the loaded negotiations so that
+	// the search bar behaves consistently with other tables (clienti / trattative).
+	const normalizedSearch = searchTerm.trim().toLowerCase();
+	const visibleNegotiations =
+		normalizedSearch === ""
+			? negotiations
+			: negotiations.filter((n) => {
+					const clientName =
+						n.client?.ragione_sociale ?? `Cliente #${n.client_id}`;
+					const status = getNegotiationStatus(n).label;
+					const fields = [
+						clientName,
+						n.referente ?? "",
+						formatNegotiationDate(n.data_apertura ?? n.created_at ?? undefined),
+						formatCurrency(n.importo),
+						`${clampPercentuale(n.percentuale)}%`,
+						status,
+					];
+					return fields.some((field) =>
+						field.toLowerCase().includes(normalizedSearch)
+					);
+				});
+
 	return (
 		<main
 			className={cn(
@@ -384,18 +416,18 @@ export default function TeamMemberSupervisionPage() {
 					{/* KPI cards from TeamMemberStatistics */}
 					<section
 						aria-label="Statistiche trattative del venditore"
-						className="flex flex-wrap items-start gap-2 sm:gap-3.75"
+						className="flex w-full flex-wrap items-stretch gap-3.75"
 					>
 						{isMemberStatsLoading &&
 							!memberStats &&
 							Array.from({ length: 4 }).map((_, index) => (
 								<div
 									aria-hidden
-									className="stat-card-bg flex flex-col gap-2 rounded-xl bg-table-header p-2.5 sm:gap-3.75 sm:p-3.75"
+									className="stat-card-bg flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1"
 									key={`member-stat-skeleton-${String(index)}`}
 								>
-									<Skeleton className="h-3.5 w-24 sm:h-4 sm:w-28" />
-									<Skeleton className="h-6 w-14 sm:h-7 sm:w-16" />
+									<Skeleton className="h-4 w-24" />
+									<Skeleton className="h-8 w-20" />
 								</div>
 							))}
 						{memberStats && (
@@ -403,26 +435,32 @@ export default function TeamMemberSupervisionPage() {
 								<MemberStatCard
 									label="Trattative aperte"
 									value={memberStats.total_open_negotiations}
+									variant="total-open"
 								/>
 								<MemberStatCard
 									label="Importo totale aperte"
 									value={formatCurrency(Number(memberStats.total_open_amount))}
+									variant="total-open-amount"
 								/>
 								<MemberStatCard
 									label="Importo medio aperte"
 									value={formatCurrency(memberStats.average_open_amount)}
+									variant="average-open-amount"
 								/>
 								<MemberStatCard
 									label="% conclusione"
 									value={`${memberStats.conclusion_percentage.toFixed(1)}%`}
+									variant="conclusion-pct"
 								/>
 								<MemberStatCard
 									label="Giorni medi chiusura"
 									value={memberStats.average_closing_days}
+									variant="average-closing-days"
 								/>
 								<MemberStatCard
 									label="Importo medio concluse"
 									value={formatCurrency(memberStats.average_concluded_amount)}
+									variant="average-concluded-amount"
 								/>
 							</>
 						)}
@@ -452,16 +490,36 @@ export default function TeamMemberSupervisionPage() {
 						aria-label="Trattative del venditore"
 						className="flex w-full flex-col gap-2"
 					>
-						<div className="flex items-center justify-between gap-2">
+						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<h2 className="font-medium text-2xl">Trattative del venditore</h2>
-							{!isNegotiationsLoading && negotiations.length > 0 && (
-								<span className="text-muted-foreground text-sm">
-									<AnimateNumber className="tabular-nums">
-										{negotiations.length}
-									</AnimateNumber>{" "}
-									trattative totali
-								</span>
-							)}
+							<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+								{!isNegotiationsLoading && negotiations.length > 0 && (
+									<span className="text-muted-foreground text-sm">
+										<AnimateNumber className="tabular-nums">
+											{visibleNegotiations.length}
+										</AnimateNumber>{" "}
+										trattative trovate
+									</span>
+								)}
+								{/* Search pill — bg-card and expanding width on focus, like other search bars. */}
+								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-card px-4 py-2.5 text-sm transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.5 sm:py-2 sm:focus-within:w-80">
+									<input
+										className="w-full truncate bg-transparent text-card-foreground text-sm placeholder:text-search-placeholder focus-visible:outline-none"
+										onChange={(event) => {
+											setSearchTerm(event.target.value);
+										}}
+										placeholder="Cerca per cliente, referente, stato, importo…"
+										type="search"
+										value={searchTerm}
+									/>
+									<div className="ml-2 flex items-center justify-center">
+										<Search
+											aria-hidden
+											className="size-4 text-search-placeholder"
+										/>
+									</div>
+								</label>
+							</div>
 						</div>
 
 						<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
@@ -491,16 +549,16 @@ export default function TeamMemberSupervisionPage() {
 											</div>
 										)}
 										{!(isNegotiationsLoading || negotiationsError) &&
-											negotiations.length === 0 && (
+											visibleNegotiations.length === 0 && (
 												<div className="flex h-full items-center justify-center p-8">
 													<p className="text-muted-foreground text-sm">
-														Nessuna trattativa per questo venditore.
+														Nessuna trattativa trovata per questo venditore.
 													</p>
 												</div>
 											)}
 										{!(isNegotiationsLoading || negotiationsError) &&
-											negotiations.length > 0 &&
-											negotiations.map((n) => {
+											visibleNegotiations.length > 0 &&
+											visibleNegotiations.map((n) => {
 												const status = getNegotiationStatus(n);
 												const clamped = clampPercentuale(n.percentuale);
 												const clientName =
@@ -606,23 +664,108 @@ export default function TeamMemberSupervisionPage() {
 interface MemberStatCardProps {
 	label: string;
 	value: number | string;
+	variant?:
+		| "total-open"
+		| "total-open-amount"
+		| "average-open-amount"
+		| "average-concluded-amount"
+		| "conclusion-pct"
+		| "average-closing-days";
 }
 
-/** Small stat card for member KPI, aligned with dashboard style. Smaller on mobile. */
-function MemberStatCard({ label, value }: MemberStatCardProps) {
+/**
+ * Stat card for member KPI — same visual shell as the dashboard / team KPI cards:
+ * full-width on mobile, equal columns on desktop, bg-card, big number,
+ * and a decorative icon anchored bottom-right.
+ */
+function MemberStatCard({ label, value, variant }: MemberStatCardProps) {
 	const isNumber = typeof value === "number";
 	return (
-		<div className="stat-card-bg flex flex-col items-start justify-center gap-2 rounded-xl bg-table-header p-2.5 sm:gap-3.75 sm:p-3.75">
-			<h3 className="font-medium text-stats-title text-xs leading-none sm:text-sm">
+		<div className="stat-card-bg relative flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1">
+			{/* Decorative icon bottom-right — mirrored from other KPI cards */}
+			{variant === "total-open" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconSuitcaseDollarFill18
+						aria-hidden="true"
+						className="text-sky-500 dark:text-sky-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "total-open-amount" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconSackDollarFill18
+						aria-hidden="true"
+						className="text-sky-500 dark:text-sky-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "average-open-amount" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconChartBarTrendUp
+						aria-hidden="true"
+						className="text-emerald-500 dark:text-emerald-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "average-concluded-amount" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconVault3Fill18
+						aria-hidden="true"
+						className="text-indigo-500 dark:text-indigo-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "conclusion-pct" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconTarget
+						aria-hidden="true"
+						className="text-amber-500 dark:text-amber-300"
+						size={96}
+					/>
+				</div>
+			)}
+			{variant === "average-closing-days" && (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
+				>
+					<IconQuickstartFill18
+						aria-hidden="true"
+						className="text-emerald-500 dark:text-emerald-300"
+						size={96}
+					/>
+				</div>
+			)}
+
+			<h3 className="stat-card-text truncate font-medium text-muted-foreground text-sm">
 				{label}
 			</h3>
 			<div className="flex items-baseline gap-2">
 				{isNumber ? (
-					<AnimateNumber className="text-lg tabular-nums leading-none sm:text-xl">
+					<AnimateNumber className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
 						{value as number}
 					</AnimateNumber>
 				) : (
-					<span className="text-lg tabular-nums leading-none sm:text-xl">
+					<span className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
 						{value}
 					</span>
 				)}
