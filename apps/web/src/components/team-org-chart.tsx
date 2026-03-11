@@ -31,9 +31,10 @@ import { cn } from "@/lib/utils";
 import {
 	IconChartBarTrendUp,
 	IconCrown2Fill18,
+	IconFilePlusFill18,
+	IconPeople,
 	IconQuickstartFill18,
 	IconSackDollarFill18,
-	IconSuitcaseDollarFill18,
 	IconTarget,
 	IconUTurnToLeft,
 	IconVault3Fill18,
@@ -291,19 +292,33 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 				</div>
 				<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
 					<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
-						{/* Stats cards skeleton (same layout as Pipeline, Concluse, Abbandonate, Membri effettivi) */}
+						{/* Stats cards skeleton — 4 on top, 3 on bottom (matches loaded state). */}
 						{isDirector && (
-							<div className="flex flex-wrap items-start gap-3.75">
-								{Array.from({ length: 4 }).map((_, i) => (
-									<div
-										aria-hidden
-										className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
-										key={`stat-skeleton-${String(i)}`}
-									>
-										<Skeleton className="h-4 w-20" />
-										<Skeleton className="h-7 w-16" />
-									</div>
-								))}
+							<div className="flex flex-col gap-3.75">
+								<div className="flex flex-wrap items-start gap-3.75">
+									{Array.from({ length: 4 }).map((_, i) => (
+										<div
+											aria-hidden
+											className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
+											key={`stat-skeleton-top-${String(i)}`}
+										>
+											<Skeleton className="h-4 w-20" />
+											<Skeleton className="h-7 w-16" />
+										</div>
+									))}
+								</div>
+								<div className="flex flex-wrap items-start gap-3.75">
+									{Array.from({ length: 3 }).map((_, i) => (
+										<div
+											aria-hidden
+											className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
+											key={`stat-skeleton-bottom-${String(i)}`}
+										>
+											<Skeleton className="h-4 w-20" />
+											<Skeleton className="h-7 w-16" />
+										</div>
+									))}
+								</div>
 							</div>
 						)}
 
@@ -472,39 +487,55 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
 				{/* Scroll container with gap-2.5 between sections — aligned with UpdateClientForm / UpdateNegotiationForm. */}
 				<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
-					{/* Stats cards — at the very top, same pattern as /team list page */}
+					{/* Stats cards — 4 on top row, 3 on bottom row (same gap and stretch as before). */}
 					{isDirector && stats && (
-						<div className="flex w-full flex-wrap items-stretch gap-3.75">
-							<StatCard
-								primaryLabel="aperte"
-								primaryValue={stats.total_open_negotiations}
-								secondaryLabel="totale importo"
-								secondaryValue={Number(stats.total_open_amount)}
-								title="Trattative aperte"
-								variant="total-open"
-							/>
-							<StatCard
-								primaryLabel="importo medio aperte"
-								primaryValue={stats.average_open_amount}
-								secondaryLabel="importo medio concluse"
-								secondaryValue={stats.average_concluded_amount}
-								title="Importo medio"
-								variant="average-open-amount"
-							/>
-							<StatCard
-								primaryLabel="percentuale conclusione"
-								primaryValue={stats.conclusion_percentage}
-								secondaryLabel="giorni medi chiusura"
-								secondaryValue={stats.average_closing_days}
-								title="Performance chiusura"
-								variant="conclusion-pct"
-							/>
-							<StatCard
-								primaryLabel="membri"
-								primaryValue={stats.effective_members_count}
-								title="Membri effettivi"
-								variant="members"
-							/>
+						<div className="flex w-full flex-col gap-3.75">
+							<div className="flex w-full flex-wrap items-stretch gap-3.75">
+								<StatCard
+									primaryLabel="Trattative aperte"
+									primaryValue={stats.total_open_negotiations}
+									title="Trattative aperte"
+									variant="total-open"
+								/>
+								<StatCard
+									primaryLabel="Totale importo aperte"
+									primaryValue={Number(stats.total_open_amount)}
+									title="Valore pipeline"
+									variant="total-open-amount"
+								/>
+								<StatCard
+									primaryLabel="Importo medio aperte"
+									primaryValue={stats.average_open_amount}
+									title="Importo medio"
+									variant="average-open-amount"
+								/>
+								<StatCard
+									primaryLabel="Importo medio concluse"
+									primaryValue={stats.average_concluded_amount}
+									title="Importo medio concluse"
+									variant="average-concluded-amount"
+								/>
+							</div>
+							<div className="flex w-full flex-wrap items-stretch gap-3.75">
+								<StatCard
+									primaryLabel="Percentuale conclusione"
+									primaryValue={stats.conclusion_percentage}
+									title="Performance chiusura"
+									variant="conclusion-pct"
+								/>
+								<StatCard
+									primaryLabel="Giorni medi chiusura"
+									primaryValue={stats.average_closing_days}
+									title="Tempo medio chiusura"
+									variant="average-closing-days"
+								/>
+								<StatCard
+									primaryLabel="Membri effettivi"
+									primaryValue={stats.effective_members_count}
+									title="Membri effettivi"
+									variant="members"
+								/>
+							</div>
 						</div>
 					)}
 
@@ -1232,13 +1263,14 @@ function StatCard({
 }: StatCardProps) {
 	return (
 		<div className="stat-card-bg relative flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1">
-			{/* Decorative background icons — mirrored from dashboard cards so layout feels identical. */}
+			{/* Decorative background icons — riusiamo le stesse icone delle altre sezioni (clienti, trattative). */}
 			{variant === "total-open" && (
 				<div
 					aria-hidden="true"
 					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
 				>
-					<IconSuitcaseDollarFill18
+					{/* Icona "Aperte": stessa della sidebar (voce Trattative → Aperte). */}
+					<IconFilePlusFill18
 						aria-hidden="true"
 						className="text-sky-500 dark:text-sky-300"
 						size={96}
@@ -1310,7 +1342,8 @@ function StatCard({
 					aria-hidden="true"
 					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
 				>
-					<IconChartBarTrendUp
+					{/* Icona condivisa con la sezione Clienti per rappresentare persone/membri. */}
+					<IconPeople
 						aria-hidden="true"
 						className="text-sky-500 dark:text-sky-300"
 						size={96}
@@ -1318,16 +1351,15 @@ function StatCard({
 				</div>
 			)}
 
+			{/* Main title on top of the card uses the primary label text,
+				so KPI labels like "importo medio concluse" compaiono come titolo principale. */}
 			<h3 className="stat-card-text truncate font-medium text-muted-foreground text-sm">
-				{title}
+				{primaryLabel || title}
 			</h3>
 			<div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
 				<AnimateNumber className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
 					{Number.isFinite(primaryValue) ? primaryValue : 0}
 				</AnimateNumber>
-				<span className="stat-card-text text-foreground text-sm leading-none opacity-70">
-					{primaryLabel}
-				</span>
 				{secondaryValue != null &&
 					Number.isFinite(secondaryValue) &&
 					secondaryLabel && (

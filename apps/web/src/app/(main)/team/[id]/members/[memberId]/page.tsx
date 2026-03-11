@@ -1,16 +1,18 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
+import { Search, X } from "lucide-react";
 import { AnimateNumber } from "motion-plus/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { Drawer } from "vaul";
 import {
 	CheckIcon,
 	IconChartBarTrendUp,
 	IconCirclePlusFilled,
+	IconFilePlusFill18,
 	IconQuickstartFill18,
 	IconSackDollarFill18,
-	IconSuitcaseDollarFill18,
 	IconTarget,
 	IconUTurnToLeft,
 	IconVault3Fill18,
@@ -19,6 +21,7 @@ import CircleXmarkFilled from "@/components/icons/circle-xmark-filled";
 import Loader from "@/components/loader";
 import { TeamMemberNegotiationsMap } from "@/components/negotiations-map";
 import { SpancoDonutChart } from "@/components/spanco-donut-chart";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
@@ -35,7 +38,10 @@ import type {
 	TeamMemberStatistics,
 } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
-import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
+import {
+	isNegotiationAbandoned,
+	isNegotiationCompleted,
+} from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 
 /** SPANCO stage colors for the percentuale progress bar (track + fill). Matches trattative-table. */
@@ -132,6 +138,7 @@ function getNegotiationStatus(negotiation: ApiNegotiation): {
 }
 
 /** Main supervision page for a single team member (venditore). */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: page-level component with KPI, map, SPANCO chart, table and dialog
 export default function TeamMemberSupervisionPage() {
 	const auth = useAuthOptional();
 	const router = useRouter();
@@ -163,6 +170,11 @@ export default function TeamMemberSupervisionPage() {
 	const [isNegotiationsLoading, setIsNegotiationsLoading] = useState(false);
 	// Local search term for filtering the member's negotiations table.
 	const [searchTerm, setSearchTerm] = useState("");
+
+	// Read-only detail dialog: director views negotiation in a dialog instead of navigating to edit page.
+	const [selectedNegotiation, setSelectedNegotiation] =
+		useState<ApiNegotiation | null>(null);
+	const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
 	// Single page-level error for hard failures (es. 403 supervisione).
 	const [pageError, setPageError] = useState<string | null>(null);
@@ -413,55 +425,77 @@ export default function TeamMemberSupervisionPage() {
 						</div>
 					)}
 
-					{/* KPI cards from TeamMemberStatistics */}
+					{/* KPI cards from TeamMemberStatistics — 4 on top row, 2 on bottom for better distribution. */}
 					<section
 						aria-label="Statistiche trattative del venditore"
-						className="flex w-full flex-wrap items-stretch gap-3.75"
+						className="flex w-full flex-col gap-3.75"
 					>
-						{isMemberStatsLoading &&
-							!memberStats &&
-							Array.from({ length: 4 }).map((_, index) => (
-								<div
-									aria-hidden
-									className="stat-card-bg flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1"
-									key={`member-stat-skeleton-${String(index)}`}
-								>
-									<Skeleton className="h-4 w-24" />
-									<Skeleton className="h-8 w-20" />
+						{isMemberStatsLoading && !memberStats && (
+							<>
+								<div className="flex w-full flex-wrap items-stretch gap-3.75">
+									{Array.from({ length: 4 }).map((_, i) => (
+										<div
+											aria-hidden
+											className="stat-card-bg flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1"
+											key={`member-stat-skeleton-top-${String(i)}`}
+										>
+											<Skeleton className="h-4 w-24" />
+											<Skeleton className="h-8 w-20" />
+										</div>
+									))}
 								</div>
-							))}
+								<div className="flex w-full flex-wrap items-stretch gap-3.75">
+									{Array.from({ length: 2 }).map((_, i) => (
+										<div
+											aria-hidden
+											className="stat-card-bg flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1"
+											key={`member-stat-skeleton-bottom-${String(i)}`}
+										>
+											<Skeleton className="h-4 w-24" />
+											<Skeleton className="h-8 w-20" />
+										</div>
+									))}
+								</div>
+							</>
+						)}
 						{memberStats && (
 							<>
-								<MemberStatCard
-									label="Trattative aperte"
-									value={memberStats.total_open_negotiations}
-									variant="total-open"
-								/>
-								<MemberStatCard
-									label="Importo totale aperte"
-									value={formatCurrency(Number(memberStats.total_open_amount))}
-									variant="total-open-amount"
-								/>
-								<MemberStatCard
-									label="Importo medio aperte"
-									value={formatCurrency(memberStats.average_open_amount)}
-									variant="average-open-amount"
-								/>
-								<MemberStatCard
-									label="% conclusione"
-									value={`${memberStats.conclusion_percentage.toFixed(1)}%`}
-									variant="conclusion-pct"
-								/>
-								<MemberStatCard
-									label="Giorni medi chiusura"
-									value={memberStats.average_closing_days}
-									variant="average-closing-days"
-								/>
-								<MemberStatCard
-									label="Importo medio concluse"
-									value={formatCurrency(memberStats.average_concluded_amount)}
-									variant="average-concluded-amount"
-								/>
+								<div className="flex w-full flex-wrap items-stretch gap-3.75">
+									<MemberStatCard
+										label="Trattative aperte"
+										value={memberStats.total_open_negotiations}
+										variant="total-open"
+									/>
+									<MemberStatCard
+										label="Importo totale aperte"
+										value={formatCurrency(
+											Number(memberStats.total_open_amount)
+										)}
+										variant="total-open-amount"
+									/>
+									<MemberStatCard
+										label="Importo medio aperte"
+										value={formatCurrency(memberStats.average_open_amount)}
+										variant="average-open-amount"
+									/>
+									<MemberStatCard
+										label="% conclusione"
+										value={`${memberStats.conclusion_percentage.toFixed(1)}%`}
+										variant="conclusion-pct"
+									/>
+								</div>
+								<div className="flex w-full flex-wrap items-stretch gap-3.75">
+									<MemberStatCard
+										label="Giorni medi chiusura"
+										value={memberStats.average_closing_days}
+										variant="average-closing-days"
+									/>
+									<MemberStatCard
+										label="Importo medio concluse"
+										value={formatCurrency(memberStats.average_concluded_amount)}
+										variant="average-concluded-amount"
+									/>
+								</div>
 							</>
 						)}
 						{memberStatsError && !memberStats && (
@@ -570,20 +604,14 @@ export default function TeamMemberSupervisionPage() {
 														className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 text-left font-medium last:border-b-0 hover:bg-table-hover"
 														key={n.id}
 														onClick={() => {
-															const stato = getNegotiationStatoSegment(n);
-															router.push(
-																// biome-ignore lint/suspicious/noExplicitAny: dynamic route string not assignable to Next.js RouteImpl
-																`/trattative/${stato}/${n.id}` as any
-															);
+															setSelectedNegotiation(n);
+															setDetailDialogOpen(true);
 														}}
 														onKeyDown={(event) => {
 															if (event.key === "Enter" || event.key === " ") {
 																event.preventDefault();
-																const stato = getNegotiationStatoSegment(n);
-																router.push(
-																	// biome-ignore lint/suspicious/noExplicitAny: dynamic route string not assignable to Next.js RouteImpl
-																	`/trattative/${stato}/${n.id}` as any
-																);
+																setSelectedNegotiation(n);
+																setDetailDialogOpen(true);
 															}
 														}}
 														role="button"
@@ -657,7 +685,279 @@ export default function TeamMemberSupervisionPage() {
 					</section>
 				</div>
 			</div>
+
+			{/* Read-only negotiation detail dialog: director views only, no link to edit page. */}
+			{selectedNegotiation && (
+				<NegotiationDetailDialog
+					isOpen={detailDialogOpen}
+					negotiation={selectedNegotiation}
+					onClose={() => {
+						setDetailDialogOpen(false);
+						setSelectedNegotiation(null);
+					}}
+				/>
+			)}
 		</main>
+	);
+}
+
+/** Read-only field row for the supervision negotiation dialog (label left, value right). */
+const DETAIL_FIELD_CLASSES =
+	"flex items-center justify-between gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none";
+const DETAIL_LABEL_CLASSES =
+	"w-fit flex-0 whitespace-nowrap text-base font-medium text-stats-title leading-none";
+
+interface NegotiationDetailDialogProps {
+	negotiation: ApiNegotiation;
+	isOpen: boolean;
+	onClose: () => void;
+}
+
+/**
+ * Read-only dialog showing negotiation details. Used on the team member supervision page
+ * so the director can view a trattativa without being sent to the edit page (where they could modify it).
+ * Desktop: Base UI Dialog; mobile: Vaul Drawer.
+ */
+function NegotiationDetailDialog({
+	negotiation,
+	isOpen,
+	onClose,
+}: NegotiationDetailDialogProps) {
+	const [layoutReady, setLayoutReady] = useState(false);
+	const [isDesktop, setIsDesktop] = useState(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		const mql = window.matchMedia("(max-width: 767px)");
+		const handleChange = () => setIsDesktop(!mql.matches);
+		handleChange();
+		setLayoutReady(true);
+		mql.addEventListener("change", handleChange);
+		return () => mql.removeEventListener("change", handleChange);
+	}, []);
+
+	const clientName =
+		negotiation.client?.ragione_sociale ?? `Cliente #${negotiation.client_id}`;
+	const telefonoDisplay = negotiation.client?.telefono?.trim() ?? "—";
+	const dataAperturaDisplay = formatNegotiationDate(
+		negotiation.data_apertura ?? negotiation.created_at ?? undefined
+	);
+	const status = getNegotiationStatus(negotiation);
+	const clamped = clampPercentuale(negotiation.percentuale);
+
+	const body = (
+		<>
+			<div className="flex items-center justify-between gap-3 pb-6">
+				<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
+					Dettaglio trattativa
+				</h2>
+				<button
+					aria-label="Chiudi"
+					className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					onClick={onClose}
+					type="button"
+				>
+					<X aria-hidden className="size-4" />
+				</button>
+			</div>
+
+			{/* Dati trattativa — read-only, same order as update form. Su desktop in 2 colonne con Stato e avanzamento. */}
+			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+				<section
+					aria-labelledby="detail-dati-heading"
+					className="flex flex-col gap-2"
+				>
+					<h3
+						className="font-medium text-lg text-stats-title"
+						id="detail-dati-heading"
+					>
+						Dati trattativa
+					</h3>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Ragione sociale</span>
+						<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+							{clientName}
+						</span>
+					</div>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Telefono</span>
+						<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+							{telefonoDisplay}
+						</span>
+					</div>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Data apertura</span>
+						<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+							{dataAperturaDisplay}
+						</span>
+					</div>
+					{isNegotiationAbandoned(negotiation) && (
+						<div className={DETAIL_FIELD_CLASSES}>
+							<span className={DETAIL_LABEL_CLASSES}>Data abbandono</span>
+							<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+								{formatNegotiationDate(
+									negotiation.data_abbandono ?? negotiation.updated_at
+								)}
+							</span>
+						</div>
+					)}
+					{!isNegotiationAbandoned(negotiation) &&
+						isNegotiationCompleted(negotiation) && (
+							<div className={DETAIL_FIELD_CLASSES}>
+								<span className={DETAIL_LABEL_CLASSES}>Data chiusura</span>
+								<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+									{formatNegotiationDate(
+										negotiation.data_chiusura ?? negotiation.updated_at
+									)}
+								</span>
+							</div>
+						)}
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Referente</span>
+						<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+							{negotiation.referente ?? "—"}
+						</span>
+					</div>
+					<div className={cn(DETAIL_FIELD_CLASSES, "items-start")}>
+						<span className={DETAIL_LABEL_CLASSES}>Note</span>
+						<span className="min-w-0 flex-1 text-right font-medium text-base">
+							{negotiation.note?.trim() || "—"}
+						</span>
+					</div>
+				</section>
+
+				{/* Stato e avanzamento — seconda colonna su desktop. */}
+				<section
+					aria-labelledby="detail-stato-heading"
+					className="flex flex-col gap-2 sm:mt-0"
+				>
+					<h3
+						className="font-medium text-lg text-stats-title"
+						id="detail-stato-heading"
+					>
+						Stato e avanzamento
+					</h3>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Importo</span>
+						<span className="font-medium text-base tabular-nums">
+							{formatCurrency(negotiation.importo)}
+						</span>
+					</div>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Percentuale</span>
+						<span className="font-medium text-base tabular-nums">
+							{clamped}%
+						</span>
+					</div>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>SPANCO</span>
+						<span
+							className="rounded-full px-2.5 py-1 font-medium text-sm tabular-nums"
+							style={{
+								backgroundColor: SPANCO_STAGE_COLORS[negotiation.spanco].softBg,
+								color: SPANCO_STAGE_COLORS[negotiation.spanco].main,
+							}}
+						>
+							{negotiation.spanco}
+						</span>
+					</div>
+					<div className={DETAIL_FIELD_CLASSES}>
+						<span className={DETAIL_LABEL_CLASSES}>Stato</span>
+						<span
+							className={cn(
+								"inline-flex items-center gap-2 rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+								status.classes
+							)}
+						>
+							{status.icon === "close" && (
+								<CircleXmarkFilled aria-hidden size={18} />
+							)}
+							{status.icon === "circle-plus" && (
+								<IconCirclePlusFilled aria-hidden size={18} />
+							)}
+							{status.icon === "check" && <CheckIcon aria-hidden size={18} />}
+							{status.label}
+						</span>
+					</div>
+				</section>
+			</div>
+
+			<div className="mt-6 flex justify-end">
+				<Button
+					className="h-10 min-w-26 rounded-xl text-sm"
+					onClick={onClose}
+					type="button"
+				>
+					Chiudi
+				</Button>
+			</div>
+		</>
+	);
+
+	if (!layoutReady) {
+		return null;
+	}
+
+	if (isDesktop) {
+		return (
+			<Dialog.Root
+				disablePointerDismissal={false}
+				onOpenChange={(open) => {
+					if (!open) {
+						onClose();
+					}
+				}}
+				open={isOpen}
+			>
+				<Dialog.Portal>
+					<Dialog.Backdrop
+						aria-hidden
+						className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
+					/>
+					<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+						<Dialog.Popup
+							aria-describedby="negotiation-detail-desc"
+							aria-labelledby="negotiation-detail-title"
+							className="data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-card px-6 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in"
+						>
+							<Dialog.Title className="sr-only" id="negotiation-detail-title">
+								Dettaglio trattativa (sola lettura)
+							</Dialog.Title>
+							<p className="sr-only" id="negotiation-detail-desc">
+								Dati e stato della trattativa in sola lettura. Il direttore può
+								solo visualizzare, non modificare.
+							</p>
+							<div className="overflow-y-auto">{body}</div>
+						</Dialog.Popup>
+					</div>
+				</Dialog.Portal>
+			</Dialog.Root>
+		);
+	}
+
+	return (
+		<Drawer.Root
+			onOpenChange={(open) => {
+				if (!open) {
+					onClose();
+				}
+			}}
+			open={isOpen}
+		>
+			<Drawer.Portal>
+				<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
+				<Drawer.Content className="fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]">
+					<Drawer.Title className="sr-only">Dettaglio trattativa</Drawer.Title>
+					<Drawer.Description className="sr-only">
+						Dati e stato della trattativa in sola lettura.
+					</Drawer.Description>
+					<div className="mx-auto mt-0.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
+					<div className="min-h-0 flex-1 overflow-y-auto pt-2">{body}</div>
+				</Drawer.Content>
+			</Drawer.Portal>
+		</Drawer.Root>
 	);
 }
 
@@ -688,7 +988,8 @@ function MemberStatCard({ label, value, variant }: MemberStatCardProps) {
 					aria-hidden="true"
 					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
 				>
-					<IconSuitcaseDollarFill18
+					{/* Same icon as sidebar "Aperte" (Trattative → Aperte). */}
+					<IconFilePlusFill18
 						aria-hidden="true"
 						className="text-sky-500 dark:text-sky-300"
 						size={96}
