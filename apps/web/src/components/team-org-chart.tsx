@@ -995,7 +995,7 @@ function CreatorNode({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className="relative flex w-60 flex-col items-center gap-2 rounded-2xl bg-amber-50/70 px-4 py-5 dark:bg-amber-950/20"
+			className="relative flex w-60 flex-col items-center gap-2 rounded-2xl bg-amber-200 px-4 py-5 dark:bg-amber-950/20"
 			initial={{ opacity: 0, y: -10 }}
 			transition={{ duration: 0.2, ease: "easeOut" }}
 		>
@@ -1100,7 +1100,7 @@ function MemberNode({
 			{/* Dettagli venditore: CTA visibile a tutti, separata dal bottone di rimozione. */}
 			<button
 				aria-label={`Visualizza i dettagli delle trattative di ${fullName}`}
-				className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 font-medium text-[11px] text-stats-title transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+				className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 font-medium text-[11px] text-foreground transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
 				onClick={onOpenDetails}
 				type="button"
 			>
@@ -1357,7 +1357,8 @@ function StatCard({
 				{primaryLabel || title}
 			</h3>
 			<div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-				<AnimateNumber className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
+				{/* Usiamo card-foreground per avere contrasto su bg-card, in linea con le stat cards della dashboard in tema Dataweb. */}
+				<AnimateNumber className="stat-card-text font-semibold text-5xl text-card-foreground tabular-nums leading-none">
 					{Number.isFinite(primaryValue) ? primaryValue : 0}
 				</AnimateNumber>
 				{secondaryValue != null &&
@@ -1365,7 +1366,7 @@ function StatCard({
 					secondaryLabel && (
 						<div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
 							<div className="h-4 w-[2px] rounded-full bg-muted-foreground/25" />
-							<span className="stat-card-text font-semibold text-base text-foreground tabular-nums leading-none">
+							<span className="stat-card-text font-semibold text-base text-card-foreground tabular-nums leading-none">
 								{secondaryValue}
 							</span>
 							<span className="stat-card-text text-muted-foreground text-xs leading-none">

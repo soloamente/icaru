@@ -132,7 +132,9 @@ function getNegotiationStatus(negotiation: ApiNegotiation): {
 	}
 	return {
 		label: "Aperta",
-		classes: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400",
+		// In tema Dataweb light il wrapper usa spesso bg-table-header; alziamo leggermente la luminosità
+		// rispetto a sky-100 per rendere la pill visibile anche sopra superfici azzurre simili.
+		classes: "bg-sky-200 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400",
 		icon: "circle-plus",
 	};
 }
@@ -1061,12 +1063,13 @@ function MemberStatCard({ label, value, variant }: MemberStatCardProps) {
 				{label}
 			</h3>
 			<div className="flex items-baseline gap-2">
+				{/* Usiamo card-foreground per il valore per avere il massimo contrasto su bg-card, in linea con le stat cards team/dashboard. */}
 				{isNumber ? (
-					<AnimateNumber className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
+					<AnimateNumber className="stat-card-text font-semibold text-5xl text-card-foreground tabular-nums leading-none">
 						{value as number}
 					</AnimateNumber>
 				) : (
-					<span className="stat-card-text font-semibold text-5xl text-foreground tabular-nums leading-none">
+					<span className="stat-card-text font-semibold text-5xl text-card-foreground tabular-nums leading-none">
 						{value}
 					</span>
 				)}
