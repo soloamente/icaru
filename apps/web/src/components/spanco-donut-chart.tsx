@@ -215,7 +215,31 @@ export function SpancoDonutChart({
 		<section
 			aria-label="Distribuzione delle trattative per stato SPANCO"
 			className="flex w-full flex-col items-center justify-center py-6"
+			data-chart="spanco"
 		>
+			{/* SVG filter for segment glow in dataweb theme (applied via CSS). */}
+			<svg aria-hidden className="absolute size-0" focusable={false}>
+				<title>SPANCO chart glow filter definitions</title>
+				<defs>
+					<filter
+						height="200%"
+						id="spanco-segment-glow"
+						width="200%"
+						x="-50%"
+						y="-50%"
+					>
+						<feGaussianBlur
+							in="SourceGraphic"
+							result="blur"
+							stdDeviation="10"
+						/>
+						<feMerge>
+							<feMergeNode in="blur" />
+							<feMergeNode in="SourceGraphic" />
+						</feMerge>
+					</filter>
+				</defs>
+			</svg>
 			{/* Same fixed dimensions as loading/error so cards below don't move. */}
 			<div
 				className={`${CHART_CONTAINER_CLASS} [&_*:focus]:outline-none [&_*:focus]:ring-0`}

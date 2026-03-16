@@ -556,7 +556,7 @@ export function ImportClientsDialog({
 								</h2>
 								<Dialog.Close
 									aria-label="Chiudi"
-									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 								>
 									<X aria-hidden className="size-4" />
 								</Dialog.Close>

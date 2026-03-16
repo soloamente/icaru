@@ -168,7 +168,7 @@ export function AddClientDialog({
 								</h2>
 								<Dialog.Close
 									aria-label="Chiudi"
-									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 								>
 									<X aria-hidden className="size-4" />
 								</Dialog.Close>
@@ -376,7 +376,7 @@ export function AddClientDialog({
 									</p>
 								)}
 								<Button
-									className="h-10 w-full rounded-xl text-sm md:col-span-2"
+									className="h-12 w-full rounded-2xl text-base md:col-span-2"
 									disabled={submitting}
 									type="submit"
 								>

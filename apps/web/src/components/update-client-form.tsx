@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { IconPenWritingFill18 } from "@/components/icons";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { updateClient } from "@/lib/api/client";
 import type { ApiClient, UpdateClientBody } from "@/lib/api/types";
@@ -242,7 +243,12 @@ export function UpdateClientForm({
 							)}
 							htmlFor="update-client-ragione-sociale"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Ragione sociale</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Ragione sociale
+							</span>
 							<input
 								aria-describedby={
 									ragioneSocialeError
@@ -278,7 +284,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-email"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Email</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Email
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-email"
@@ -299,7 +310,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-telefono"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Telefono</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Telefono
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-telefono"
@@ -320,7 +336,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-piva"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>P.IVA</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								P.IVA
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-piva"
@@ -341,7 +362,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-tipologia"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Tipologia</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Tipologia
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-tipologia"
@@ -373,7 +399,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-indirizzo"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Indirizzo</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Indirizzo
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-indirizzo"
@@ -393,7 +424,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-citta"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Città</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Città
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-citta"
@@ -413,7 +449,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-cap"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>CAP</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								CAP
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-cap"
@@ -434,7 +475,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-provincia"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Provincia</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Provincia
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-provincia"
@@ -455,7 +501,12 @@ export function UpdateClientForm({
 							className={FIELD_CONTAINER_CLASSES}
 							htmlFor="update-client-regione"
 						>
-							<span className={FIELD_LABEL_TEXT_CLASSES}>Regione</span>
+							<span
+								className={cn(FIELD_LABEL_TEXT_CLASSES, "items-center gap-2")}
+							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+								Regione
+							</span>
 							<input
 								className={FIELD_INPUT_BASE_CLASSES}
 								id="update-client-regione"

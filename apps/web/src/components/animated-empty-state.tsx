@@ -94,26 +94,26 @@ export function AnimatedEmptyState({
 				{icon}
 			</motion.div>
 
-			{/* Heading */}
+			{/* Heading — text-card-foreground so it's readable on card/table-container in dataweb light (text-foreground is light there). */}
 			<motion.p
 				animate={{
 					opacity: stage >= 2 ? 1 : 0,
 					y: stage >= 2 ? 0 : TEXT.offsetY,
 				}}
-				className="text-center font-medium text-base text-foreground leading-none"
+				className="text-center font-medium text-base text-card-foreground leading-none leading-none"
 				initial={{ opacity: 0, y: TEXT.offsetY }}
 				transition={TEXT.spring}
 			>
 				{heading}
 			</motion.p>
 
-			{/* Subtitle */}
+			{/* Subtitle — text-card-foreground so it's readable on card/table-container in dataweb light. */}
 			<motion.p
 				animate={{
 					opacity: stage >= 3 ? 1 : 0,
 					y: stage >= 3 ? 0 : TEXT.offsetY,
 				}}
-				className="-mt-1 max-w-xs text-center text-sm text-stats-title"
+				className="-mt-1 max-w-xs text-center text-card-foreground/80 text-sm leading-none"
 				initial={{ opacity: 0, y: TEXT.offsetY }}
 				transition={TEXT.spring}
 			>

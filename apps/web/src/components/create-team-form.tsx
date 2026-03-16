@@ -7,7 +7,7 @@ import { createTeam, listAvailableMembers } from "@/lib/api/client";
 import type { ApiAvailableMember } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
-import { IconCheck3, IconUTurnToLeft } from "./icons";
+import { IconCheck3, IconPenWritingFill18, IconUTurnToLeft } from "./icons";
 import { UserGroupIcon } from "./icons/user-group";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
@@ -204,7 +204,16 @@ export function CreateTeamForm() {
 							</div>
 							<div className="flex w-full min-w-0 flex-col gap-2">
 								<label className={FIELD_CONTAINER_CLASSES} htmlFor="team-nome">
-									<span className={FIELD_LABEL_TEXT_CLASSES}>
+									<span
+										className={cn(
+											FIELD_LABEL_TEXT_CLASSES,
+											"items-center gap-2"
+										)}
+									>
+										<IconPenWritingFill18
+											aria-hidden
+											className="size-4 shrink-0"
+										/>
 										Nome del team *
 									</span>
 									<input
@@ -221,9 +230,16 @@ export function CreateTeamForm() {
 								{/* Descrizione: textarea in pill container (like Note in UpdateNegotiationForm). */}
 								<div className={cn(FIELD_CONTAINER_CLASSES, "items-stretch")}>
 									<label
-										className={FIELD_LABEL_TEXT_CLASSES}
+										className={cn(
+											FIELD_LABEL_TEXT_CLASSES,
+											"items-center gap-2"
+										)}
 										htmlFor="team-desc"
 									>
+										<IconPenWritingFill18
+											aria-hidden
+											className="size-4 shrink-0"
+										/>
 										Descrizione
 									</label>
 									<textarea

@@ -90,7 +90,7 @@ export default function LoginForm() {
 								</label>
 								<motion.input
 									autoComplete="email"
-									className="w-full rounded-2xl bg-background px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+									className="w-full rounded-2xl bg-input px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 									id={field.name}
 									name={field.name}
 									onBlur={field.handleBlur}
@@ -144,7 +144,7 @@ export default function LoginForm() {
 								</label>
 								<motion.input
 									autoComplete="current-password"
-									className="w-full rounded-2xl bg-background px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+									className="w-full rounded-2xl bg-input px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 									id={field.name}
 									name={field.name}
 									onBlur={field.handleBlur}
@@ -261,7 +261,7 @@ export default function LoginForm() {
 								{/* Link per aprire il flusso di "Password dimenticata?" */}
 								<div className="flex items-center justify-center pt-2">
 									<button
-										className="text-muted-foreground text-xs underline-offset-2 hover:text-foreground hover:underline"
+										className="text-muted-foreground text-xs underline-offset-2 hover:text-card-foreground hover:underline"
 										onClick={() => setIsForgotPasswordOpen(true)}
 										type="button"
 									>

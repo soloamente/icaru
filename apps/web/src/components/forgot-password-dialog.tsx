@@ -114,9 +114,10 @@ export function ForgotPasswordDialog({
 					>
 						Email
 					</label>
+					{/* bg-input (not bg-background) so in dataweb light the input has a light surface and text is readable. */}
 					<motion.input
 						autoComplete="email"
-						className="w-full rounded-2xl bg-background px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+						className="w-full rounded-2xl bg-input px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 						id="forgot-password-email"
 						name="email"
 						onChange={(event) => setEmail(event.target.value)}

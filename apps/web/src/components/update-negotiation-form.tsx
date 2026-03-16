@@ -6,7 +6,12 @@ import { ChevronDown, Paperclip, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CheckIcon, IconDownload4, IconTrashFill18 } from "@/components/icons";
+import {
+	CheckIcon,
+	IconDownload4,
+	IconPenWritingFill18,
+	IconTrashFill18,
+} from "@/components/icons";
 import { IconCircleInfoSparkle } from "@/components/icons/icon-circle-info-sparkle";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -153,7 +158,7 @@ function AbbandonataCheckboxRow({
 						className={cn(
 							"min-w-14 px-3 py-2 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
 							checked
-								? "text-muted-foreground hover:text-foreground"
+								? "text-muted-foreground hover:text-card-foreground"
 								: "bg-primary text-primary-foreground"
 						)}
 						id="update-abbandonata-no"
@@ -168,7 +173,7 @@ function AbbandonataCheckboxRow({
 							"min-w-14 px-3 py-2 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
 							checked
 								? "bg-primary text-primary-foreground"
-								: "text-muted-foreground hover:text-foreground"
+								: "text-muted-foreground hover:text-card-foreground"
 						)}
 						onClick={() => onCheckedChange(true)}
 						type="button"
@@ -357,7 +362,15 @@ function DatiTrattativaSection({
 					className={DIALOG_FIELD_CONTAINER_CLASSES}
 					htmlFor="update-referente"
 				>
-					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Referente</span>
+					<span
+						className={cn(
+							DIALOG_FIELD_LABEL_TEXT_CLASSES,
+							"items-center gap-2"
+						)}
+					>
+						<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+						Referente
+					</span>
 					<input
 						className={DIALOG_FIELD_INPUT_BASE_CLASSES}
 						id="update-referente"
@@ -370,9 +383,13 @@ function DatiTrattativaSection({
 				{/* Note: editable textarea; always shown so user can add note if empty. */}
 				<div className={cn(DIALOG_FIELD_CONTAINER_CLASSES, "items-stretch")}>
 					<label
-						className={cn(DIALOG_FIELD_LABEL_TEXT_CLASSES, "")}
+						className={cn(
+							DIALOG_FIELD_LABEL_TEXT_CLASSES,
+							"items-center gap-2"
+						)}
 						htmlFor="update-note"
 					>
+						<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
 						Note
 					</label>
 					<textarea
@@ -617,7 +634,15 @@ function StatoEAvanzamentoSection({
 					className={DIALOG_FIELD_CONTAINER_CLASSES}
 					htmlFor="update-spanco"
 				>
-					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Spanco</span>
+					<span
+						className={cn(
+							DIALOG_FIELD_LABEL_TEXT_CLASSES,
+							"items-center gap-2"
+						)}
+					>
+						<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+						Spanco
+					</span>
 					<Select.Root
 						onValueChange={(value) => {
 							if (value !== null) {
@@ -751,9 +776,10 @@ function StatoEAvanzamentoSection({
 							<span
 								className={cn(
 									DIALOG_FIELD_LABEL_TEXT_CLASSES,
-									"text-card-foreground"
+									"items-center gap-2 text-card-foreground"
 								)}
 							>
+								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
 								Percentuale avanzamento
 							</span>
 						</div>
@@ -805,7 +831,15 @@ function StatoEAvanzamentoSection({
 						)}
 						htmlFor="update-importo"
 					>
-						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Importo (€)</span>
+						<span
+							className={cn(
+								DIALOG_FIELD_LABEL_TEXT_CLASSES,
+								"items-center gap-2"
+							)}
+						>
+							<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+							Importo (€)
+						</span>
 						<input
 							aria-describedby={
 								importoError ? "update-importo-error" : undefined
@@ -1156,7 +1190,7 @@ export default function UpdateNegotiationForm({
 											</h2>
 											<Dialog.Close
 												aria-label="Chiudi"
-												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 											>
 												<X aria-hidden className="size-4" />
 											</Dialog.Close>
@@ -1226,7 +1260,7 @@ export default function UpdateNegotiationForm({
 											</h2>
 											<Dialog.Close
 												aria-label="Chiudi"
-												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 											>
 												<X aria-hidden className="size-4" />
 											</Dialog.Close>

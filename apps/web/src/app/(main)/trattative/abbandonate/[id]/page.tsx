@@ -195,7 +195,7 @@ export default function TrattativeAbbandonateEditPage() {
 					<div className="flex items-center justify-start gap-2.5">
 						<Link
 							aria-label={`Torna a ${STATO_LABELS.abbandonate}`}
-							className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							href={
 								"/trattative/abbandonate" as Parameters<typeof Link>[0]["href"]
 							}
@@ -225,7 +225,7 @@ export default function TrattativeAbbandonateEditPage() {
 					<div className="flex min-w-0 flex-1 items-center justify-start gap-2.5">
 						<button
 							aria-label={`Torna a ${STATO_LABELS.abbandonate}`}
-							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={handleBackClick}
 							type="button"
 						>
@@ -312,7 +312,7 @@ export default function TrattativeAbbandonateEditPage() {
 										{renderLeaveDialogContent(
 											<Dialog.Close
 												aria-label="Chiudi"
-												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+												className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 											>
 												<X aria-hidden className="size-4" />
 											</Dialog.Close>
@@ -342,7 +342,7 @@ export default function TrattativeAbbandonateEditPage() {
 									{renderLeaveDialogContent(
 										<button
 											aria-label="Chiudi"
-											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 											onClick={() => setIsLeaveDialogOpen(false)}
 											type="button"
 										>

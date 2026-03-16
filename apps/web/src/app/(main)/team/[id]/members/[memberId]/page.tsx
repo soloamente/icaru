@@ -1,11 +1,15 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Search, X } from "lucide-react";
+import { Select } from "@base-ui/react/select";
+import { format as formatDate } from "date-fns";
+import { ChevronDown, Search, X } from "lucide-react";
 import { AnimateNumber } from "motion-plus/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { DateRange as DayPickerDateRange } from "react-day-picker";
 import { Drawer } from "vaul";
+import { DateRangeFilter } from "@/components/date-range-filter";
 import {
 	CheckIcon,
 	IconChartBarTrendUp,
@@ -74,6 +78,113 @@ const SPANCO_STAGE_COLORS: Record<
 		softBg: "oklch(0.5782 0.2282 260.03 / 0.12)",
 	},
 };
+
+/** SPANCO stage labels for filter dropdown. */
+const SPANCO_LABELS: Record<SpancoStage, string> = {
+	S: "S",
+	P: "P",
+	A: "A",
+	N: "N",
+	C: "C",
+	O: "O",
+};
+
+/** Extracts YYYY-MM-DD from date string for robust comparison. */
+function toDateOnlyString(dateStr: string | undefined): string | null {
+	if (!dateStr) {
+		return null;
+	}
+	const d = new Date(dateStr);
+	if (Number.isNaN(d.getTime())) {
+		return null;
+	}
+	return formatDate(d, "yyyy-MM-dd");
+}
+
+/** Checks if date falls within range (date-only comparison). Both from and to required to apply filter. */
+function isDateInRange(
+	dateStr: string | undefined,
+	range: DayPickerDateRange | undefined
+): boolean {
+	if (!(range?.from && range?.to)) {
+		return true;
+	}
+	const dateOnly = toDateOnlyString(dateStr);
+	if (!dateOnly) {
+		return false;
+	}
+	const fromStr = formatDate(range.from, "yyyy-MM-dd");
+	const toStr = formatDate(range.to, "yyyy-MM-dd");
+	return dateOnly >= fromStr && dateOnly <= toStr;
+}
+
+/** Member supervision shows all states; date filters: apertura (all), chiusura (concluse only), abbandono (abbandonate only). */
+function negotiationMatchesDateFilters(
+	n: ApiNegotiation,
+	dateRangeApertura: DayPickerDateRange | undefined,
+	dateRangeChiusura: DayPickerDateRange | undefined,
+	dateRangeAbbandono: DayPickerDateRange | undefined
+): boolean {
+	const apertura = n.data_apertura ?? n.created_at ?? undefined;
+	const chiusura = n.data_chiusura ?? n.updated_at ?? undefined;
+	const abbandono = n.data_abbandono ?? n.updated_at ?? undefined;
+
+	if (
+		dateRangeApertura?.from &&
+		dateRangeApertura?.to &&
+		!isDateInRange(apertura, dateRangeApertura)
+	) {
+		return false;
+	}
+	// Chiusura: only applies to concluded negotiations
+	if (
+		isNegotiationCompleted(n) &&
+		dateRangeChiusura?.from &&
+		dateRangeChiusura?.to &&
+		!isDateInRange(chiusura, dateRangeChiusura)
+	) {
+		return false;
+	}
+	// Abbandono: only applies to abandoned negotiations
+	if (
+		isNegotiationAbandoned(n) &&
+		dateRangeAbbandono?.from &&
+		dateRangeAbbandono?.to &&
+		!isDateInRange(abbandono, dateRangeAbbandono)
+	) {
+		return false;
+	}
+	return true;
+}
+
+function passesSpancoFilter(
+	n: ApiNegotiation,
+	spancoFilter: SpancoStage | "all"
+): boolean {
+	return spancoFilter === "all" || n.spanco === spancoFilter;
+}
+
+const isNegotiationOpen = (n: ApiNegotiation): boolean =>
+	!(isNegotiationAbandoned(n) || isNegotiationCompleted(n));
+
+function passesStatoFilter(
+	n: ApiNegotiation,
+	statoFilter: "all" | "aperta" | "conclusa" | "abbandonata"
+): boolean {
+	if (statoFilter === "all") {
+		return true;
+	}
+	if (statoFilter === "aperta") {
+		return isNegotiationOpen(n);
+	}
+	if (statoFilter === "conclusa") {
+		return isNegotiationCompleted(n);
+	}
+	if (statoFilter === "abbandonata") {
+		return isNegotiationAbandoned(n);
+	}
+	return true;
+}
 
 /** Simple EUR formatter reused for KPI and table values. */
 function formatCurrency(value: number): string {
@@ -172,6 +283,20 @@ export default function TeamMemberSupervisionPage() {
 	const [isNegotiationsLoading, setIsNegotiationsLoading] = useState(false);
 	// Local search term for filtering the member's negotiations table.
 	const [searchTerm, setSearchTerm] = useState("");
+	// Filters: date ranges, SPANCO, stato (same pattern as trattative page).
+	const [dateRangeApertura, setDateRangeApertura] = useState<
+		DayPickerDateRange | undefined
+	>(undefined);
+	const [dateRangeChiusura, setDateRangeChiusura] = useState<
+		DayPickerDateRange | undefined
+	>(undefined);
+	const [dateRangeAbbandono, setDateRangeAbbandono] = useState<
+		DayPickerDateRange | undefined
+	>(undefined);
+	const [spancoFilter, setSpancoFilter] = useState<SpancoStage | "all">("all");
+	const [statoFilter, setStatoFilter] = useState<
+		"all" | "aperta" | "conclusa" | "abbandonata"
+	>("all");
 
 	// Read-only detail dialog: director views negotiation in a dialog instead of navigating to edit page.
 	const [selectedNegotiation, setSelectedNegotiation] =
@@ -358,28 +483,42 @@ export default function TeamMemberSupervisionPage() {
 		return null;
 	}
 
-	// Apply a simple, client-side search over the loaded negotiations so that
-	// the search bar behaves consistently with other tables (clienti / trattative).
+	// Apply filters (date, SPANCO, stato, search) client-side to match trattative page behavior.
 	const normalizedSearch = searchTerm.trim().toLowerCase();
-	const visibleNegotiations =
-		normalizedSearch === ""
-			? negotiations
-			: negotiations.filter((n) => {
-					const clientName =
-						n.client?.ragione_sociale ?? `Cliente #${n.client_id}`;
-					const status = getNegotiationStatus(n).label;
-					const fields = [
-						clientName,
-						n.referente ?? "",
-						formatNegotiationDate(n.data_apertura ?? n.created_at ?? undefined),
-						formatCurrency(n.importo),
-						`${clampPercentuale(n.percentuale)}%`,
-						status,
-					];
-					return fields.some((field) =>
-						field.toLowerCase().includes(normalizedSearch)
-					);
-				});
+	const visibleNegotiations = negotiations.filter((n) => {
+		if (
+			!negotiationMatchesDateFilters(
+				n,
+				dateRangeApertura,
+				dateRangeChiusura,
+				dateRangeAbbandono
+			)
+		) {
+			return false;
+		}
+		if (!passesSpancoFilter(n, spancoFilter)) {
+			return false;
+		}
+		if (!passesStatoFilter(n, statoFilter)) {
+			return false;
+		}
+		if (normalizedSearch === "") {
+			return true;
+		}
+		const clientName = n.client?.ragione_sociale ?? `Cliente #${n.client_id}`;
+		const status = getNegotiationStatus(n).label;
+		const fields = [
+			clientName,
+			n.referente ?? "",
+			formatNegotiationDate(n.data_apertura ?? n.created_at ?? undefined),
+			formatCurrency(n.importo),
+			`${clampPercentuale(n.percentuale)}%`,
+			status,
+		];
+		return fields.some((field) =>
+			field.toLowerCase().includes(normalizedSearch)
+		);
+	});
 
 	return (
 		<main
@@ -510,7 +649,14 @@ export default function TeamMemberSupervisionPage() {
 					{/* SPANCO donut chart for this member */}
 					<section className="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
 						<div className="flex min-h-0 min-w-0 flex-1 flex-col items-start py-6">
-							<TeamMemberNegotiationsMap memberId={memberId} teamId={teamId} />
+							<TeamMemberNegotiationsMap
+								memberId={memberId}
+								onNegotiationClick={(n) => {
+									setSelectedNegotiation(n);
+									setDetailDialogOpen(true);
+								}}
+								teamId={teamId}
+							/>
 						</div>
 						<div className="flex min-h-0 min-w-0 flex-1 flex-col">
 							<SpancoDonutChart
@@ -521,30 +667,212 @@ export default function TeamMemberSupervisionPage() {
 						</div>
 					</section>
 
-					{/* Negotiations table */}
+					{/* Negotiations table — same layout as trattative page: title on row 1, filters + search on row 2 with justify-between */}
 					<section
 						aria-label="Trattative del venditore"
 						className="flex w-full flex-col gap-2"
 					>
-						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-							<h2 className="font-medium text-2xl">Trattative del venditore</h2>
-							<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+						{/* Row 1: title only */}
+						<h2 className="font-medium text-2xl">Trattative del venditore</h2>
+						{/* Row 2: filters (left) + search + count (right), justify-between like trattative */}
+						<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+							{/* Filters: date apertura, chiusura, abbandono, SPANCO, stato — same pill style as trattative */}
+							<div className="scroll-fade-x flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
+								<DateRangeFilter
+									align="start"
+									dateRange={dateRangeApertura}
+									label="Filtra per data apertura"
+									onDateRangeChange={setDateRangeApertura}
+									variant="table"
+								/>
+								<DateRangeFilter
+									align="start"
+									dateRange={dateRangeChiusura}
+									label="Filtra per data chiusura"
+									onDateRangeChange={setDateRangeChiusura}
+									variant="table"
+								/>
+								<DateRangeFilter
+									align="start"
+									dateRange={dateRangeAbbandono}
+									label="Filtra per data abbandono"
+									onDateRangeChange={setDateRangeAbbandono}
+									variant="table"
+								/>
+								<Select.Root
+									onValueChange={(value) => {
+										if (value === null) {
+											setSpancoFilter("all");
+											return;
+										}
+										setSpancoFilter(value as SpancoStage);
+									}}
+									value={spancoFilter === "all" ? null : spancoFilter}
+								>
+									<Select.Trigger
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
+										id="member-neg-spanco-filter"
+									>
+										<Select.Value
+											className="data-placeholder:text-stats-title"
+											placeholder="Filtra per SPANCO"
+										>
+											{(value: SpancoStage | null) =>
+												value
+													? `Solo ${SPANCO_LABELS[value]}`
+													: "Filtra per SPANCO"
+											}
+										</Select.Value>
+										<Select.Icon className="text-button-secondary">
+											<ChevronDown aria-hidden className="size-3.5" />
+										</Select.Icon>
+									</Select.Trigger>
+									<Select.Portal>
+										<Select.Positioner
+											alignItemWithTrigger={false}
+											className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+											sideOffset={8}
+										>
+											<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+												<Select.List className="flex h-fit flex-col gap-1">
+													<Select.Item
+														className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value={null}
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>
+															Tutte le fasi SPANCO
+														</Select.ItemText>
+													</Select.Item>
+													{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
+														(stage) => (
+															<Select.Item
+																className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+																key={stage}
+																value={stage}
+															>
+																<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+																	<CheckIcon aria-hidden className="size-4" />
+																</Select.ItemIndicator>
+																<Select.ItemText>
+																	{`Solo ${SPANCO_LABELS[stage]}`}
+																</Select.ItemText>
+															</Select.Item>
+														)
+													)}
+												</Select.List>
+											</Select.Popup>
+										</Select.Positioner>
+									</Select.Portal>
+								</Select.Root>
+								<Select.Root
+									onValueChange={(value) => {
+										if (value === null) {
+											setStatoFilter("all");
+											return;
+										}
+										setStatoFilter(
+											value as "aperta" | "conclusa" | "abbandonata"
+										);
+									}}
+									value={statoFilter === "all" ? null : statoFilter}
+								>
+									<Select.Trigger
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										id="member-neg-stato-filter"
+									>
+										<Select.Value
+											className="data-placeholder:text-stats-title"
+											placeholder="Filtra per stato"
+										>
+											{(
+												value: "aperta" | "conclusa" | "abbandonata" | null
+											) => {
+												if (!value) {
+													return "Filtra per stato";
+												}
+												if (value === "aperta") {
+													return "Solo Aperte";
+												}
+												if (value === "conclusa") {
+													return "Solo Concluse";
+												}
+												return "Solo Abbandonate";
+											}}
+										</Select.Value>
+										<Select.Icon className="text-button-secondary">
+											<ChevronDown aria-hidden className="size-3.5" />
+										</Select.Icon>
+									</Select.Trigger>
+									<Select.Portal>
+										<Select.Positioner
+											alignItemWithTrigger={false}
+											className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+											sideOffset={8}
+										>
+											<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+												<Select.List className="flex h-fit flex-col gap-1">
+													<Select.Item
+														className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value={null}
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Tutti gli stati</Select.ItemText>
+													</Select.Item>
+													<Select.Item
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value="aperta"
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Solo Aperte</Select.ItemText>
+													</Select.Item>
+													<Select.Item
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value="conclusa"
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Solo Concluse</Select.ItemText>
+													</Select.Item>
+													<Select.Item
+														className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+														value="abbandonata"
+													>
+														<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+															<CheckIcon aria-hidden className="size-4" />
+														</Select.ItemIndicator>
+														<Select.ItemText>Solo Abbandonate</Select.ItemText>
+													</Select.Item>
+												</Select.List>
+											</Select.Popup>
+										</Select.Positioner>
+									</Select.Portal>
+								</Select.Root>
+							</div>
+							{/* Right side: count + search bar — justify-between pushes this to the right */}
+							<div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:shrink-0">
 								{!isNegotiationsLoading && negotiations.length > 0 && (
-									<span className="text-muted-foreground text-sm">
+									<span className="shrink-0 text-muted-foreground text-sm">
 										<AnimateNumber className="tabular-nums">
 											{visibleNegotiations.length}
 										</AnimateNumber>{" "}
 										trattative trovate
 									</span>
 								)}
-								{/* Search pill — bg-card and expanding width on focus, like other search bars. */}
-								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-card px-4 py-2.5 text-sm transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.5 sm:py-2 sm:focus-within:w-80">
+								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--color-card)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80">
 									<input
-										className="w-full truncate bg-transparent text-card-foreground text-sm placeholder:text-search-placeholder focus-visible:outline-none"
+										className="w-full truncate bg-transparent placeholder:text-search-placeholder focus-visible:outline-none"
 										onChange={(event) => {
 											setSearchTerm(event.target.value);
 										}}
-										placeholder="Cerca per cliente, referente, stato, importo…"
+										placeholder="Cerca cliente, referente..."
 										type="search"
 										value={searchTerm}
 									/>
@@ -757,7 +1085,7 @@ function NegotiationDetailDialog({
 				</h2>
 				<button
 					aria-label="Chiudi"
-					className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					className="flex size-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 					onClick={onClose}
 					type="button"
 				>

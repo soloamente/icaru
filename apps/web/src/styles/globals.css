@@ -20,6 +20,18 @@ html.dark[data-color-scheme="rich"] {
 	--table-buttons: oklch(0.29 0.08 252);
 	--table-hover: oklch(0.255 0.07 252);
 
+	/* Popover/dropdown: darker blue tint than table-header so menus fit the theme. */
+	--popover: oklch(0.22 0.07 251);
+	--popover-foreground: oklch(0.97 0 0);
+
+	/* Accent (selected/highlight in popovers, hover states): slightly lighter blue than popover. */
+	--accent: oklch(0.28 0.075 252);
+	--accent-foreground: oklch(0.97 0 0);
+
+	/* Muted (avatar fallbacks, de-emphasized surfaces): lighter than card for clear contrast. */
+	--muted: oklch(0.32 0.08 252);
+	--muted-foreground: oklch(0.9 0.02 252);
+
 	/* Secondary (pulsanti Scarica, Annulla, outline): più chiaro di card/header per contrasto visibile. */
 	--secondary: oklch(0.38 0.09 252);
 	--secondary-foreground: oklch(0.97 0 0);
@@ -401,6 +413,18 @@ html.dark[data-color-scheme="rich"] {
 	--table-buttons: oklch(0.29 0.08 252);
 	--table-hover: oklch(0.255 0.07 252);
 
+	/* Popover/dropdown: darker blue tint than table-header so menus fit the theme. */
+	--popover: oklch(0.22 0.07 251);
+	--popover-foreground: oklch(0.97 0 0);
+
+	/* Accent (selected/highlight in popovers, hover states): slightly lighter blue than popover. */
+	--accent: oklch(0.28 0.075 252);
+	--accent-foreground: oklch(0.97 0 0);
+
+	/* Muted (avatar fallbacks, de-emphasized surfaces): lighter than card for clear contrast. */
+	--muted: oklch(0.32 0.08 252);
+	--muted-foreground: oklch(0.9 0.02 252);
+
 	/* Secondary (pulsanti Scarica, Annulla, outline): più chiaro di card/header per contrasto visibile. */
 	--secondary: oklch(0.38 0.09 252);
 	--secondary-foreground: oklch(0.97 0 0);
@@ -483,6 +507,18 @@ html.dark[data-color-scheme="rich"] {
 	--team-info-card: oklch(1 0 0);
 }
 
+/* Dataweb dark: ensure all dropdown/popover menus use the themed popover bg. */
+html.dark[data-color-scheme="rich"] .bg-popover {
+	background-color: var(--popover);
+	color: var(--popover-foreground);
+}
+
+/* Dataweb: SPANCO donut chart segment glow; no stroke (pill) when glow is on. */
+[data-color-scheme="rich"] [data-chart="spanco"] .recharts-pie-sector path {
+	filter: url(#spanco-segment-glow);
+	stroke: none;
+}
+
 /* Dataweb light: content on card/table-container uses dark text for readability. */
 [data-color-scheme="rich"] .bg-card,
 [data-color-scheme="rich"] .table-container-bg {
@@ -498,8 +534,10 @@ html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-text {
 	color: var(--card-foreground);
 }
 
-/* Dataweb light: table-hover slightly darker than table-header so row hover is visible on table-header surfaces. */
+/* Dataweb light: table-hover slightly darker than table-header so row hover is visible on table-header surfaces.
+   Input fields: slightly darker than card so they stand out in dialogs/panels, but light enough for dark text. */
 html:not(.dark)[data-color-scheme="rich"] {
+	--input: oklch(0.94 0.02 250);
 	--table-hover: oklch(0.92 0.03 250);
 }
 
@@ -828,14 +866,23 @@ html[data-font-size="large"] {
 }
 
 /* range_start: angoli arrotondati solo a sinistra; range_end: solo a destra.
-   Si applica sia alla cella (.rdp-day) sia al bottone; !important per override
-   sugli stili importati da react-day-picker. */
-.date-range-filter-calendar .rdp-day.rdp-range_start,
-.date-range-filter-calendar .rdp-day.rdp-range_start .rdp-day_button {
+   Single day selected = both classes → full circle. Multi-day range = half-pill. */
+.date-range-filter-calendar .rdp-day.rdp-range_start.rdp-range_end,
+.date-range-filter-calendar
+	.rdp-day.rdp-range_start.rdp-range_end
+	.rdp-day_button {
+	border-radius: 9999px !important;
+}
+.date-range-filter-calendar .rdp-day.rdp-range_start:not(.rdp-range_end),
+.date-range-filter-calendar
+	.rdp-day.rdp-range_start:not(.rdp-range_end)
+	.rdp-day_button {
 	border-radius: 9999px 0 0 9999px !important;
 }
-.date-range-filter-calendar .rdp-day.rdp-range_end,
-.date-range-filter-calendar .rdp-day.rdp-range_end .rdp-day_button {
+.date-range-filter-calendar .rdp-day.rdp-range_end:not(.rdp-range_start),
+.date-range-filter-calendar
+	.rdp-day.rdp-range_end:not(.rdp-range_start)
+	.rdp-day_button {
 	border-radius: 0 9999px 9999px 0 !important;
 }
 
@@ -845,6 +892,41 @@ html[data-font-size="large"] {
 
 .date-range-filter-calendar .rdp-head_cell {
 	color: var(--muted-foreground);
+}
+
+/* Dataweb light: DayPicker sits on light popover; unselected text needs card-foreground (--foreground is light there).
+   Selected cells (range_start/range_end) keep primary-foreground for contrast on primary background. */
+html:not(.dark)[data-color-scheme="rich"] .date-range-filter-calendar
+	.rdp-day:not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle)
+	.rdp-day_button,
+html:not(.dark)[data-color-scheme="rich"]
+	.date-range-filter-calendar
+	.rdp-caption_label,
+html:not(.dark)[data-color-scheme="rich"]
+	.date-range-filter-calendar
+	.rdp-head_cell {
+	color: var(--card-foreground);
+}
+html:not(.dark)[data-color-scheme="rich"]
+	.date-range-filter-calendar
+	.rdp-day.rdp-range_start
+	.rdp-day_button,
+html:not(.dark)[data-color-scheme="rich"]
+	.date-range-filter-calendar
+	.rdp-day.rdp-range_end
+	.rdp-day_button {
+	color: var(--primary-foreground);
+}
+/* In-range days: light tint background, dark text */
+html:not(.dark)[data-color-scheme="rich"] .date-range-filter-calendar
+	.rdp-day.rdp-range_middle
+	.rdp-day_button {
+	color: var(--card-foreground);
+}
+html:not(.dark)[data-color-scheme="rich"]
+	.date-range-filter-calendar
+	.rdp-root {
+	--rdp-range_middle-color: var(--card-foreground);
 }
 
 /* Mapbox GL: ensure map, canvas container and canvas fill their parent for proper display. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowUpRight, Check, ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
@@ -30,8 +30,10 @@ import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
 import {
 	IconChartBarTrendUp,
+	IconCircleOpenArrowUpRight,
 	IconCrown2Fill18,
 	IconFilePlusFill18,
+	IconPenWritingFill18,
 	IconPeople,
 	IconQuickstartFill18,
 	IconSackDollarFill18,
@@ -567,7 +569,18 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 										className={`${FIELD_CONTAINER_CLASSES}${nomeError ? "ring-1 ring-destructive ring-offset-2 ring-offset-background" : ""}`}
 										htmlFor="update-team-nome"
 									>
-										<span className={FIELD_LABEL_TEXT_CLASSES}>Nome</span>
+										<span
+											className={cn(
+												FIELD_LABEL_TEXT_CLASSES,
+												"items-center gap-2"
+											)}
+										>
+											<IconPenWritingFill18
+												aria-hidden
+												className="size-4 shrink-0"
+											/>
+											Nome
+										</span>
 										<input
 											aria-describedby={
 												nomeError ? "update-team-nome-error" : undefined
@@ -601,7 +614,16 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 										className={FIELD_CONTAINER_CLASSES}
 										htmlFor="update-team-description"
 									>
-										<span className={FIELD_LABEL_TEXT_CLASSES}>
+										<span
+											className={cn(
+												FIELD_LABEL_TEXT_CLASSES,
+												"items-center gap-2"
+											)}
+										>
+											<IconPenWritingFill18
+												aria-hidden
+												className="size-4 shrink-0"
+											/>
 											Descrizione
 										</span>
 										<input
@@ -1100,12 +1122,12 @@ function MemberNode({
 			{/* Dettagli venditore: CTA visibile a tutti, separata dal bottone di rimozione. */}
 			<button
 				aria-label={`Visualizza i dettagli delle trattative di ${fullName}`}
-				className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 font-medium text-[11px] text-foreground transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+				className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 pr-1.5 font-medium text-foreground text-xs transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
 				onClick={onOpenDetails}
 				type="button"
 			>
 				<span>Dettagli venditore</span>
-				<ArrowUpRight aria-hidden className="size-3.5" />
+				<IconCircleOpenArrowUpRight aria-hidden className="size-4" />
 			</button>
 
 			{/* Remove button (directors only) */}
@@ -1420,7 +1442,7 @@ function TeamLeaveDialog({ isOpen, onClose, onConfirm }: TeamLeaveDialogProps) {
 				</h2>
 				<button
 					aria-label="Chiudi"
-					className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					className="flex size-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 					onClick={onClose}
 					type="button"
 				>
@@ -1568,7 +1590,7 @@ function CreatorParticipationTooltip({
 				</div>
 				<button
 					aria-label="Chiudi il dettaglio della partecipazione"
-					className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:scale-105 hover:bg-table-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 					onClick={onClose}
 					type="button"
 				>
@@ -1688,7 +1710,7 @@ function CreatorParticipationDialog({
 				</h2>
 				<button
 					aria-label="Chiudi"
-					className="absolute top-0 right-0 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+					className="absolute top-0 right-0 flex size-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:scale-105 hover:bg-table-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
 					onClick={onClose}
 					type="button"
 				>

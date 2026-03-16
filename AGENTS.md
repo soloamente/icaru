@@ -123,4 +123,26 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 ---
 
+## Learned User Preferences
+
+- In dataweb light theme, use `text-card-foreground` for text on card/table surfaces (not `text-foreground`)
+- Hover on card/panel surfaces in dataweb light: use `hover:text-card-foreground` (not `hover:text-foreground`)
+- Form inputs on light card/panel in dataweb light: use `bg-input` (not `bg-background`) for readability
+- Dialog close buttons: use `bg-table-header`, `text-card-foreground`, `hover:bg-table-hover` to match input fields
+- Stat card values on `bg-card`: use `text-card-foreground` for contrast in dataweb light
+- Empty state text: use `text-card-foreground` (heading) and `text-card-foreground/80` (subtitle)
+- "Aperta" status pill: use `bg-sky-200` when on azzurrino/table-header backgrounds in dataweb light
+- Pass only numeric values to AnimateNumber; formatted strings cause NaN
+- Team member map: zoom first, then click to open detail dialog (same as clients map)
+- Table sections: title on row 1, filters plus search bar on row 2 with `justify-between` (like trattative page)
+
+## Learned Workspace Facts
+
+- API: `api/clients/company` removed; clients and trattative use `/me` endpoints per role
+- Use fallback for `team.creator` when API may omit it (safeCreator pattern with `creator_id`)
+- framer-motion: do not use `motion/react`; use package-specific import paths
+- Dataweb dark theme: define `--popover`, `--muted`, `--accent`, `--accent-foreground` for dropdowns and avatar fallbacks to match theme
+
+---
+
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.

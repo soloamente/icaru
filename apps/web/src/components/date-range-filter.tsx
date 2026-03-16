@@ -205,11 +205,11 @@ export function DateRangeFilter({
 						side="bottom"
 						sideOffset={8}
 					>
-						<Popover.Popup className="w-[calc(100vw-2rem)] max-w-md rounded-3xl bg-card p-3 shadow-xl ring-1 ring-border md:w-96">
+						<Popover.Popup className="w-[calc(100vw-2rem)] max-w-md rounded-3xl bg-popover p-3 text-popover-foreground shadow-xl ring-1 ring-border md:w-96">
 							<div className="flex flex-col gap-3">
-								{/* Preset Rapidi: stile preferences (border-primary bg-primary/5 selezionato, border-border bg-muted/30 non selezionato) */}
-								<div className="rounded-2xl bg-background p-2 ring-1 ring-border">
-									<p className="mb-2 flex justify-center font-medium text-muted-foreground text-sm uppercase">
+								{/* Preset Rapidi: light surface in dataweb light (bg-background is blue there, use bg-muted for readability) */}
+								<div className="rounded-2xl bg-muted/50 p-2 ring-1 ring-border">
+									<p className="mb-2 flex justify-center font-medium text-popover-foreground text-sm uppercase opacity-80">
 										Preset Rapidi
 									</p>
 									<div className="grid grid-cols-2 gap-2">
@@ -219,8 +219,8 @@ export function DateRangeFilter({
 												className={cn(
 													"flex items-center justify-center gap-1.5 rounded-lg border-2 py-2 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 													activePreset?.value === preset.value
-														? "border-primary bg-primary/5 text-card-foreground"
-														: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
+														? "border-primary bg-primary/10 text-popover-foreground"
+														: "border-border bg-muted/30 text-popover-foreground/80 hover:border-muted-foreground/30"
 												)}
 												key={preset.value}
 												onClick={() => handleQuickPreset(preset)}
@@ -235,8 +235,8 @@ export function DateRangeFilter({
 									</div>
 								</div>
 								{/* Range date: calendario per selezione personalizzata */}
-								<div className="rounded-2xl bg-background p-2 ring-1 ring-border">
-									<p className="mb-2 flex justify-center font-medium text-muted-foreground text-sm uppercase">
+								<div className="rounded-2xl bg-muted/50 p-2 ring-1 ring-border">
+									<p className="mb-2 flex justify-center font-medium text-popover-foreground text-sm uppercase opacity-80">
 										Seleziona range
 									</p>
 									<div className="date-range-filter-calendar flex justify-center">

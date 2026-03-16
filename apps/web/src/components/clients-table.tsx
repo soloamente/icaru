@@ -6,6 +6,12 @@ import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/animate-ui/primitives/animate/tooltip";
+import {
 	CheckIcon,
 	IconChartBarTrendUp,
 	IconCirclePlusFilled,
@@ -515,87 +521,96 @@ export default function ClientsTable() {
 				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
 				    così il fade non copre i titoli di colonna. */}
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-					<div className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
-						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
-						<div className="flex min-w-max flex-col">
-							{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
-							<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
-								<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
-									<div>Ragione sociale</div>
-									<div>Email</div>
-									<div>P.IVA</div>
-									<div>Telefono</div>
-									<div>Tipologia</div>
-									<div>Sede</div>
-									<div>Trattativa</div>
+					{/* TooltipProvider needed for geocoding pill tooltip; renders via portal so it is not clipped by scroll-fade-y mask. */}
+					<TooltipProvider
+						closeDelay={100}
+						openDelay={0}
+						transition={{ duration: 0 }}
+					>
+						<div className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
+							{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
+							<div className="flex min-w-max flex-col">
+								{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
+								<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
+									<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
+										<div>Ragione sociale</div>
+										<div>Email</div>
+										<div>P.IVA</div>
+										<div>Telefono</div>
+										<div>Tipologia</div>
+										<div>Sede</div>
+										<div>Trattativa</div>
+									</div>
 								</div>
-							</div>
-							{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
-							<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
-								{loading && (
-									<div className="flex h-full items-center justify-center p-8">
-										<p className="text-stats-title">Caricamento…</p>
-									</div>
-								)}
-								{!loading && error && (
-									<div className="flex h-full items-center justify-center p-8">
-										<p className="text-center text-destructive">{error}</p>
-									</div>
-								)}
-								{!(loading || error) && visibleClients.length === 0 && (
-									<AnimatedEmptyState
-										cta={
-											debouncedSearch.length > 0
-												? undefined
-												: {
-														label: "Aggiungi cliente",
-														icon: (
-															<IconCirclePlusFilled aria-hidden size={16} />
-														),
-														onClick: () => setIsAddClientDialogOpen(true),
-													}
-										}
-										heading={
-											debouncedSearch.length > 0
-												? "Nessun risultato"
-												: "Non hai ancora clienti"
-										}
-										icon={
-											debouncedSearch.length > 0 ? (
-												<div className="opacity-50">
-													<Search className="text-muted-foreground" size={64} />
-												</div>
-											) : (
-												<div className="opacity-50">
-													<IconPeople
-														aria-hidden
-														className="text-muted-foreground"
-														size={64}
-													/>
-												</div>
-											)
-										}
-										subtitle={
-											debouncedSearch.length > 0
-												? "Prova con un altro termine di ricerca"
-												: "Aggiungi il tuo primo cliente per iniziare"
-										}
-									/>
-								)}
-								{!(loading || error) &&
-									visibleClients.length > 0 &&
-									visibleClients.map((c) => {
-										// A client is considered "senza trattative" when its id appears in the
-										// dedicated helper list. Everyone else is grouped under "ha almeno una
-										// trattativa" so we can show a simple, binary status pill.
-										const hasNoNegotiations =
-											clientsWithoutNegotiationsIds.size > 0 &&
-											clientsWithoutNegotiationsIds.has(c.id);
+								{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
+								<div className="scroll-fade-y flex min-h-0 flex-1 flex-col">
+									{loading && (
+										<div className="flex h-full items-center justify-center p-8">
+											<p className="text-stats-title">Caricamento…</p>
+										</div>
+									)}
+									{!loading && error && (
+										<div className="flex h-full items-center justify-center p-8">
+											<p className="text-center text-destructive">{error}</p>
+										</div>
+									)}
+									{!(loading || error) && visibleClients.length === 0 && (
+										<AnimatedEmptyState
+											cta={
+												debouncedSearch.length > 0
+													? undefined
+													: {
+															label: "Aggiungi cliente",
+															icon: (
+																<IconCirclePlusFilled aria-hidden size={16} />
+															),
+															onClick: () => setIsAddClientDialogOpen(true),
+														}
+											}
+											heading={
+												debouncedSearch.length > 0
+													? "Nessun risultato"
+													: "Non hai ancora clienti"
+											}
+											icon={
+												debouncedSearch.length > 0 ? (
+													<div className="opacity-50">
+														<Search
+															className="text-muted-foreground"
+															size={64}
+														/>
+													</div>
+												) : (
+													<div className="opacity-50">
+														<IconPeople
+															aria-hidden
+															className="text-muted-foreground"
+															size={64}
+														/>
+													</div>
+												)
+											}
+											subtitle={
+												debouncedSearch.length > 0
+													? "Prova con un altro termine di ricerca"
+													: "Aggiungi il tuo primo cliente per iniziare"
+											}
+										/>
+									)}
+									{!(loading || error) &&
+										visibleClients.length > 0 &&
+										visibleClients.map((c) => {
+											// A client is considered "senza trattative" when its id appears in the
+											// dedicated helper list. Everyone else is grouped under "ha almeno una
+											// trattativa" so we can show a simple, binary status pill.
+											const hasNoNegotiations =
+												clientsWithoutNegotiationsIds.size > 0 &&
+												clientsWithoutNegotiationsIds.has(c.id);
 
-										return (
-											// biome-ignore lint/a11y/useSemanticElements: row contains inner buttons (Aggiungi/Ha trattativa); native <button> would be invalid HTML (nested interactive).
-											<div
-												/* Riga tabellare con hover visivo; l'intera riga è cliccabile
+											return (
+												// biome-ignore lint/a11y/useSemanticElements: row contains inner buttons (Aggiungi/Ha trattativa); native <button> would be invalid HTML (nested interactive).
+												<div
+													/* Riga tabellare con hover visivo; l'intera riga è cliccabile
 										   per aprire la pagina di dettaglio cliente. Non usiamo un
 										   `<button>` per la riga perché conterrebbe altri pulsanti
 										   (Aggiungi / Ha trattativa), nesting invalido in HTML che
@@ -603,160 +618,169 @@ export default function ClientsTable() {
 										   usiamo div + role="button" + stopPropagation sui pulsanti
 										   della colonna "Trattativa" così solo la riga reagisce al
 										   click sulle celle, non sulle pill. */
-												className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
-												key={c.id}
-												onClick={() => handleOpenClientDetail(c.id)}
-												onKeyDown={(event) => {
-													if (event.key === "Enter" || event.key === " ") {
-														event.preventDefault();
-														handleOpenClientDetail(c.id);
-													}
-												}}
-												role="button"
-												tabIndex={0}
-											>
-												<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 text-base sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
-													<div className="truncate">
-														<span className="w-full truncate text-left">
-															{getClientDisplay(c)}
-														</span>
-													</div>
-													<div className="truncate">
-														{c.email ? (
-															c.email
-														) : (
-															<span className="text-stats-title">—</span>
-														)}
-													</div>
-													<div className="truncate tabular-nums">
-														{c.p_iva ? (
-															c.p_iva
-														) : (
-															<span className="text-stats-title">—</span>
-														)}
-													</div>
-													<div className="truncate tabular-nums">
-														{c.telefono ? (
-															c.telefono
-														) : (
-															<span className="text-stats-title">—</span>
-														)}
-													</div>
-													<div className="truncate">
-														{c.tipologia ? (
-															c.tipologia
-														) : (
-															<span className="text-stats-title">—</span>
-														)}
-													</div>
-													<div
-														className="flex min-w-0 items-center gap-2"
-														title={formatAddress(c.address) || undefined}
-													>
-														<span className="min-w-0 truncate">
-															{formatAddress(c.address) || (
+													className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
+													key={c.id}
+													onClick={() => handleOpenClientDetail(c.id)}
+													onKeyDown={(event) => {
+														if (event.key === "Enter" || event.key === " ") {
+															event.preventDefault();
+															handleOpenClientDetail(c.id);
+														}
+													}}
+													role="button"
+													tabIndex={0}
+												>
+													<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 text-base sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
+														<div className="truncate">
+															<span className="w-full truncate text-left">
+																{getClientDisplay(c)}
+															</span>
+														</div>
+														<div className="truncate">
+															{c.email ? (
+																c.email
+															) : (
 																<span className="text-stats-title">—</span>
 															)}
-														</span>
-														{/* Geocoding failed: show warning pill so user knows client won't appear on map. */}
-														{c.address?.geocoding_failed && (
-															<div className="group relative shrink-0">
-																<span
-																	aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
-																	className="inline-flex items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text"
-																	role="img"
+														</div>
+														<div className="truncate tabular-nums">
+															{c.p_iva ? (
+																c.p_iva
+															) : (
+																<span className="text-stats-title">—</span>
+															)}
+														</div>
+														<div className="truncate tabular-nums">
+															{c.telefono ? (
+																c.telefono
+															) : (
+																<span className="text-stats-title">—</span>
+															)}
+														</div>
+														<div className="truncate">
+															{c.tipologia ? (
+																c.tipologia
+															) : (
+																<span className="text-stats-title">—</span>
+															)}
+														</div>
+														<div
+															className="flex min-w-0 items-center gap-2"
+															title={formatAddress(c.address) || undefined}
+														>
+															<span className="min-w-0 truncate">
+																{formatAddress(c.address) || (
+																	<span className="text-stats-title">—</span>
+																)}
+															</span>
+															{/* Geocoding failed: show warning pill so user knows client won't appear on map.
+															    Tooltip uses portal (TooltipProvider) so it is not clipped by scroll-fade-y mask
+															    when hovering the last rows in the list. */}
+															{c.address?.geocoding_failed && (
+																<Tooltip
+																	align="center"
+																	side="bottom"
+																	sideOffset={20}
 																>
-																	<IconEarthAlertFill18 size="18px" />
-																</span>
-																<span
-																	aria-live="polite"
-																	className="xl pointer-events-none absolute top-full left-1/2 z-20 mt-4 flex w-[350px] -translate-x-1/2 flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left opacity-0 shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset transition-opacity duration-200 ease-out group-hover:opacity-100"
-																>
-																	{/* "Attenzione" pill overlapping the top edge. */}
-																	<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
-																		<IconTriangleWarningFill18 size="14px" />
-																		Attenzione
-																	</span>
-																	{/* Content: icon + text, horizontal layout. */}
-																	<div className="flex items-center gap-3">
-																		<IconFrame69 size="40px" />
-
-																		<span className="min-w-0 flex-1 leading-none">
-																			<span className="text-geocoding-title text-md leading-none">
-																				Indirizzo errato o incompleto
-																			</span>
-																			<span className="mt-1 block text-balance font-normal text-geocoding-desc text-sm leading-none">
-																				Il cliente non verrà visualizzato sulla
-																				mappa.
-																			</span>
+																	<TooltipTrigger asChild>
+																		<span
+																			aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
+																			className="inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text"
+																			role="img"
+																		>
+																			<IconEarthAlertFill18 size="18px" />
 																		</span>
-																	</div>
-																</span>
-															</div>
-														)}
-													</div>
-													<div className="flex items-center justify-start">
-														{hasNoNegotiations ? (
-															<button
-																// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
-																// invece di navigare a /trattative/aperte.
-																// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-																// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
-																className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
-																onClick={(event) => {
-																	event.stopPropagation();
-																	setClientIdForNewNegotiation(c.id);
-																}}
-																type="button"
-															>
-																{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
-																<IconCirclePlusFilled aria-hidden size={18} />
-																<span>Aggiungi</span>
-															</button>
-														) : (
-															// Wrapper "group" per mostrare un tooltip custom al passaggio del mouse sulla pill "Ha trattativa".
-															<div className="group relative inline-flex">
+																	</TooltipTrigger>
+																	<TooltipContent
+																		aria-live="polite"
+																		className="relative flex w-[350px] flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset"
+																	>
+																		{/* "Attenzione" pill overlapping the top edge. */}
+																		<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
+																			<IconTriangleWarningFill18 size="14px" />
+																			Attenzione
+																		</span>
+																		{/* Content: icon + text, horizontal layout. */}
+																		<div className="flex items-center gap-3">
+																			<IconFrame69 size="40px" />
+
+																			<span className="min-w-0 flex-1 leading-none">
+																				<span className="text-geocoding-title text-md leading-none">
+																					Indirizzo errato o incompleto
+																				</span>
+																				<span className="mt-1 block text-balance font-normal text-geocoding-desc text-xs leading-none">
+																					Il cliente non verrà visualizzato
+																					sulla mappa.
+																				</span>
+																			</span>
+																		</div>
+																	</TooltipContent>
+																</Tooltip>
+															)}
+														</div>
+														<div className="flex items-center justify-start">
+															{hasNoNegotiations ? (
 																<button
-																	// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+																	// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
+																	// invece di navigare a /trattative/aperte.
 																	// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-																	// così che "Ha trattativa" appaia come uno stato concluso coerente.
-																	className="inline-flex items-center justify-center gap-2 rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
-																	// Manteniamo anche il title per avere un fallback nativo su browser/touch.
+																	// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
+																	className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
 																	onClick={(event) => {
-																		// Anche qui blocchiamo la propagazione per evitare
-																		// che la riga cliccabile porti al dettaglio cliente
-																		// quando l'utente vuole aprire direttamente la trattativa.
 																		event.stopPropagation();
-																		handleOpenClientNegotiation(c.id);
+																		setClientIdForNewNegotiation(c.id);
 																	}}
-																	title="Clicca per visualizzare la trattativa"
 																	type="button"
 																>
-																	{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
-																	<IconEyeFill12 />
-																	{/* On mobile show short label to save space; full label on sm+. */}
-																	<span className="sm:hidden">Mostra</span>
-																	<span className="hidden sm:inline">
-																		Mostra trattativa
-																	</span>
+																	{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
+																	<IconCirclePlusFilled aria-hidden size={18} />
+																	<span>Aggiungi</span>
 																</button>
-																{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
-																<span
-																	aria-live="polite"
-																	className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
-																>
-																	Clicca per visualizzare la trattativa
-																</span>
-															</div>
-														)}
+															) : (
+																// Wrapper "group" per mostrare un tooltip custom al passaggio del mouse sulla pill "Ha trattativa".
+																<div className="group relative inline-flex">
+																	<button
+																		// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+																		// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+																		// così che "Ha trattativa" appaia come uno stato concluso coerente.
+																		className="inline-flex items-center justify-center gap-2 rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
+																		// Manteniamo anche il title per avere un fallback nativo su browser/touch.
+																		onClick={(event) => {
+																			// Anche qui blocchiamo la propagazione per evitare
+																			// che la riga cliccabile porti al dettaglio cliente
+																			// quando l'utente vuole aprire direttamente la trattativa.
+																			event.stopPropagation();
+																			handleOpenClientNegotiation(c.id);
+																		}}
+																		title="Clicca per visualizzare la trattativa"
+																		type="button"
+																	>
+																		{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
+																		<IconEyeFill12 />
+																		{/* On mobile show short label to save space; full label on sm+. */}
+																		<span className="sm:hidden">Mostra</span>
+																		<span className="hidden sm:inline">
+																			Mostra trattativa
+																		</span>
+																	</button>
+																	{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
+																	<span
+																		aria-live="polite"
+																		className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
+																	>
+																		Clicca per visualizzare la trattativa
+																	</span>
+																</div>
+															)}
+														</div>
 													</div>
 												</div>
-											</div>
-										);
-									})}
+											);
+										})}
+								</div>
 							</div>
 						</div>
-					</div>
+					</TooltipProvider>
 				</div>
 			</div>
 

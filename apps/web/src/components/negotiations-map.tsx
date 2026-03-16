@@ -251,12 +251,15 @@ function NegotiationsMapInner({
 	scope = "me",
 	teamId,
 	memberId,
+	onNegotiationClick,
 }: {
 	accessToken: string;
 	/** "me" = tratttative personali; "team-member" = trattative di un singolo membro del team. */
 	scope?: "me" | "team-member";
 	teamId?: number;
 	memberId?: number;
+	/** When provided (e.g. supervisione venditore), opening a marker opens this dialog instead of navigating. */
+	onNegotiationClick?: (negotiation: ApiNegotiation) => void;
 }): ReactNode {
 	// Store map instance from onLoad for imperative calls (flyTo, atmospheric effects).
 	const mapInstanceRef = useRef<MapboxMapWithAtmosphere | null>(null);
@@ -580,15 +583,16 @@ function NegotiationsMapInner({
 						{/* Tooltip on hover — same bg as cards; left-aligned (justify-start) to stay visible inside container. */}
 						<div
 							aria-hidden
-							className="stat-card-bg pointer-events-none absolute top-full left-0 z-50 mt-2 whitespace-nowrap rounded-lg border border-border bg-background px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover/button:opacity-100"
+							className="stat-card-bg pointer-events-none absolute top-full left-0 z-50 mt-2 whitespace-nowrap rounded-lg border border-border bg-stat-card px-3 py-2 opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover/button:opacity-100"
 						>
-							<span className="stat-card-text font-medium text-foreground text-sm">
+							<span className="stat-card-text font-medium text-card-foreground text-sm">
 								Vedi tutta l&apos;Italia
 							</span>
 						</div>
+						{/* bg-stat-card so in dataweb light the dark icon is visible (bg-background there is blue). */}
 						<Button
 							aria-label="Vedi tutta l'Italia"
-							className="stat-card-bg size-9 rounded-lg border border-border bg-background shadow-sm hover:bg-background"
+							className="stat-card-bg size-9 rounded-lg border border-border bg-stat-card shadow-sm hover:opacity-90"
 							onClick={handleResetView}
 							size="icon"
 							variant="secondary"
@@ -695,6 +699,17 @@ function NegotiationsMapInner({
 							const avatarSeed =
 								negProps?.clientName ?? negProps?.referente ?? clientLabel;
 
+							// Tooltip/aria text and icon: same as mappa clienti — first click zooms, second (zoomed) opens dialog
+							let clickHint: string;
+							let tooltipHint: string;
+							if (zoom < 17) {
+								clickHint = "Clicca per vedere la posizione";
+								tooltipHint = "Clicca per andare alla posizione";
+							} else {
+								clickHint = "Clicca per vedere trattativa";
+								tooltipHint = "Clicca per vedere la trattativa";
+							}
+
 							return (
 								<Marker
 									anchor="center"
@@ -702,8 +717,22 @@ function NegotiationsMapInner({
 									latitude={latitude}
 									longitude={longitude}
 									onClick={() => {
-										// When zoomed in (>=17), navigate to negotiation detail; otherwise zoom in on location
+										// When zoomed in (>=17), open dialog or navigate; otherwise zoom in (like mappa clienti)
 										if (zoom >= 17) {
+											// Supervisione venditore: open dialog instead of navigating
+											if (
+												scope === "team-member" &&
+												onNegotiationClick &&
+												negProps.negotiationId
+											) {
+												const negotiation = negotiations.find(
+													(n) => n.id === negProps.negotiationId
+												);
+												if (negotiation) {
+													onNegotiationClick(negotiation);
+													return;
+												}
+											}
 											const stato = getNegotiationStatoSegment({
 												id: negProps.negotiationId,
 												spanco: negProps.spanco,
@@ -730,7 +759,7 @@ function NegotiationsMapInner({
 									    Hover handlers reorder markers so tooltip appears above others. */}
 									{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Map marker needs hover for tooltip+reorder; info also in aria-label. */}
 									<div
-										aria-label={`${clientLabel}${negProps?.referente ? `, referente ${negProps.referente}` : ""}. ${zoom < 17 ? "Clicca per vedere la posizione" : "Clicca per vedere trattativa"}`}
+										aria-label={`${clientLabel}${negProps?.referente ? `, referente ${negProps.referente}` : ""}. ${clickHint}`}
 										className="group relative cursor-pointer"
 										onMouseEnter={(e) => {
 											const id =
@@ -781,21 +810,19 @@ function NegotiationsMapInner({
 												</div>
 											</div>
 											<div className="flex w-full items-center justify-start gap-2.5 rounded-md bg-primary/10 px-2 py-1.5 leading-none">
-												{zoom < 17 ? (
-													<IconCircleInfoSparkle
+												{zoom >= 17 ? (
+													<IconExternalLink
 														className="shrink-0 text-primary"
 														size={20}
 													/>
 												) : (
-													<IconExternalLink
+													<IconCircleInfoSparkle
 														className="shrink-0 text-primary"
 														size={20}
 													/>
 												)}
 												<p className="text-balance text-muted-foreground text-xs">
-													{zoom < 17
-														? "Clicca per andare alla posizione"
-														: "Clicca per vedere la trattativa"}
+													{tooltipHint}
 												</p>
 											</div>
 										</div>
@@ -852,10 +879,12 @@ export function NegotiationsMap(): ReactNode {
  * Map of Italy for a specific team member (supervisione venditore).
  * Uses /api/teams/{teamId}/members/{memberId}/map for data.
  * Shares the same visual design and interactions as NegotiationsMap.
+ * When onNegotiationClick is provided, marker clicks open the dialog instead of navigating.
  */
 export function TeamMemberNegotiationsMap(props: {
 	teamId: number;
 	memberId: number;
+	onNegotiationClick?: (negotiation: ApiNegotiation) => void;
 }): ReactNode {
 	const mapboxToken =
 		typeof process !== "undefined"
@@ -880,6 +909,7 @@ export function TeamMemberNegotiationsMap(props: {
 		<NegotiationsMapInner
 			accessToken={mapboxToken}
 			memberId={props.memberId}
+			onNegotiationClick={props.onNegotiationClick}
 			scope="team-member"
 			teamId={props.teamId}
 		/>
