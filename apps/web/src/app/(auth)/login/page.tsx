@@ -55,8 +55,12 @@ export default function LoginPage() {
 			aria-label="Pagina di login"
 			className="relative flex min-h-svh w-full items-center justify-center gap-2 bg-center bg-cover transition-all duration-500 md:justify-end"
 		>
-			{/* Cycling background images at full brightness */}
-			<div aria-hidden className="absolute inset-0 z-0 bg-center bg-cover">
+			{/* Cycling background images: isolate stacking context so opacity transitions
+			    don't cause the form panel to disappear/reappear on mobile during crossfade. */}
+			<div
+				aria-hidden
+				className="absolute inset-0 isolate z-0 bg-center bg-cover"
+			>
 				{BACKGROUND_ITEMS.map((src, i) => {
 					const isActive = i === bgIndex;
 					return (
@@ -72,10 +76,10 @@ export default function LoginPage() {
 					);
 				})}
 			</div>
-			{/* Logo / brand at top left */}
+			{/* Logo / brand at top left — isolate keeps it visible during bg crossfade on mobile */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
-				className="absolute top-6 left-6 z-10"
+				className="absolute top-6 left-6 isolate z-10"
 				initial={{ opacity: 0, y: -10 }}
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
@@ -89,10 +93,10 @@ export default function LoginPage() {
 				/>
 			</motion.div>
 
-			{/* Right panel with login form */}
+			{/* Right panel with login form — isolate keeps it visible during bg crossfade on mobile */}
 			<motion.div
 				animate={{ opacity: 1, x: 0 }}
-				className="relative z-10 m-2.5 flex h-[calc(100vh-1.25rem)] w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-card font-medium shadow-lg md:w-1/2"
+				className="relative isolate z-10 m-2.5 flex h-[calc(100vh-1.25rem)] w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-card font-medium shadow-lg md:w-1/2"
 				initial={{ opacity: 0, x: 20 }}
 				transition={{ duration: 0.5, ease: "easeOut" }}
 			>
