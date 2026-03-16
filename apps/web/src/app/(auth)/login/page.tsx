@@ -55,17 +55,18 @@ export default function LoginPage() {
 			aria-label="Pagina di login"
 			className="relative flex min-h-svh w-full items-center justify-center gap-2 bg-center bg-cover md:justify-end"
 		>
-			{/* Cycling background images: render only current + next to reduce mobile compositing load and prevent panel/input opacity glitches */}
+			{/* Cycling background images. On mobile: instant swap (no transition) to avoid panel/input opacity glitches during crossfade. */}
 			<div
 				aria-hidden
-				className="absolute inset-0 isolate z-0 bg-center bg-cover"
+				className="absolute inset-0 isolate z-0 overflow-hidden bg-center bg-cover"
+				style={{ contain: "paint" }}
 			>
 				{[bgIndex, (bgIndex + 1) % BACKGROUND_ITEMS.length].map((i) => {
 					const src = BACKGROUND_ITEMS[i];
 					const isActive = i === bgIndex;
 					return (
 						<div
-							className="absolute inset-0 bg-center bg-cover bg-no-repeat transition-opacity duration-1000"
+							className="absolute inset-0 bg-center bg-cover bg-no-repeat transition-opacity duration-1000 max-md:transition-none"
 							key={`${i}-${src}`}
 							style={{
 								backgroundImage: `url(${src})`,
