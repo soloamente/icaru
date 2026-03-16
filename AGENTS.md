@@ -135,6 +135,8 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Pass only numeric values to AnimateNumber; formatted strings cause NaN
 - Team member map: zoom first, then click to open detail dialog (same as clients map)
 - Table sections: title on row 1, filters plus search bar on row 2 with `justify-between` (like trattative page)
+- Editable row icons (pen, envelope): show on detail pages only, not in dialogs
+- In dataweb light, input background must be distinguishable from card/dialog surface
 
 ## Learned Workspace Facts
 
@@ -142,6 +144,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Use fallback for `team.creator` when API may omit it (safeCreator pattern with `creator_id`)
 - framer-motion: do not use `motion/react`; use package-specific import paths
 - Dataweb dark theme: define `--popover`, `--muted`, `--accent`, `--accent-foreground` for dropdowns and avatar fallbacks to match theme
+- Tooltips inside scroll-fade-y or masked containers: use Tooltip with FloatingPortal to avoid clipping
 
 ---
 

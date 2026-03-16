@@ -53,20 +53,20 @@ export default function LoginPage() {
 	return (
 		<main
 			aria-label="Pagina di login"
-			className="relative flex min-h-svh w-full items-center justify-center gap-2 bg-center bg-cover transition-all duration-500 md:justify-end"
+			className="relative flex min-h-svh w-full items-center justify-center gap-2 bg-center bg-cover md:justify-end"
 		>
-			{/* Cycling background images: isolate stacking context so opacity transitions
-			    don't cause the form panel to disappear/reappear on mobile during crossfade. */}
+			{/* Cycling background images: render only current + next to reduce mobile compositing load and prevent panel/input opacity glitches */}
 			<div
 				aria-hidden
 				className="absolute inset-0 isolate z-0 bg-center bg-cover"
 			>
-				{BACKGROUND_ITEMS.map((src, i) => {
+				{[bgIndex, (bgIndex + 1) % BACKGROUND_ITEMS.length].map((i) => {
+					const src = BACKGROUND_ITEMS[i];
 					const isActive = i === bgIndex;
 					return (
 						<div
 							className="absolute inset-0 bg-center bg-cover bg-no-repeat transition-opacity duration-1000"
-							key={src}
+							key={`${i}-${src}`}
 							style={{
 								backgroundImage: `url(${src})`,
 								opacity: isActive ? 1 : 0,
@@ -76,7 +76,7 @@ export default function LoginPage() {
 					);
 				})}
 			</div>
-			{/* Logo / brand at top left — isolate keeps it visible during bg crossfade on mobile */}
+			{/* Logo / brand at top left. isolate prevents background crossfade from affecting compositing on mobile. */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
 				className="absolute top-6 left-6 isolate z-10"
@@ -93,7 +93,7 @@ export default function LoginPage() {
 				/>
 			</motion.div>
 
-			{/* Right panel with login form — isolate keeps it visible during bg crossfade on mobile */}
+			{/* Right panel with login form. isolate prevents background crossfade from affecting panel compositing on mobile. */}
 			<motion.div
 				animate={{ opacity: 1, x: 0 }}
 				className="relative isolate z-10 m-2.5 flex h-[calc(100vh-1.25rem)] w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-card font-medium shadow-lg md:w-1/2"
