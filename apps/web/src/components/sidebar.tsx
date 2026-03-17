@@ -205,7 +205,13 @@ export default function Sidebar({
 		{
 			icon: GearIcon as IconComponent,
 			label: "Preferenze",
-			onClick: () => setPreferencesOpen(true),
+			onClick: () => {
+				setPreferencesOpen(true);
+				// On mobile, close the sidebar so the preferences drawer is clearly visible (avoids stacking/grey overlay).
+				if (sidebarOpen?.isMobile && sidebarOpen.isOpen) {
+					sidebarOpen.setOpen(false);
+				}
+			},
 		},
 	];
 

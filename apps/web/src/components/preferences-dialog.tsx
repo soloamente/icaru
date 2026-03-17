@@ -25,7 +25,7 @@ export function PreferencesDialog({
 			<Drawer.Root onOpenChange={onOpenChange} open={open}>
 				<Drawer.Portal>
 					<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
-					<Drawer.Content className="preferences-drawer fixed right-0 bottom-0 left-0 z-50 flex max-h-[90vh] flex-col rounded-t-xl bg-card text-card-foreground outline-none">
+					<Drawer.Content className="preferences-drawer fixed right-0 bottom-0 left-0 z-[60] flex max-h-[90vh] flex-col rounded-t-xl bg-card text-card-foreground outline-none">
 						{/* Drag handle for accessibility / affordance */}
 						<div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
 						<div className="overflow-y-auto p-6 pb-8">
