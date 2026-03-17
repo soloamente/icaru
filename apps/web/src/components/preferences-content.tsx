@@ -92,14 +92,14 @@ export function PreferencesContent({
 								type="button"
 							>
 								{showThemePreviews && (
-									<div className="relative aspect-square w-full min-w-0 overflow-hidden rounded-md">
+									/* Fixed size prevents resize on image load, which can trigger Vaul grey overlay on mobile. */
+									<div className="relative size-16 shrink-0 overflow-hidden rounded-md">
 										<Image
 											alt={`Anteprima tema ${opt.label.toLowerCase()}`}
 											className="object-cover"
-											height={200}
-											sizes="(max-width: 768px) 33vw, 6rem"
+											fill
+											sizes="4rem"
 											src={THEME_PREVIEW_IMAGES[opt.id] ?? ""}
-											width={200}
 										/>
 									</div>
 								)}
