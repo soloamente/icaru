@@ -11,7 +11,7 @@ import {
 } from "@/lib/preferences/preferences-context";
 import { cn } from "@/lib/utils";
 
-/** Theme option id -> image path for preview in preferences. */
+/** Theme option id -> image path for desktop preview. */
 const THEME_PREVIEW_IMAGES: Record<string, string> = {
 	light: "/images/lightmode.png",
 	dark: "/images/darkmode.png",
@@ -33,16 +33,16 @@ export const ACCENT_SWATCH_COLORS: Record<
 };
 
 interface PreferencesContentProps {
-	/** When false, theme picker shows text-only buttons (avoids image load triggering grey overlay in Vaul drawer on mobile). */
-	showThemePreviews?: boolean;
+	/** When true, theme picker uses CSS-only previews (no images) to avoid layout shift in bottom sheet. */
+	isMobile?: boolean;
 }
 
 /**
- * Shared preferences UI: theme, accent color, font size, navigation position.
- * Used inside both Dialog (desktop) and Vaul Drawer (mobile).
+ * Preferences UI: theme, accent, font size, navigation position.
+ * On mobile uses CSS-only theme previews to prevent image-load layout shifts.
  */
 export function PreferencesContent({
-	showThemePreviews = true,
+	isMobile = false,
 }: PreferencesContentProps = {}) {
 	const { theme, setTheme } = useTheme();
 	const {
@@ -56,49 +56,58 @@ export function PreferencesContent({
 		setNavigationPosition,
 	} = usePreferences();
 
+	const themeOptions = [
+		{ id: "light" as const, label: "Chiaro" },
+		{ id: "dark" as const, label: "Scuro" },
+		{ id: "system" as const, label: "Sistema" },
+	];
+
 	return (
 		<>
 			{/* Theme (Color mode) */}
 			<section aria-labelledby="theme-heading" className="mb-8">
 				<h3
-					className="mb-1 font-medium text-base text-card-foreground"
+					className="mb-3 font-medium text-base text-card-foreground"
 					id="theme-heading"
 				>
 					Tema
 				</h3>
-				{/* <p className="mb-3 text-muted-foreground text-sm">
-					Scegli tema chiaro, scuro o in base al sistema.
-				</p> */}
 				<div className="flex gap-3">
-					{[
-						{ id: "light", label: "Chiaro" },
-						{ id: "dark", label: "Scuro" },
-						{ id: "system", label: "Sistema" },
-					].map((opt) => {
+					{themeOptions.map((opt) => {
 						const isSelected = theme === opt.id;
 						return (
 							<button
 								aria-pressed={isSelected}
 								className={cn(
-									"flex h-auto flex-col gap-2 rounded-lg border-2 p-3 text-left transition-colors",
-									showThemePreviews ? "w-xs" : "flex-1",
+									"flex flex-1 flex-col gap-2 rounded-xl border-2 p-3 text-left transition-colors",
 									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 									isSelected
-										? "border-primary bg-primary/5"
+										? "border-primary bg-primary/10"
 										: "border-border bg-muted/30 hover:border-muted-foreground/30"
 								)}
 								key={opt.id}
 								onClick={() => setTheme(opt.id)}
 								type="button"
 							>
-								{showThemePreviews && (
-									/* Fixed size prevents resize on image load, which can trigger Vaul grey overlay on mobile. */
-									<div className="relative size-16 shrink-0 overflow-hidden rounded-md">
+								{/* Mobile: CSS-only preview (no image load). Desktop: image preview. */}
+								{isMobile ? (
+									<div
+										aria-hidden
+										className={cn(
+											"h-14 w-full shrink-0 rounded-lg",
+											opt.id === "light" && "bg-white ring-1 ring-black/10",
+											opt.id === "dark" && "bg-neutral-800",
+											opt.id === "system" &&
+												"bg-linear-to-r from-white via-neutral-400 to-neutral-800 ring-1 ring-black/10"
+										)}
+									/>
+								) : (
+									<div className="relative aspect-square w-full min-w-0 shrink-0 overflow-hidden rounded-lg">
 										<Image
 											alt={`Anteprima tema ${opt.label.toLowerCase()}`}
 											className="object-cover"
 											fill
-											sizes="4rem"
+											sizes="8rem"
 											src={THEME_PREVIEW_IMAGES[opt.id] ?? ""}
 										/>
 									</div>
@@ -106,25 +115,19 @@ export function PreferencesContent({
 								<span className="font-medium text-card-foreground text-sm">
 									{opt.label}
 								</span>
-								{/* {isSelected && (
-									<span className="flex items-center gap-1 text-primary text-xs">
-										<Check aria-hidden className="size-3.5" />
-										Selezionato
-									</span>
-								)} */}
 							</button>
 						);
 					})}
 				</div>
 			</section>
 
-			{/* Palette: Predefinito vs Rich colors (sidebar/navbar colorati) */}
+			{/* Palette: Predefinito vs Rich colors */}
 			<section aria-labelledby="color-scheme-heading" className="mb-8">
 				<h3
-					className="mb-1 font-medium text-base text-card-foreground"
+					className="mb-3 font-medium text-base text-card-foreground"
 					id="color-scheme-heading"
 				>
-					Tema
+					Palette
 				</h3>
 				<div className="flex gap-3">
 					{COLOR_SCHEME_OPTIONS.map(
@@ -134,10 +137,10 @@ export function PreferencesContent({
 								<button
 									aria-pressed={isSelected}
 									className={cn(
-										"flex flex-1 items-center justify-center rounded-lg border-2 py-3 font-medium text-sm transition-colors",
+										"flex flex-1 items-center justify-center rounded-xl border-2 py-3 font-medium text-sm transition-colors",
 										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 										isSelected
-											? "border-primary bg-primary/5 text-card-foreground"
+											? "border-primary bg-primary/10 text-card-foreground"
 											: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
 									)}
 									key={opt.id}
@@ -155,14 +158,11 @@ export function PreferencesContent({
 			{/* Accent color */}
 			<section aria-labelledby="accent-heading" className="mb-8">
 				<h3
-					className="mb-4 font-medium text-base text-card-foreground"
+					className="mb-3 font-medium text-base text-card-foreground"
 					id="accent-heading"
 				>
 					Colore di accento
 				</h3>
-				{/* <p className="mb-3 text-muted-foreground text-sm">
-					Usato per pulsanti, link e evidenziazioni.
-				</p> */}
 				<div className="flex flex-wrap gap-3">
 					{ACCENT_OPTIONS.map((opt) => {
 						const isSelected = accent === opt.id;
@@ -171,7 +171,7 @@ export function PreferencesContent({
 								aria-label={`Accento ${opt.label}`}
 								aria-pressed={isSelected}
 								className={cn(
-									"size-10 rounded-xl border-2 transition-transform",
+									"size-11 rounded-xl border-2 transition-transform",
 									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 									isSelected
 										? "scale-110 border-foreground"
@@ -190,10 +190,10 @@ export function PreferencesContent({
 				</div>
 			</section>
 
-			{/* Navigation position: sidebar left/right, top bar, bottom navbar */}
+			{/* Navigation position */}
 			<section aria-labelledby="nav-position-heading" className="mb-8">
 				<h3
-					className="mb-1 font-medium text-base text-card-foreground"
+					className="mb-3 font-medium text-base text-card-foreground"
 					id="nav-position-heading"
 				>
 					Posizione navigazione
@@ -206,10 +206,10 @@ export function PreferencesContent({
 								<button
 									aria-pressed={isSelected}
 									className={cn(
-										"flex items-center justify-center rounded-lg border-2 py-3 font-medium text-sm transition-colors",
+										"flex items-center justify-center rounded-xl border-2 py-3 font-medium text-sm transition-colors",
 										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 										isSelected
-											? "border-primary bg-primary/5 text-card-foreground"
+											? "border-primary bg-primary/10 text-card-foreground"
 											: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
 									)}
 									key={opt.id}
@@ -224,10 +224,10 @@ export function PreferencesContent({
 				</div>
 			</section>
 
-			{/* Font size: Piccolo / Normale / Grande */}
-			<section aria-labelledby="font-size-heading" className="mb-8">
+			{/* Font size */}
+			<section aria-labelledby="font-size-heading" className="mb-4">
 				<h3
-					className="mb-1 font-medium text-base text-card-foreground"
+					className="mb-3 font-medium text-base text-card-foreground"
 					id="font-size-heading"
 				>
 					Dimensione carattere
@@ -239,10 +239,10 @@ export function PreferencesContent({
 							<button
 								aria-pressed={isSelected}
 								className={cn(
-									"flex flex-1 items-center justify-center rounded-lg border-2 py-3 font-medium text-sm transition-colors",
+									"flex flex-1 items-center justify-center rounded-xl border-2 py-3 font-medium text-sm transition-colors",
 									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 									isSelected
-										? "border-primary bg-primary/5 text-card-foreground"
+										? "border-primary bg-primary/10 text-card-foreground"
 										: "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30"
 								)}
 								key={opt.id}

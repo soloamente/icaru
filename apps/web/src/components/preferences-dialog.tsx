@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
 import { PreferencesContent } from "@/components/preferences-content";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
@@ -11,8 +12,10 @@ interface PreferencesDialogProps {
 }
 
 /**
- * Preferences UI: Base UI Dialog for both mobile and desktop.
- * On mobile styled as bottom sheet (avoids Vaul Drawer which caused grey overlay on image load).
+ * Preferences bottom sheet / dialog. Rebuilt to avoid grey overlay:
+ * - Base UI Dialog only (no Vaul)
+ * - CSS-only theme preview on mobile (no images = no layout shift)
+ * - Explicit stacking, close button, content containment
  */
 export function PreferencesDialog({
 	open,
@@ -27,47 +30,64 @@ export function PreferencesDialog({
 			open={open}
 		>
 			<Dialog.Portal>
+				{/* Backdrop: separate layer, below content */}
 				<Dialog.Backdrop
 					aria-hidden
-					className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
+					className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-100 bg-black/50 data-closed:animate-out data-open:animate-in"
 				/>
+				{/* Sheet container: above backdrop */}
 				<div
+					aria-modal
 					className={cn(
-						"pointer-events-none fixed inset-0 z-60 flex p-4",
+						"fixed z-101 flex w-full",
 						isMobile
-							? "items-end justify-center"
-							: "items-center justify-center"
+							? "inset-x-0 bottom-0 justify-center px-[10px] pb-[10px]"
+							: "inset-0 items-center justify-center p-4"
 					)}
+					role="dialog"
 				>
 					<Dialog.Popup
 						aria-describedby="preferences-dialog-desc"
 						aria-labelledby="preferences-dialog-title"
 						className={cn(
-							"pointer-events-auto w-full overflow-hidden bg-card text-card-foreground shadow-lg outline-none duration-200 data-closed:animate-out data-open:animate-in",
+							"flex w-full flex-col overflow-hidden bg-card text-card-foreground shadow-xl outline-none data-closed:animate-out data-open:animate-in",
 							isMobile
-								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-[10px] flex max-h-[90vh] flex-col rounded-t-xl"
-								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 max-w-3xl rounded-4xl"
+								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 max-h-[88vh] rounded-t-2xl"
+								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 max-h-[85vh] max-w-3xl rounded-3xl"
 						)}
 					>
-						{isMobile && (
-							<div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
-						)}
-						<div
-							className={cn(
-								"overflow-y-auto p-6",
-								isMobile ? "min-h-0 flex-1 pb-8" : "max-h-[85vh]"
+						{/* Header: drag handle (mobile) + close button */}
+						<div className="flex shrink-0 flex-col gap-3 border-border border-b px-6 pt-4 pb-3">
+							{isMobile && (
+								<div
+									aria-hidden
+									className="mx-auto h-1 w-12 rounded-full bg-muted-foreground/40"
+								/>
 							)}
+							<div className="flex items-center justify-between gap-3">
+								<h2
+									className="font-semibold text-card-foreground text-xl"
+									id="preferences-dialog-title"
+								>
+									Preferenze
+								</h2>
+								<Dialog.Close
+									aria-label="Chiudi"
+									className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted/80 text-card-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<X aria-hidden className="size-4" />
+								</Dialog.Close>
+							</div>
+						</div>
+						{/* Scrollable content: contain layout to prevent external reflow */}
+						<div
+							className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-5"
+							style={{ contain: "layout" }}
 						>
-							<h2
-								className="mb-6 font-semibold text-card-foreground text-xl"
-								id="preferences-dialog-title"
-							>
-								Preferenze
-							</h2>
 							<p className="sr-only" id="preferences-dialog-desc">
 								Personalizza tema, colore di accento e stile del carattere.
 							</p>
-							<PreferencesContent />
+							<PreferencesContent isMobile={isMobile} />
 						</div>
 					</Dialog.Popup>
 				</div>
