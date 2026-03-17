@@ -835,9 +835,13 @@ html[data-font-size="large"] {
 	}
 }
 
-/* Vaul drawer: hide the ::after shape that extends below the drawer (visible under "Nuova trattativa" drawer). */
+/* Vaul drawer: hide the ::after pseudo-element that can cut off scrollable content or extend visibly below the drawer.
+ * - create-negotiation-drawer: visible shape under "Nuova trattativa"
+ * - preferences-drawer: on mobile, after theme images load, ::after can cover content (Vaul #575) */
 [data-vaul-drawer].create-negotiation-drawer::after,
-[data-vaul-drawer]:has(.create-negotiation-drawer)::after {
+[data-vaul-drawer]:has(.create-negotiation-drawer)::after,
+[data-vaul-drawer].preferences-drawer::after,
+[data-vaul-drawer]:has(.preferences-drawer)::after {
 	display: none !important;
 }
 

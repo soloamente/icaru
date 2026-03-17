@@ -83,14 +83,15 @@ export function PreferencesContent() {
 								onClick={() => setTheme(opt.id)}
 								type="button"
 							>
-								{/* Dimensioni fisse per l'anteprima: 20rem larghezza bottone, 6rem altezza area immagine */}
-								<div className="relative h-full w-full min-w-0 overflow-hidden rounded-md">
+								{/* Fixed aspect ratio to avoid layout shift when images load (can cause Vaul ::after to cover content on mobile). */}
+								<div className="relative aspect-square w-full min-w-0 overflow-hidden rounded-md">
 									<Image
 										alt={`Anteprima tema ${opt.label.toLowerCase()}`}
 										className="object-cover"
-										height={1000}
+										height={200}
+										sizes="(max-width: 768px) 33vw, 6rem"
 										src={THEME_PREVIEW_IMAGES[opt.id] ?? ""}
-										width={1000}
+										width={200}
 									/>
 								</div>
 								<span className="font-medium text-card-foreground text-sm">
