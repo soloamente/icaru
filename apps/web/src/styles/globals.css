@@ -835,10 +835,9 @@ html[data-font-size="large"] {
 	}
 }
 
-/* Vaul drawer: hide the ::after pseudo-element that can cut off scrollable content or extend visibly below the drawer.
- * - create-negotiation-drawer: visible shape under "Nuova trattativa" */
-[data-vaul-drawer].create-negotiation-drawer::after,
-[data-vaul-drawer]:has(.create-negotiation-drawer)::after {
+/* Vaul drawer: fix ::after pseudo-element that covers content when images/layout shifts occur (Vaul #575).
+ * Applied to ALL bottom drawers - when images load inside, ::after can expand and cover the view with grey. */
+[data-vaul-drawer]::after {
 	display: none !important;
 }
 
