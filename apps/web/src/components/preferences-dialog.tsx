@@ -33,7 +33,7 @@ export function PreferencesDialog({
 				/>
 				<div
 					className={cn(
-						"fixed inset-0 z-50 flex p-4",
+						"pointer-events-none fixed inset-0 z-60 flex p-4",
 						isMobile
 							? "items-end justify-center"
 							: "items-center justify-center"
@@ -43,9 +43,9 @@ export function PreferencesDialog({
 						aria-describedby="preferences-dialog-desc"
 						aria-labelledby="preferences-dialog-title"
 						className={cn(
-							"w-full overflow-hidden bg-card text-card-foreground shadow-lg outline-none duration-200 data-closed:animate-out data-open:animate-in",
+							"pointer-events-auto w-full overflow-hidden bg-card text-card-foreground shadow-lg outline-none duration-200 data-closed:animate-out data-open:animate-in",
 							isMobile
-								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 flex max-h-[90vh] flex-col rounded-t-xl"
+								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-[10px] flex max-h-[90vh] flex-col rounded-t-xl"
 								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 max-w-3xl rounded-4xl"
 						)}
 					>
