@@ -168,6 +168,99 @@ function SidebarLeftAnimatedLayout({
 }
 
 /**
+ * Right sidebar layout: mirrors left layout. On mobile, sidebar overlays from right;
+ * click on content or X button closes it. On desktop, content | sidebar row.
+ */
+function SidebarRightAnimatedLayout({
+	user,
+	children,
+}: {
+	user: { email: string } | null;
+	children: React.ReactNode;
+}) {
+	const sidebarOpen = useSidebarOpen();
+	const dialParams = useSidebarPanelDialKit();
+	const { fontSize } = usePreferences();
+	const [hasMounted, setHasMounted] = useState(false);
+
+	useEffect(() => setHasMounted(true), []);
+
+	let fontSizeScale = 1;
+	if (fontSize === "large") {
+		fontSizeScale = 1.125;
+	} else if (fontSize === "small") {
+		fontSizeScale = 0.875;
+	}
+
+	const sidebarWidthPx = hasMounted
+		? SIDEBAR_OPEN_WIDTH_PX * fontSizeScale
+		: SIDEBAR_OPEN_WIDTH_PX;
+
+	if (!sidebarOpen) {
+		return (
+			<div className="flex h-dvh overflow-hidden">
+				{children}
+				<Sidebar user={user} variant="sidebar-right" />
+			</div>
+		);
+	}
+
+	const isOpen = sidebarOpen.isOpen;
+	const baseOpenLeft = dialParams?.content?.openLeft ?? SIDEBAR_OPEN_WIDTH_PX;
+	const openLeft = hasMounted ? baseOpenLeft * fontSizeScale : baseOpenLeft;
+	const spring = dialParams?.content?.spring ?? CONTENT_PANEL_SPRING_DEFAULT;
+
+	// Right sidebar: content on left, sidebar on right. On mobile open, content translates left to reveal sidebar.
+	const isMobile = sidebarOpen.isMobile;
+	const contentPanelRight = !isMobile && isOpen ? sidebarWidthPx : 0; // desktop: shrink when open
+	const contentPanelX = isMobile && isOpen ? -openLeft : 0; // mobile: translate left when open
+
+	return (
+		<div className="relative h-dvh overflow-hidden">
+			{/* Content panel: left side, animates to reveal or cover the right sidebar */}
+			<motion.div
+				animate={{
+					right: contentPanelRight,
+					x: contentPanelX,
+				}}
+				className="absolute top-0 bottom-0 left-0 z-10 flex h-full min-h-0 flex-col bg-transparent"
+				initial={false}
+				onClick={() => {
+					if (sidebarOpen.isMobile && isOpen) {
+						sidebarOpen.setOpen(false);
+					}
+				}}
+				style={isMobile ? { left: 0, right: 0 } : undefined}
+				transition={spring}
+			>
+				{!isOpen && (
+					<button
+						aria-label="Apri menu"
+						className="absolute top-2 right-2 z-20 flex size-10 items-center justify-center rounded-lg border border-border bg-background text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						onClick={sidebarOpen.toggle}
+						type="button"
+					>
+						<Menu aria-hidden className="size-5" />
+					</button>
+				)}
+				{children}
+			</motion.div>
+			{/* Sidebar: right side */}
+			<div
+				className="absolute top-0 right-0 z-0 h-full shrink-0"
+				style={{ width: sidebarWidthPx }}
+			>
+				<Sidebar
+					className="h-full w-full min-w-0"
+					user={user}
+					variant="sidebar-right"
+				/>
+			</div>
+		</div>
+	);
+}
+
+/**
  * LayoutContent Component (Client Component)
  *
  * Handles pathname-based conditional rendering of sidebar and preferences.
@@ -232,15 +325,16 @@ export default function LayoutContent({
 		);
 	}
 
-	// Sidebar on the right: row layout, content first then nav
+	// Sidebar on the right: same open/close behavior as left on mobile (overlay + click-outside + X)
 	if (navVariant === "sidebar-right") {
 		return (
 			<>
 				<GlobalSearchCommand />
-				<div className="flex h-dvh overflow-hidden">
-					{children}
-					<Sidebar user={user} variant="sidebar-right" />
-				</div>
+				<SidebarOpenProvider>
+					<SidebarRightAnimatedLayout user={user}>
+						{children}
+					</SidebarRightAnimatedLayout>
+				</SidebarOpenProvider>
 			</>
 		);
 	}

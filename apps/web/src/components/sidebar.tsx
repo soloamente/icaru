@@ -273,7 +273,7 @@ export default function Sidebar({
 				<aside
 					aria-label="Barra di navigazione"
 					className={cn(
-						"flex w-full shrink-0 items-center gap-6 px-4 py-3 font-medium",
+						"flex w-full shrink-0 items-center gap-6 overflow-x-auto overflow-y-hidden px-4 py-3 font-medium",
 						isRichColors
 							? "bg-sidebar text-sidebar-foreground"
 							: "bg-background"
