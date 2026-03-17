@@ -35,7 +35,7 @@ export function PreferencesDialog({
 							<p className="sr-only">
 								Personalizza tema, colore di accento e stile del carattere.
 							</p>
-							<PreferencesContent />
+							<PreferencesContent showThemePreviews={false} />
 						</div>
 					</Drawer.Content>
 				</Drawer.Portal>

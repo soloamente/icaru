@@ -32,11 +32,18 @@ export const ACCENT_SWATCH_COLORS: Record<
 	yellow: "#eab308",
 };
 
+interface PreferencesContentProps {
+	/** When false, theme picker shows text-only buttons (avoids image load triggering grey overlay in Vaul drawer on mobile). */
+	showThemePreviews?: boolean;
+}
+
 /**
  * Shared preferences UI: theme, accent color, font size, navigation position.
  * Used inside both Dialog (desktop) and Vaul Drawer (mobile).
  */
-export function PreferencesContent() {
+export function PreferencesContent({
+	showThemePreviews = true,
+}: PreferencesContentProps = {}) {
 	const { theme, setTheme } = useTheme();
 	const {
 		accent,
@@ -73,7 +80,8 @@ export function PreferencesContent() {
 							<button
 								aria-pressed={isSelected}
 								className={cn(
-									"flex h-auto w-xs flex-col gap-2 rounded-lg border-2 p-3 text-left transition-colors",
+									"flex h-auto flex-col gap-2 rounded-lg border-2 p-3 text-left transition-colors",
+									showThemePreviews ? "w-xs" : "flex-1",
 									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 									isSelected
 										? "border-primary bg-primary/5"
@@ -83,17 +91,18 @@ export function PreferencesContent() {
 								onClick={() => setTheme(opt.id)}
 								type="button"
 							>
-								{/* Fixed aspect ratio to avoid layout shift when images load (can cause Vaul ::after to cover content on mobile). */}
-								<div className="relative aspect-square w-full min-w-0 overflow-hidden rounded-md">
-									<Image
-										alt={`Anteprima tema ${opt.label.toLowerCase()}`}
-										className="object-cover"
-										height={200}
-										sizes="(max-width: 768px) 33vw, 6rem"
-										src={THEME_PREVIEW_IMAGES[opt.id] ?? ""}
-										width={200}
-									/>
-								</div>
+								{showThemePreviews && (
+									<div className="relative aspect-square w-full min-w-0 overflow-hidden rounded-md">
+										<Image
+											alt={`Anteprima tema ${opt.label.toLowerCase()}`}
+											className="object-cover"
+											height={200}
+											sizes="(max-width: 768px) 33vw, 6rem"
+											src={THEME_PREVIEW_IMAGES[opt.id] ?? ""}
+											width={200}
+										/>
+									</div>
+								)}
 								<span className="font-medium text-card-foreground text-sm">
 									{opt.label}
 								</span>
