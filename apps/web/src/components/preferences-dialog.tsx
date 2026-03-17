@@ -1,9 +1,9 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Drawer } from "vaul";
 import { PreferencesContent } from "@/components/preferences-content";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { cn } from "@/lib/utils";
 
 interface PreferencesDialogProps {
 	open: boolean;
@@ -11,37 +11,14 @@ interface PreferencesDialogProps {
 }
 
 /**
- * Preferences UI: on mobile uses Vaul Drawer (bottom sheet), on desktop uses Base UI Dialog.
- * Same content (theme, accent, font) in both.
+ * Preferences UI: Base UI Dialog for both mobile and desktop.
+ * On mobile styled as bottom sheet (avoids Vaul Drawer which caused grey overlay on image load).
  */
 export function PreferencesDialog({
 	open,
 	onOpenChange,
 }: PreferencesDialogProps) {
 	const isMobile = useIsMobile();
-
-	if (isMobile) {
-		return (
-			<Drawer.Root onOpenChange={onOpenChange} open={open}>
-				<Drawer.Portal>
-					<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
-					<Drawer.Content className="preferences-drawer fixed right-0 bottom-0 left-0 z-[60] flex max-h-[90vh] flex-col rounded-t-xl bg-card text-card-foreground outline-none">
-						{/* Drag handle for accessibility / affordance */}
-						<div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
-						<div className="overflow-y-auto p-6 pb-8">
-							<h2 className="mb-6 font-semibold text-card-foreground text-xl">
-								Preferenze
-							</h2>
-							<p className="sr-only">
-								Personalizza tema, colore di accento e stile del carattere.
-							</p>
-							<PreferencesContent />
-						</div>
-					</Drawer.Content>
-				</Drawer.Portal>
-			</Drawer.Root>
-		);
-	}
 
 	return (
 		<Dialog.Root
@@ -54,13 +31,33 @@ export function PreferencesDialog({
 					aria-hidden
 					className="data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-open:animate-in"
 				/>
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+				<div
+					className={cn(
+						"fixed inset-0 z-50 flex p-4",
+						isMobile
+							? "items-end justify-center"
+							: "items-center justify-center"
+					)}
+				>
 					<Dialog.Popup
 						aria-describedby="preferences-dialog-desc"
 						aria-labelledby="preferences-dialog-title"
-						className="data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-3xl overflow-hidden rounded-4xl bg-card text-card-foreground shadow-lg outline-none duration-200 data-closed:animate-out data-open:animate-in"
+						className={cn(
+							"w-full overflow-hidden bg-card text-card-foreground shadow-lg outline-none duration-200 data-closed:animate-out data-open:animate-in",
+							isMobile
+								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 flex max-h-[90vh] flex-col rounded-t-xl"
+								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 max-w-3xl rounded-4xl"
+						)}
 					>
-						<div className="max-h-[85vh] overflow-y-auto p-6">
+						{isMobile && (
+							<div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
+						)}
+						<div
+							className={cn(
+								"overflow-y-auto p-6",
+								isMobile ? "min-h-0 flex-1 pb-8" : "max-h-[85vh]"
+							)}
+						>
 							<h2
 								className="mb-6 font-semibold text-card-foreground text-xl"
 								id="preferences-dialog-title"
