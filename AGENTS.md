@@ -127,7 +127,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 - In dataweb light theme, use `text-card-foreground` for text on card/table surfaces (not `text-foreground`)
 - Hover on card/panel surfaces in dataweb light: use `hover:text-card-foreground` (not `hover:text-foreground`)
-- Form inputs on light card/panel in dataweb light: use `bg-input` (not `bg-background`) for readability
+- Dataweb light: form inputs on cards/panels use `bg-input` (not `bg-background`) so fields stay readable and distinct from the card/dialog surface
 - Dialog close buttons: use `bg-table-header`, `text-card-foreground`, `hover:bg-table-hover` to match input fields
 - Stat card values on `bg-card`: use `text-card-foreground` for contrast in dataweb light
 - Empty state text: use `text-card-foreground` (heading) and `text-card-foreground/80` (subtitle)
@@ -136,7 +136,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Team member map: zoom first, then click to open detail dialog (same as clients map)
 - Table sections: title on row 1, filters plus search bar on row 2 with `justify-between` (like trattative page)
 - Editable row icons (pen, envelope): show on detail pages only, not in dialogs
-- In dataweb light, input background must be distinguishable from card/dialog surface
+- Default light theme (non-dataweb): adjust neutral gray tokens in `globals.css` `:root`; rich/dataweb uses `[data-color-scheme="rich"]` and `.dark`—change the matching block for that mode
 
 ## Learned Workspace Facts
 
@@ -145,6 +145,10 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - framer-motion: do not use `motion/react`; use package-specific import paths
 - Dataweb dark theme: define `--popover`, `--muted`, `--accent`, `--accent-foreground` for dropdowns and avatar fallbacks to match theme
 - Tooltips inside scroll-fade-y or masked containers: use Tooltip with FloatingPortal to avoid clipping
+- Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks
+- Root `main` on mobile-heavy routes often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
+- Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight
+- `update-negotiation-form.tsx`: label and value stack on mobile (`flex-col md:flex-row`); read-only row values use `truncate` when ellipsis is preferred over wrapping
 
 ---
 
