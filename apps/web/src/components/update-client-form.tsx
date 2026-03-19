@@ -20,17 +20,17 @@ export const UPDATE_CLIENT_FORM_ID = "update-client-form";
 const SECTION_CARD_CLASSES =
 	"flex min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
 
-/** Contenitore pill per singolo campo (label + input) coerente con `UpdateNegotiationForm`. */
+/** Contenitore pill per singolo campo (label + input) coerente con `UpdateNegotiationForm`. Su mobile label sopra e input sotto; da md in su label a sinistra e input a destra. */
 const FIELD_CONTAINER_CLASSES =
-	"flex items-center justify-between gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none";
+	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none md:flex-row md:items-center md:justify-between";
 
 /** Stile comune per le label dei campi dentro le pill. */
 const FIELD_LABEL_TEXT_CLASSES =
 	"w-fit flex-0 whitespace-nowrap text-base flex font-medium items-start text-stats-title leading-none";
 
-/** Stile base per gli input flat, allineati a destra, con focus ring accessibile. */
+/** Stile base per gli input flat: a sinistra su mobile (quando sotto la label), a destra da md in su; focus ring accessibile. */
 const FIELD_INPUT_BASE_CLASSES =
-	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
+	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-left text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-right md:text-base";
 
 /** Corpo form normalizzato a partire dall'oggetto `ApiClient` della risposta API. */
 function clientToFormBody(client: ApiClient): UpdateClientBody {

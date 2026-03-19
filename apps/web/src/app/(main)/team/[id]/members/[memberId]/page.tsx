@@ -672,12 +672,22 @@ export default function TeamMemberSupervisionPage() {
 						aria-label="Trattative del venditore"
 						className="flex w-full flex-col gap-2"
 					>
-						{/* Row 1: title only */}
-						<h2 className="font-medium text-2xl">Trattative del venditore</h2>
-						{/* Row 2: filters (left) + search + count (right), justify-between like trattative */}
-						<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+						{/* Row 1: title + count on the same line (right aligned) */}
+						<div className="flex w-full items-center justify-between gap-4">
+							<h2 className="font-medium text-2xl">Trattative del venditore</h2>
+							{!isNegotiationsLoading && negotiations.length > 0 && (
+								<span className="shrink-0 text-muted-foreground text-sm">
+									<AnimateNumber className="tabular-nums">
+										{visibleNegotiations.length}
+									</AnimateNumber>{" "}
+									trattative trovate
+								</span>
+							)}
+						</div>
+						{/* Row 2: filters (left) + search overlaying on top so it opens above filters (z-index) */}
+						<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
 							{/* Filters: date apertura, chiusura, abbandono, SPANCO, stato — same pill style as trattative */}
-							<div className="scroll-fade-x flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
+							<div className="scroll-fade-x flex w-full items-center justify-start gap-1.25 overflow-x-auto sm:overflow-visible">
 								<DateRangeFilter
 									align="start"
 									dateRange={dateRangeApertura}
@@ -710,7 +720,7 @@ export default function TeamMemberSupervisionPage() {
 									value={spancoFilter === "all" ? null : spancoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-card px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-card sm:shrink-0"
 										id="member-neg-spanco-filter"
 									>
 										<Select.Value
@@ -780,7 +790,7 @@ export default function TeamMemberSupervisionPage() {
 									value={statoFilter === "all" ? null : statoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-card px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-card"
 										id="member-neg-stato-filter"
 									>
 										<Select.Value
@@ -856,17 +866,9 @@ export default function TeamMemberSupervisionPage() {
 									</Select.Portal>
 								</Select.Root>
 							</div>
-							{/* Right side: count + search bar — justify-between pushes this to the right */}
-							<div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:shrink-0">
-								{!isNegotiationsLoading && negotiations.length > 0 && (
-									<span className="shrink-0 text-muted-foreground text-sm">
-										<AnimateNumber className="tabular-nums">
-											{visibleNegotiations.length}
-										</AnimateNumber>{" "}
-										trattative trovate
-									</span>
-								)}
-								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--color-card)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80">
+							{/* Search bar: absolutely positioned on top of the filter row so it opens above filters (not pushed right) */}
+							<div className="absolute top-0 right-0 z-20 flex items-center sm:top-1/2 sm:-translate-y-1/2">
+								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-card px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--table-container-background)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80">
 									<input
 										className="w-full truncate bg-transparent placeholder:text-search-placeholder focus-visible:outline-none"
 										onChange={(event) => {

@@ -230,7 +230,7 @@ export default function ClientiDettaglioPage() {
 	}
 	if (error || !client) {
 		return (
-			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-5 pt-6 font-medium sm:px-9">
 				<div className="relative flex w-full flex-col gap-4.5">
 					<div className="flex items-center justify-start gap-2.5">
 						<Link
@@ -256,11 +256,12 @@ export default function ClientiDettaglioPage() {
 	}
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-5 pt-6 font-medium sm:px-9">
 			{/* Header: pulsante back + titolo a sinistra; azioni Annulla/Salva a destra (stesso pattern pagine trattative). */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					<div className="flex min-w-0 flex-1 items-center justify-start gap-1">
+					{/* Title row: back button + title; w-full so title uses full width on mobile and doesn't truncate. */}
+					<div className="flex w-full min-w-0 flex-1 items-center justify-start gap-1">
 						<button
 							aria-label="Torna alla lista clienti"
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -274,7 +275,7 @@ export default function ClientiDettaglioPage() {
 							/>
 						</button>
 						<h1
-							className="min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
+							className="w-full min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
 							id="update-client-title"
 						>
 							Aggiorna cliente{" "}
@@ -288,7 +289,9 @@ export default function ClientiDettaglioPage() {
 						className={
 							isDirty || isSubmitting
 								? "flex shrink-0 scale-100 items-center justify-center gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out"
-								: "pointer-events-none flex shrink-0 scale-[0.98] items-center justify-center gap-2.5 opacity-0 transition-[opacity,transform] duration-200 ease-out"
+								: // When hidden, we must remove it from layout entirely,
+									// otherwise it still consumes width and forces the title to shrink on mobile.
+									"hidden"
 						}
 					>
 						{isSubmitting ? (

@@ -88,7 +88,7 @@ export interface DateRangeFilterProps {
 	className?: string;
 	/** Allineamento del popover rispetto al trigger. */
 	align?: "start" | "center" | "end";
-	/** Stile pill compatibile con i filtri tabella (bg-table-buttons). */
+	/** Stile pill compatibile con i filtri tabella (bg-card). */
 	variant?: "default" | "table";
 }
 
@@ -159,7 +159,8 @@ export function DateRangeFilter({
 
 	const hasRange = Boolean(dateRange?.from ?? dateRange?.to);
 
-	// Pill container: un unico elemento visivo con due zone cliccabili (trigger + clear)
+	// Pill container: un unico elemento visivo con due zone cliccabili (trigger + clear).
+	// In variant="table" use bg-table-buttons to match SPANCO/Stato filter pills in TrattativeTable.
 	const pillClassName = cn(
 		"inline-flex items-center overflow-hidden rounded-full",
 		variant === "table" ? "bg-table-buttons" : "bg-card ring-1 ring-border",
@@ -173,7 +174,9 @@ export function DateRangeFilter({
 					<Popover.Trigger
 						aria-label={`Filtro ${label.toLowerCase()}: ${triggerLabel}`}
 						className={cn(
-							"flex items-center justify-between gap-2 border-none bg-transparent px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+							"flex items-center justify-between gap-2 border-none px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+							// Ensure the pill trigger background matches SPANCO/Stato filter pills (bg-table-buttons).
+							variant === "table" ? "bg-table-buttons" : "bg-transparent",
 							variant === "table" && "text-stats-title",
 							// When filter is active, use full-bright primary color so the user clearly sees it's applied
 							hasRange && variant === "table" && "text-primary",

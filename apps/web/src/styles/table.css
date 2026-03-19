@@ -1,3 +1,37 @@
+/* Clients table: grid template so Trattativa column min can respond to font-size preference (text grande). */
+.clients-table-grid {
+	--trattativa-col-min: 130px;
+	display: grid;
+	grid-template-columns:
+		minmax(70px, 0.8fr)
+		minmax(160px, 1fr)
+		minmax(100px, 0.75fr)
+		minmax(100px, 0.75fr)
+		minmax(90px, 0.5fr)
+		minmax(210px, 1.5fr)
+		minmax(var(--trattativa-col-min), 0.9fr);
+	align-items: center;
+	gap: 1rem;
+}
+
+@media (min-width: 640px) {
+	.clients-table-grid {
+		grid-template-columns:
+			minmax(180px, 1.25fr)
+			minmax(160px, 1fr)
+			minmax(100px, 0.75fr)
+			minmax(100px, 0.75fr)
+			minmax(90px, 0.5fr)
+			minmax(210px, 1.5fr)
+			minmax(var(--trattativa-col-min), 0.9fr);
+	}
+}
+
+/* Text size preference "grande": wider Trattativa column so pill label stays on one line. */
+html[data-font-size="large"] .clients-table-grid {
+	--trattativa-col-min: 170px;
+}
+
 /* Scroll Fade Effect */
 @supports (animation-timeline: scroll()) {
 	@property --ft {

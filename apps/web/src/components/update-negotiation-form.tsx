@@ -151,7 +151,9 @@ function AbbandonataCheckboxRow({
 					aria-describedby={
 						helperText ? "update-abbandonata-helper" : undefined
 					}
-					className="flex shrink-0 overflow-hidden rounded-xl border border-border bg-muted/50"
+					// Prevent mobile "items-stretch" from stretching this control to full width;
+					// the switch should stay only as wide as its content.
+					className="flex w-fit shrink-0 self-start overflow-hidden rounded-xl border border-border bg-muted/50"
 				>
 					<button
 						aria-pressed={!checked}
@@ -196,7 +198,9 @@ function AbbandonataCheckboxRow({
 
 /** Shared capsule-style container for form fields (consistent with create/update dialogs). */
 const DIALOG_FIELD_CONTAINER_CLASSES =
-	"flex items-center justify-between gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none";
+	// Mobile: label above value/control.
+	// Desktop: label left, control right.
+	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none md:flex-row md:items-center md:justify-between";
 
 /** Shared section card wrapper: full-width card with title + content (same layout for Dati trattativa, Allegati, Stato e avanzamento). */
 const SECTION_CARD_CLASSES =
@@ -208,7 +212,7 @@ const DIALOG_FIELD_LABEL_TEXT_CLASSES =
 
 /** Base classes for text/number inputs: flat, right-aligned. Includes visible focus ring for accessibility (WCAG 2.4.7). */
 const DIALOG_FIELD_INPUT_BASE_CLASSES =
-	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
+	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-left text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-right md:text-base";
 
 /** Format a backend date string (ISO) as a short Italian date for display (or fallback gracefully). */
 function formatNegotiationDate(
@@ -282,7 +286,7 @@ function DatiTrattativaSection({
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 						Ragione sociale
 					</span>
-					<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+					<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
 						{negotiation.client?.ragione_sociale ??
 							`Cliente #${negotiation.client_id}`}
 					</span>
@@ -297,7 +301,7 @@ function DatiTrattativaSection({
 					)}
 				>
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Telefono</span>
-					<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+					<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
 						{telefonoDisplay}
 					</span>
 				</div>
@@ -311,7 +315,7 @@ function DatiTrattativaSection({
 					)}
 				>
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Data apertura</span>
-					<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+					<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
 						{dataAperturaDisplay}
 					</span>
 				</div>
@@ -330,7 +334,7 @@ function DatiTrattativaSection({
 						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 							Data abbandono
 						</span>
-						<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+						<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
 							{formatNegotiationDate(
 								negotiation.data_abbandono ?? negotiation.updated_at
 							)}
@@ -349,7 +353,7 @@ function DatiTrattativaSection({
 							<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 								Data chiusura
 							</span>
-							<span className="min-w-0 flex-1 truncate text-right font-medium text-base">
+							<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
 								{formatNegotiationDate(
 									negotiation.data_chiusura ?? negotiation.updated_at
 								)}
@@ -772,18 +776,18 @@ function StatoEAvanzamentoSection({
 										: undefined,
 							}}
 						/>
-						<div className="pointer-events-none relative z-10 flex w-full items-center">
-							<span
-								className={cn(
-									DIALOG_FIELD_LABEL_TEXT_CLASSES,
-									"items-center gap-2 text-card-foreground"
-								)}
-							>
+						<div className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center pr-16">
+							{/* On small screens the percentage value sits on the right as an absolutely-positioned overlay.
+							    Reserve space for it and truncate the label to prevent it from covering the % value. */}
+							<span className="flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap font-medium text-card-foreground text-sm leading-none md:text-base">
 								<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
-								Percentuale avanzamento
+								<span className="hidden md:inline">
+									Percentuale avanzamento
+								</span>
+								<span className="md:hidden">Avanzamento</span>
 							</span>
 						</div>
-						<span className="pointer-events-none absolute inset-y-0 right-3.75 flex items-center text-right font-medium text-base text-card-foreground tabular-nums leading-none">
+						<span className="pointer-events-none absolute inset-y-0 right-3.75 z-20 flex items-center text-right font-medium text-base text-card-foreground tabular-nums leading-none">
 							{form.percentuale}%
 						</span>
 						<input

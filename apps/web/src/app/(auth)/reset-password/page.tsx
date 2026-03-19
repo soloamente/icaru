@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { z } from "zod";
 import { Spinner } from "@/components/ui/spinner";
 import { type ResetPasswordBody, resetPassword } from "@/lib/api/client";
@@ -19,6 +20,19 @@ const resetPasswordSchema = z
 		path: ["passwordConfirmation"],
 		message: "Le password non coincidono.",
 	});
+
+/** Background images to cycle through (same as login page) */
+const BACKGROUND_ITEMS = [
+	"/images/image.jpg",
+	"/images/image2.png",
+	"/images/image3.jpg",
+	"/images/image4.jpg",
+	"/images/image5.jpg",
+	"/images/image6.jpg",
+] as const;
+
+/** Interval in ms between background image changes */
+const BACKGROUND_INTERVAL_MS = 5000;
 
 /**
  * Pagina `/reset-password`:
@@ -44,6 +58,15 @@ export default function ResetPasswordPage() {
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [bgIndex, setBgIndex] = useState(0);
+
+	// Cycle through background images (same as login page)
+	useEffect(() => {
+		const id = setInterval(() => {
+			setBgIndex((prev) => (prev + 1) % BACKGROUND_ITEMS.length);
+		}, BACKGROUND_INTERVAL_MS);
+		return () => clearInterval(id);
+	}, []);
 
 	/** Gestisce l'invio del form di reset password. */
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -141,23 +164,51 @@ export default function ResetPasswordPage() {
 	return (
 		<main
 			aria-label="Pagina di reset della password"
-			className="relative flex min-h-svh w-full items-center justify-center gap-2 bg-center bg-cover bg-linear-to-br from-muted/80 via-background to-muted transition-all duration-500 md:justify-end"
+			className="relative flex min-h-svh w-full items-center justify-center gap-2 bg-center bg-cover md:justify-end"
 		>
+			{/* Cycling background images. On mobile: instant swap (no transition) to avoid panel/input opacity glitches during crossfade. */}
+			<div
+				aria-hidden
+				className="absolute inset-0 isolate z-0 overflow-hidden bg-center bg-cover"
+				style={{ contain: "paint" }}
+			>
+				{[bgIndex, (bgIndex + 1) % BACKGROUND_ITEMS.length].map((i) => {
+					const src = BACKGROUND_ITEMS[i];
+					const isActive = i === bgIndex;
+					return (
+						<div
+							className="absolute inset-0 bg-center bg-cover bg-no-repeat transition-opacity duration-1000 max-md:transition-none"
+							key={`${i}-${src}`}
+							style={{
+								backgroundImage: `url(${src})`,
+								opacity: isActive ? 1 : 0,
+								zIndex: isActive ? 1 : 0,
+							}}
+						/>
+					);
+				})}
+			</div>
 			{/* Logo / brand in alto a sinistra per coerenza con la pagina di login */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
-				className="absolute top-6 left-6 z-10"
+				className="absolute top-6 left-6 isolate z-10"
 				initial={{ opacity: 0, y: -10 }}
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
-				<span className="font-semibold text-foreground text-xl">
-					Compravendita
-				</span>
+				<Image
+					alt="Logo Icaru"
+					className="h-16 w-auto object-contain md:h-20"
+					height={80}
+					priority
+					src="/images/logo_positivo.png"
+					width={300}
+				/>
 			</motion.div>
 
+			{/* Right panel. isolate prevents background crossfade from affecting panel compositing on mobile. */}
 			<motion.div
 				animate={{ opacity: 1, x: 0 }}
-				className="m-2.5 flex h-[calc(100vh-1.25rem)] w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-card font-medium shadow-lg md:w-1/2"
+				className="relative isolate z-10 m-2.5 flex h-[calc(100vh-1.25rem)] w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-card font-medium shadow-lg md:w-1/2"
 				initial={{ opacity: 0, x: 20 }}
 				transition={{ duration: 0.5, ease: "easeOut" }}
 			>
@@ -168,7 +219,7 @@ export default function ResetPasswordPage() {
 						initial={{ opacity: 0, y: 10 }}
 						transition={{ duration: 0.4, delay: 0.3 }}
 					>
-						<h1 className="font-semibold text-3xl leading-none">
+						<h1 className="font-semibold text-3xl text-card-foreground leading-none">
 							Reimposta la password
 						</h1>
 						<p className="font-normal text-muted-foreground text-sm">
@@ -191,22 +242,19 @@ export default function ResetPasswordPage() {
 							</button>
 						</div>
 					) : (
-						<form className="space-y-4" onSubmit={handleSubmit}>
+						<form className="space-y-3" onSubmit={handleSubmit}>
 							{/* Campo Nuova Password */}
 							<div>
-								<label
-									className="mb-1 block font-medium text-foreground text-sm"
-									htmlFor="new-password"
-								>
-									Nuova password
-								</label>
 								<motion.input
+									aria-label="Nuova password"
 									autoComplete="new-password"
-									className="w-full rounded-2xl bg-background px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+									className="w-full rounded-2xl bg-input px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 									id="new-password"
 									name="password"
 									onChange={(event) => setPassword(event.target.value)}
 									placeholder="Inserisci la nuova password"
+									style={{ willChange: "transform" }}
+									transition={{ duration: 0.2 }}
 									type="password"
 									value={password}
 									whileFocus={{ scale: 1.01 }}
@@ -228,21 +276,18 @@ export default function ResetPasswordPage() {
 
 							{/* Campo Conferma Password */}
 							<div>
-								<label
-									className="mb-1 block font-medium text-foreground text-sm"
-									htmlFor="confirm-password"
-								>
-									Conferma password
-								</label>
 								<motion.input
+									aria-label="Conferma password"
 									autoComplete="new-password"
-									className="w-full rounded-2xl bg-background px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+									className="w-full rounded-2xl bg-input px-3.75 py-3.25 leading-none transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 									id="confirm-password"
 									name="passwordConfirmation"
 									onChange={(event) =>
 										setPasswordConfirmation(event.target.value)
 									}
 									placeholder="Ripeti la nuova password"
+									style={{ willChange: "transform" }}
+									transition={{ duration: 0.2 }}
 									type="password"
 									value={passwordConfirmation}
 									whileFocus={{ scale: 1.01 }}

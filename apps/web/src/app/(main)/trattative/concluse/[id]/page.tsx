@@ -188,7 +188,7 @@ export default function TrattativeConcluseEditPage() {
 	}
 	if (error || !negotiation) {
 		return (
-			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-5 pt-6 font-medium sm:px-9">
 				<div className="relative flex w-full flex-col gap-4.5">
 					<div className="flex items-center justify-start gap-2.5">
 						<Link
@@ -216,11 +216,11 @@ export default function TrattativeConcluseEditPage() {
 	}
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-9 pt-6 font-medium">
+		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-5 pt-6 font-medium sm:px-9">
 			{/* Header: back + title on left, Annulla + Salva on right (same line as list page "Aggiungi") */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					<div className="flex min-w-0 flex-1 items-center justify-start gap-2.5">
+					<div className="flex w-full min-w-0 flex-1 items-center justify-start gap-2.5">
 						<button
 							aria-label={`Torna a ${STATO_LABELS.concluse}`}
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -234,7 +234,7 @@ export default function TrattativeConcluseEditPage() {
 							/>
 						</button>
 						<h1
-							className="min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
+							className="w-full min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
 							id="update-negotiation-title"
 						>
 							Aggiorna trattativa di{" "}
@@ -248,7 +248,9 @@ export default function TrattativeConcluseEditPage() {
 						className={
 							isDirty || isSubmitting
 								? "flex shrink-0 scale-100 items-center justify-center gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out"
-								: "pointer-events-none flex shrink-0 scale-[0.98] items-center justify-center gap-2.5 opacity-0 transition-[opacity,transform] duration-200 ease-out"
+								: // When hidden, remove from the flex layout (not just visually),
+									// otherwise it still consumes width on mobile and squeezes the title.
+									"hidden"
 						}
 					>
 						{isSubmitting ? (

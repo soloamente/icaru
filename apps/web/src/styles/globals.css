@@ -525,12 +525,12 @@ html.dark[data-color-scheme="rich"] .bg-popover {
 	color: var(--card-foreground);
 }
 
-/* Dataweb light only: dashboard stat-card-bg uses off-white; stat-card-text uses dark text. */
-html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-bg,
-html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-bg:hover {
+/* Dataweb light: stat-card-bg uses off-white on all pages; stat-card-text uses dark text for readability. */
+html:not(.dark)[data-color-scheme="rich"] .stat-card-bg,
+html:not(.dark)[data-color-scheme="rich"] .stat-card-bg:hover {
 	background-color: var(--stat-card);
 }
-html:not(.dark)[data-color-scheme="rich"] [data-dashboard] .stat-card-text {
+html:not(.dark)[data-color-scheme="rich"] .stat-card-text {
 	color: var(--card-foreground);
 }
 

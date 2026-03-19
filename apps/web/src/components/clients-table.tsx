@@ -532,7 +532,7 @@ export default function ClientsTable() {
 							<div className="flex min-w-max flex-col">
 								{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
 								<div className="table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25">
-									<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 font-medium text-sm text-table-header-foreground sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
+									<div className="clients-table-grid grid items-center gap-4 font-medium text-sm text-table-header-foreground">
 										<div>Ragione sociale</div>
 										<div>Email</div>
 										<div>P.IVA</div>
@@ -630,7 +630,7 @@ export default function ClientsTable() {
 													role="button"
 													tabIndex={0}
 												>
-													<div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)] items-center gap-4 text-base sm:grid-cols-[minmax(180px,1.25fr)_minmax(160px,1fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(90px,0.5fr)_minmax(210px,1.5fr)_minmax(130px,0.9fr)]">
+													<div className="clients-table-grid grid items-center gap-4 text-base">
 														<div className="truncate">
 															<span className="w-full truncate text-left">
 																{getClientDisplay(c)}
@@ -725,7 +725,8 @@ export default function ClientsTable() {
 																	// invece di navigare a /trattative/aperte.
 																	// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
 																	// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
-																	className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
+																	// whitespace-nowrap keeps pill label on one line (especially with text size preference "grande").
+																	className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
 																	onClick={(event) => {
 																		event.stopPropagation();
 																		setClientIdForNewNegotiation(c.id);
@@ -737,40 +738,44 @@ export default function ClientsTable() {
 																	<span>Aggiungi</span>
 																</button>
 															) : (
-																// Wrapper "group" per mostrare un tooltip custom al passaggio del mouse sulla pill "Ha trattativa".
-																<div className="group relative inline-flex">
-																	<button
-																		// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
-																		// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-																		// così che "Ha trattativa" appaia come uno stato concluso coerente.
-																		className="inline-flex items-center justify-center gap-2 rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
-																		// Manteniamo anche il title per avere un fallback nativo su browser/touch.
-																		onClick={(event) => {
-																			// Anche qui blocchiamo la propagazione per evitare
-																			// che la riga cliccabile porti al dettaglio cliente
-																			// quando l'utente vuole aprire direttamente la trattativa.
-																			event.stopPropagation();
-																			handleOpenClientNegotiation(c.id);
-																		}}
-																		title="Clicca per visualizzare la trattativa"
-																		type="button"
-																	>
-																		{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
-																		<IconEyeFill12 />
-																		{/* On mobile show short label to save space; full label on sm+. */}
-																		<span className="sm:hidden">Mostra</span>
-																		<span className="hidden sm:inline">
-																			Mostra trattativa
-																		</span>
-																	</button>
-																	{/* Tooltip leggero che segue la linea guida: niente contenuto interattivo, solo testo descrittivo. */}
-																	<span
+																// Pill "Ha trattativa": tooltip via TooltipProvider/FloatingPortal so it is not clipped by scroll-fade-y (same pattern as geocoding pill).
+																<Tooltip
+																	align="center"
+																	side="top"
+																	sideOffset={6}
+																>
+																	<TooltipTrigger asChild>
+																		<button
+																			// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+																			// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+																			// così che "Ha trattativa" appaia come uno stato concluso coerente.
+																			className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
+																			onClick={(event) => {
+																				// Anche qui blocchiamo la propagazione per evitare
+																				// che la riga cliccabile porti al dettaglio cliente
+																				// quando l'utente vuole aprire direttamente la trattativa.
+																				event.stopPropagation();
+																				handleOpenClientNegotiation(c.id);
+																			}}
+																			title="Clicca per visualizzare la trattativa"
+																			type="button"
+																		>
+																			{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
+																			<IconEyeFill12 />
+																			{/* On mobile show short label to save space; full label on sm+. */}
+																			<span className="sm:hidden">Mostra</span>
+																			<span className="hidden sm:inline">
+																				Mostra trattativa
+																			</span>
+																		</button>
+																	</TooltipTrigger>
+																	<TooltipContent
 																		aria-live="polite"
-																		className="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
+																		className="rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs"
 																	>
 																		Clicca per visualizzare la trattativa
-																	</span>
-																</div>
+																	</TooltipContent>
+																</Tooltip>
 															)}
 														</div>
 													</div>
