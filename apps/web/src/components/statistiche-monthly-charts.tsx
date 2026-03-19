@@ -502,10 +502,11 @@ export function StatisticheMonthlyCharts({
 					<Skeleton className="h-full w-full rounded-lg" />
 				</div>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<div className="h-[280px] min-w-0 rounded-2xl bg-background p-4">
+					{/* stat-card-bg + bg-background: stesso pattern delle KPI dashboard (dataweb light → --stat-card). */}
+					<div className="stat-card-bg h-[280px] min-w-0 rounded-2xl bg-background p-4">
 						<Skeleton className="h-full w-full rounded-xl" />
 					</div>
-					<div className="h-[280px] min-w-0 rounded-2xl bg-background p-4">
+					<div className="stat-card-bg h-[280px] min-w-0 rounded-2xl bg-background p-4">
 						<Skeleton className="h-full w-full rounded-xl" />
 					</div>
 				</div>
@@ -591,8 +592,8 @@ export function StatisticheMonthlyCharts({
 			</Select.Root>
 			{/* Due bar chart affiancati, ciascuno in una card */}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				{/* Card 1: Importo mensile (Aperte vs Concluse) */}
-				<div className="flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+				{/* Card 1: Importo mensile (Aperte vs Concluse) — shell come KPI dashboard (stat-card in dataweb light). */}
+				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
 					<h3 className="font-medium text-card-foreground text-sm">
 						Importo mensile trattative (€)
 					</h3>
@@ -684,8 +685,8 @@ export function StatisticheMonthlyCharts({
 						</div>
 					)}
 				</div>
-				{/* Card 2: Numero trattative mensili (Aperte vs Concluse) */}
-				<div className="flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+				{/* Card 2: Numero trattative mensili — stessa shell delle card dashboard. */}
+				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
 					<h3 className="font-medium text-card-foreground text-sm">
 						Numero trattative mensili
 					</h3>

@@ -37,6 +37,7 @@ import type {
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import { usePreferencesOptional } from "@/lib/preferences/preferences-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
+import { cn } from "@/lib/utils";
 /** Mapbox GL CSS must be imported for proper rendering. */
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -260,6 +261,8 @@ function NegotiationsMapInner({
 	memberId,
 	onNegotiationClick,
 	filters,
+	/** Classi extra sullo shell della mappa (es. Statistiche: senza bordo per non duplicare il “ring”). */
+	mapShellClassName,
 }: {
 	accessToken: string;
 	/** "me" = tratttative personali; "team-member" = trattative di un singolo membro del team. */
@@ -270,6 +273,7 @@ function NegotiationsMapInner({
 	onNegotiationClick?: (negotiation: ApiNegotiation) => void;
 	/** Filtri opzionali per scope "me" (spanco, percentuale, importo_min, importo_max). */
 	filters?: NegotiationsMapFilters;
+	mapShellClassName?: string;
 }): ReactNode {
 	// Store map instance from onLoad for imperative calls (flyTo, atmospheric effects).
 	const mapInstanceRef = useRef<MapboxMapWithAtmosphere | null>(null);
@@ -574,7 +578,10 @@ function NegotiationsMapInner({
 
 	return (
 		<div
-			className="relative h-[360px] w-full shrink-0 overflow-hidden rounded-xl border border-border p-2 sm:h-[440px] md:h-[520px]"
+			className={cn(
+				"relative h-[360px] w-full shrink-0 overflow-hidden rounded-xl border border-border p-2 sm:h-[440px] md:h-[520px]",
+				mapShellClassName
+			)}
 			ref={mapContainerRef}
 		>
 			{/* Reset view button: only visible after zooming in on a marker. */}
@@ -1011,127 +1018,130 @@ export function NegotiationsMapWithFilters(): ReactNode {
 	}
 
 	return (
-		<div className="relative flex min-h-[360px] w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border sm:h-full">
-			{/* Filtri: su mobile sopra la mappa; da sm+ overlay in alto a destra, scrollabile se troppo lungo */}
-			<div className="z-10 flex w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-xl border border-border bg-card p-2.5 shadow-lg sm:absolute sm:top-3 sm:right-3 sm:max-h-[calc(100%-1.5rem)] sm:w-44">
-				<div className="font-medium text-card-foreground text-sm">Filtri</div>
-				{/* Spanco: checkboxes in colonna verticale */}
-				<div className="flex flex-col gap-1.5 rounded-2xl bg-table-buttons px-3 py-2">
-					<span className="font-medium text-sm text-stats-title">Spanco</span>
-					<div className="flex flex-col gap-1">
-						{SPANCO_OPTIONS.map((stage) => (
-							<label
-								className="flex cursor-pointer items-center gap-2 text-card-foreground text-sm"
-								key={stage}
-							>
-								<input
-									checked={spancoSelected.includes(stage)}
-									className="h-4 w-4 rounded border-input"
-									onChange={() => handleSpancoToggle(stage)}
-									type="checkbox"
-								/>
-								{SPANCO_FILTER_LABELS[stage]}
-							</label>
-						))}
+		<div className="relative flex min-h-[360px] w-full min-w-0 flex-col overflow-hidden rounded-xl sm:h-full">
+			{/* Filtri: su mobile sopra la mappa; da sm+ overlay in alto a destra. scroll-fade-y (table.css) indica contenuto sopra/sotto quando c’è overflow verticale. */}
+			<div className="stat-card-bg z-10 flex min-h-0 w-full min-w-0 shrink-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-2xl bg-background p-2.5 sm:absolute sm:top-3 sm:right-3 sm:max-h-[calc(100%-1.5rem)] sm:w-44">
+				<div className="scroll-fade-y flex flex-col gap-2 overflow-y-auto">
+					<div className="font-medium text-card-foreground text-sm">Filtri</div>
+					{/* Spanco: checkboxes in colonna verticale */}
+					<div className="flex flex-col gap-1.5 rounded-2xl bg-table-buttons px-3 py-2">
+						<span className="font-medium text-sm text-stats-title">Spanco</span>
+						<div className="flex flex-col gap-1">
+							{SPANCO_OPTIONS.map((stage) => (
+								<label
+									className="flex cursor-pointer items-center gap-2 text-card-foreground text-sm"
+									key={stage}
+								>
+									<input
+										checked={spancoSelected.includes(stage)}
+										className="h-4 w-4 rounded border-input"
+										onChange={() => handleSpancoToggle(stage)}
+										type="checkbox"
+									/>
+									{SPANCO_FILTER_LABELS[stage]}
+								</label>
+							))}
+						</div>
 					</div>
-				</div>
-				{/* Percentuale: dropdown come nelle pagine dettagli */}
-				<div className="flex flex-col gap-1">
-					<span className="font-medium text-sm text-stats-title">
-						Percentuale
-					</span>
-					<Select.Root
-						onValueChange={(value) => {
-							setPercentuale(value === null ? "" : String(value));
-						}}
-						value={percentuale === "" ? null : (percentuale as string)}
-					>
-						<Select.Trigger
-							className="flex w-full items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
-							id="map-filter-percentuale"
+					{/* Percentuale: dropdown come nelle pagine dettagli */}
+					<div className="flex flex-col gap-1">
+						<span className="font-medium text-sm text-stats-title">
+							Percentuale
+						</span>
+						<Select.Root
+							onValueChange={(value) => {
+								setPercentuale(value === null ? "" : String(value));
+							}}
+							value={percentuale === "" ? null : (percentuale as string)}
 						>
-							<Select.Value
-								className="data-placeholder:text-stats-title"
-								placeholder="Tutti"
+							<Select.Trigger
+								className="flex w-full items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 data-popup-open:bg-table-buttons"
+								id="map-filter-percentuale"
 							>
-								{(value: string | null) => (value ? `${value}%` : "Tutti")}
-							</Select.Value>
-							<Select.Icon className="text-button-secondary">
-								<ChevronDown aria-hidden className="size-3.5" />
-							</Select.Icon>
-						</Select.Trigger>
-						<Select.Portal>
-							<Select.Positioner
-								alignItemWithTrigger={false}
-								className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
-								sideOffset={8}
-							>
-								<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
-									<Select.List className="flex h-fit flex-col gap-1">
-										{PERCENTUALE_OPTIONS.map((opt) => (
-											<Select.Item
-												className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-												key={opt.value || "all"}
-												value={opt.value === "" ? null : opt.value}
-											>
-												<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-													<CheckIcon aria-hidden className="size-4" />
-												</Select.ItemIndicator>
-												<Select.ItemText>{opt.label}</Select.ItemText>
-											</Select.Item>
-										))}
-									</Select.List>
-								</Select.Popup>
-							</Select.Positioner>
-						</Select.Portal>
-					</Select.Root>
+								<Select.Value
+									className="data-placeholder:text-stats-title"
+									placeholder="Tutti"
+								>
+									{(value: string | null) => (value ? `${value}%` : "Tutti")}
+								</Select.Value>
+								<Select.Icon className="text-button-secondary">
+									<ChevronDown aria-hidden className="size-3.5" />
+								</Select.Icon>
+							</Select.Trigger>
+							<Select.Portal>
+								<Select.Positioner
+									alignItemWithTrigger={false}
+									className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+									sideOffset={8}
+								>
+									<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+										<Select.List className="flex h-fit flex-col gap-1">
+											{PERCENTUALE_OPTIONS.map((opt) => (
+												<Select.Item
+													className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+													key={opt.value || "all"}
+													value={opt.value === "" ? null : opt.value}
+												>
+													<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+														<CheckIcon aria-hidden className="size-4" />
+													</Select.ItemIndicator>
+													<Select.ItemText>{opt.label}</Select.ItemText>
+												</Select.Item>
+											))}
+										</Select.List>
+									</Select.Popup>
+								</Select.Positioner>
+							</Select.Portal>
+						</Select.Root>
+					</div>
+					{/* Importo: due row verticali */}
+					<label
+						className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
+						htmlFor="map-filter-importo-min"
+					>
+						<span className="font-medium text-sm text-stats-title">Da €</span>
+						<input
+							className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+							id="map-filter-importo-min"
+							inputMode="numeric"
+							onChange={(e) => setImportoMin(e.target.value)}
+							placeholder="Min"
+							type="number"
+							value={importoMin}
+						/>
+					</label>
+					<label
+						className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
+						htmlFor="map-filter-importo-max"
+					>
+						<span className="font-medium text-sm text-stats-title">A €</span>
+						<input
+							className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+							id="map-filter-importo-max"
+							inputMode="numeric"
+							onChange={(e) => setImportoMax(e.target.value)}
+							placeholder="Max"
+							type="number"
+							value={importoMax}
+						/>
+					</label>
+					<Button
+						className="h-10 w-full rounded-xl border-0 text-sm focus-visible:border-transparent focus-visible:ring-0"
+						onClick={handleReimposta}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						Reimposta
+					</Button>
 				</div>
-				{/* Importo: due row verticali */}
-				<label
-					className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
-					htmlFor="map-filter-importo-min"
-				>
-					<span className="font-medium text-sm text-stats-title">Da €</span>
-					<input
-						className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-						id="map-filter-importo-min"
-						inputMode="numeric"
-						onChange={(e) => setImportoMin(e.target.value)}
-						placeholder="Min"
-						type="number"
-						value={importoMin}
-					/>
-				</label>
-				<label
-					className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
-					htmlFor="map-filter-importo-max"
-				>
-					<span className="font-medium text-sm text-stats-title">A €</span>
-					<input
-						className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-						id="map-filter-importo-max"
-						inputMode="numeric"
-						onChange={(e) => setImportoMax(e.target.value)}
-						placeholder="Max"
-						type="number"
-						value={importoMax}
-					/>
-				</label>
-				<Button
-					className="h-10 w-full rounded-xl text-sm"
-					onClick={handleReimposta}
-					size="sm"
-					type="button"
-					variant="outline"
-				>
-					Reimposta
-				</Button>
 			</div>
 			{/* Mappa: su mobile h-360 fissa (no stretch); da sm+ fill container */}
 			<div className="relative h-[360px] shrink-0 sm:absolute sm:inset-0 sm:h-auto">
 				<NegotiationsMapInner
 					accessToken={mapboxToken}
 					filters={filters}
+					mapShellClassName="border-0 shadow-none"
 					scope="me"
 				/>
 			</div>
