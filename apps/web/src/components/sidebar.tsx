@@ -9,6 +9,7 @@ import { type ComponentType, type SVGProps, useEffect, useState } from "react";
 import {
 	DashboardIcon,
 	GearIcon,
+	IconChartBarTrendUp,
 	IconMagnifierSparkleFill18,
 	IconPeople,
 	OpenRectArrowOutIcon,
@@ -51,7 +52,8 @@ type AppRoute =
 	| "/trattative/concluse"
 	| "/trattative/abbandonate"
 	| "/clienti"
-	| "/team";
+	| "/team"
+	| "/statistiche";
 
 interface NavigationItem {
 	icon: IconComponent;
@@ -164,10 +166,12 @@ export default function Sidebar({
 		],
 	};
 
-	// Doc: Admin non ha accesso a trattative/clienti/team (403). Solo Direttore Vendite e Venditore.
+	// Doc: Admin non ha accesso a trattative/clienti/team/statistiche (403). Solo Direttore Vendite e Venditore.
 	const canSeeTrattative = auth?.role === "director" || auth?.role === "seller";
 	const canSeeClienti = auth?.role === "director" || auth?.role === "seller";
 	const canSeeTeam = auth?.role === "director" || auth?.role === "seller";
+	const canSeeStatistiche =
+		auth?.role === "director" || auth?.role === "seller";
 	// Expand Trattative when current path is under /trattative
 	const isTrattativePath =
 		pathname === "/trattative" || pathname.startsWith("/trattative/");
@@ -425,6 +429,26 @@ export default function Sidebar({
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
+						{/* Statistiche: solo Direttore Vendite e Venditore (come Trattative). */}
+						{mounted && canSeeStatistiche && (
+							<Link
+								className={cn(
+									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
+									isRichColors
+										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus-visible:ring-sidebar-ring"
+										: "text-muted-foreground hover:bg-muted hover:text-foreground",
+									pathname === "/statistiche" &&
+										(isRichColors
+											? "bg-sidebar-accent text-sidebar-primary"
+											: "bg-muted text-foreground")
+								)}
+								href="/statistiche"
+								onClick={(event) => handleAppNavClick(event, "/statistiche")}
+							>
+								<IconChartBarTrendUp size={20} />
+								Statistiche
+							</Link>
+						)}
 					</nav>
 
 					{/* Footer actions in same row.
@@ -649,6 +673,21 @@ export default function Sidebar({
 									)}
 								</AnimatePresence>
 							</div>
+						)}
+						{/* Statistiche: solo Direttore Vendite e Venditore (come Trattative). */}
+						{mounted && canSeeStatistiche && (
+							<Link
+								className={cn(
+									"flex items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary leading-none hover:bg-sidebar-accent hover:text-sidebar-primary",
+									pathname === "/statistiche" &&
+										"bg-sidebar-accent text-sidebar-primary"
+								)}
+								href="/statistiche"
+								onClick={(event) => handleAppNavClick(event, "/statistiche")}
+							>
+								<IconChartBarTrendUp size={24} />
+								Statistiche
+							</Link>
 						)}
 					</div>
 				</div>

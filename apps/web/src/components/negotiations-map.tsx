@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@base-ui/react/select";
+import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -15,6 +17,7 @@ import {
 import type { ClusterProperties, PointFeature } from "supercluster";
 import useSupercluster from "use-supercluster";
 import {
+	CheckIcon,
 	IconCircleInfoSparkle,
 	IconExternalLink,
 	IconUTurnToLeft,
@@ -26,7 +29,11 @@ import {
 	listNegotiationsMeWithCoordinates,
 	listTeamMemberNegotiationsWithCoordinates,
 } from "@/lib/api/client";
-import type { ApiNegotiation, SpancoStage } from "@/lib/api/types";
+import type {
+	ApiNegotiation,
+	NegotiationsMapFilters,
+	SpancoStage,
+} from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import { usePreferencesOptional } from "@/lib/preferences/preferences-context";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
@@ -252,6 +259,7 @@ function NegotiationsMapInner({
 	teamId,
 	memberId,
 	onNegotiationClick,
+	filters,
 }: {
 	accessToken: string;
 	/** "me" = tratttative personali; "team-member" = trattative di un singolo membro del team. */
@@ -260,6 +268,8 @@ function NegotiationsMapInner({
 	memberId?: number;
 	/** When provided (e.g. supervisione venditore), opening a marker opens this dialog instead of navigating. */
 	onNegotiationClick?: (negotiation: ApiNegotiation) => void;
+	/** Filtri opzionali per scope "me" (spanco, percentuale, importo_min, importo_max). */
+	filters?: NegotiationsMapFilters;
 }): ReactNode {
 	// Store map instance from onLoad for imperative calls (flyTo, atmospheric effects).
 	const mapInstanceRef = useRef<MapboxMapWithAtmosphere | null>(null);
@@ -306,7 +316,7 @@ function NegotiationsMapInner({
 						teamId,
 						memberId
 					)
-				: listNegotiationsMeWithCoordinates(auth.token);
+				: listNegotiationsMeWithCoordinates(auth.token, filters);
 
 		fetchPromise.then((result) => {
 			if (cancelled) {
@@ -326,7 +336,7 @@ function NegotiationsMapInner({
 		return () => {
 			cancelled = true;
 		};
-	}, [auth?.token, scope, teamId, memberId]);
+	}, [auth?.token, scope, teamId, memberId, filters]);
 
 	const points = useMemo(
 		() => negotiationsToPoints(negotiations),
@@ -913,6 +923,219 @@ export function TeamMemberNegotiationsMap(props: {
 			scope="team-member"
 			teamId={props.teamId}
 		/>
+	);
+}
+
+/** SPANCO stage labels for filter panel (S · Sospetto, etc.). */
+const SPANCO_FILTER_LABELS: Record<SpancoStage, string> = {
+	S: "S · Sospetto",
+	P: "P · Prospetto",
+	A: "A · Approccio",
+	N: "N · Negoziazione",
+	C: "C · Chiusura",
+	O: "O · Ordine",
+};
+
+const SPANCO_OPTIONS: SpancoStage[] = ["S", "P", "A", "N", "C", "O"];
+
+/** Percentuale options: Tutti = no filter; 0, 20, 40, 60, 80, 100. */
+const PERCENTUALE_OPTIONS: { value: string; label: string }[] = [
+	{ value: "", label: "Tutti" },
+	{ value: "0", label: "0%" },
+	{ value: "20", label: "20%" },
+	{ value: "40", label: "40%" },
+	{ value: "60", label: "60%" },
+	{ value: "80", label: "80%" },
+	{ value: "100", label: "100%" },
+];
+
+/**
+ * Mappa con pannello filtri per la pagina Statistiche.
+ * Filtri: Spanco (multiselect), Percentuale, Importo (Da/A €).
+ * Reimposta rilancia la chiamata senza parametri.
+ */
+export function NegotiationsMapWithFilters(): ReactNode {
+	const mapboxToken =
+		typeof process !== "undefined"
+			? process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+			: null;
+
+	const [spancoSelected, setSpancoSelected] = useState<SpancoStage[]>([]);
+	const [percentuale, setPercentuale] = useState<string>("");
+	const [importoMin, setImportoMin] = useState<string>("");
+	const [importoMax, setImportoMax] = useState<string>("");
+
+	const filters: NegotiationsMapFilters | undefined = useMemo(() => {
+		const hasSpanco = spancoSelected.length > 0;
+		const hasPercentuale = percentuale !== "";
+		const hasImportoMin =
+			importoMin !== "" && !Number.isNaN(Number(importoMin));
+		const hasImportoMax =
+			importoMax !== "" && !Number.isNaN(Number(importoMax));
+		if (!(hasSpanco || hasPercentuale || hasImportoMin || hasImportoMax)) {
+			return undefined;
+		}
+		return {
+			...(hasSpanco && { spanco: spancoSelected }),
+			...(hasPercentuale && { percentuale: Number(percentuale) }),
+			...(hasImportoMin && { importo_min: Number(importoMin) }),
+			...(hasImportoMax && { importo_max: Number(importoMax) }),
+		};
+	}, [spancoSelected, percentuale, importoMin, importoMax]);
+
+	const handleReimposta = useCallback(() => {
+		setSpancoSelected([]);
+		setPercentuale("");
+		setImportoMin("");
+		setImportoMax("");
+	}, []);
+
+	const handleSpancoToggle = useCallback((stage: SpancoStage) => {
+		setSpancoSelected((prev) =>
+			prev.includes(stage) ? prev.filter((s) => s !== stage) : [...prev, stage]
+		);
+	}, []);
+
+	if (!mapboxToken) {
+		return (
+			<div className="flex h-[360px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-muted border-dashed bg-muted/20 p-4 text-center sm:h-[440px] md:h-[520px]">
+				<p className="text-muted-foreground text-sm">
+					Configura{" "}
+					<code className="rounded bg-muted px-1 text-xs">
+						NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+					</code>{" "}
+					per visualizzare la mappa.
+				</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="relative flex min-h-[360px] w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border sm:h-full">
+			{/* Filtri: su mobile sopra la mappa; da sm+ overlay in alto a destra, scrollabile se troppo lungo */}
+			<div className="z-10 flex w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-xl border border-border bg-card p-2.5 shadow-lg sm:absolute sm:top-3 sm:right-3 sm:max-h-[calc(100%-1.5rem)] sm:w-44">
+				<div className="font-medium text-card-foreground text-sm">Filtri</div>
+				{/* Spanco: checkboxes in colonna verticale */}
+				<div className="flex flex-col gap-1.5 rounded-2xl bg-table-buttons px-3 py-2">
+					<span className="font-medium text-sm text-stats-title">Spanco</span>
+					<div className="flex flex-col gap-1">
+						{SPANCO_OPTIONS.map((stage) => (
+							<label
+								className="flex cursor-pointer items-center gap-2 text-card-foreground text-sm"
+								key={stage}
+							>
+								<input
+									checked={spancoSelected.includes(stage)}
+									className="h-4 w-4 rounded border-input"
+									onChange={() => handleSpancoToggle(stage)}
+									type="checkbox"
+								/>
+								{SPANCO_FILTER_LABELS[stage]}
+							</label>
+						))}
+					</div>
+				</div>
+				{/* Percentuale: dropdown come nelle pagine dettagli */}
+				<div className="flex flex-col gap-1">
+					<span className="font-medium text-sm text-stats-title">
+						Percentuale
+					</span>
+					<Select.Root
+						onValueChange={(value) => {
+							setPercentuale(value === null ? "" : String(value));
+						}}
+						value={percentuale === "" ? null : (percentuale as string)}
+					>
+						<Select.Trigger
+							className="flex w-full items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+							id="map-filter-percentuale"
+						>
+							<Select.Value
+								className="data-placeholder:text-stats-title"
+								placeholder="Tutti"
+							>
+								{(value: string | null) => (value ? `${value}%` : "Tutti")}
+							</Select.Value>
+							<Select.Icon className="text-button-secondary">
+								<ChevronDown aria-hidden className="size-3.5" />
+							</Select.Icon>
+						</Select.Trigger>
+						<Select.Portal>
+							<Select.Positioner
+								alignItemWithTrigger={false}
+								className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+								sideOffset={8}
+							>
+								<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+									<Select.List className="flex h-fit flex-col gap-1">
+										{PERCENTUALE_OPTIONS.map((opt) => (
+											<Select.Item
+												className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+												key={opt.value || "all"}
+												value={opt.value === "" ? null : opt.value}
+											>
+												<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+													<CheckIcon aria-hidden className="size-4" />
+												</Select.ItemIndicator>
+												<Select.ItemText>{opt.label}</Select.ItemText>
+											</Select.Item>
+										))}
+									</Select.List>
+								</Select.Popup>
+							</Select.Positioner>
+						</Select.Portal>
+					</Select.Root>
+				</div>
+				{/* Importo: due row verticali */}
+				<label
+					className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
+					htmlFor="map-filter-importo-min"
+				>
+					<span className="font-medium text-sm text-stats-title">Da €</span>
+					<input
+						className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+						id="map-filter-importo-min"
+						inputMode="numeric"
+						onChange={(e) => setImportoMin(e.target.value)}
+						placeholder="Min"
+						type="number"
+						value={importoMin}
+					/>
+				</label>
+				<label
+					className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
+					htmlFor="map-filter-importo-max"
+				>
+					<span className="font-medium text-sm text-stats-title">A €</span>
+					<input
+						className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+						id="map-filter-importo-max"
+						inputMode="numeric"
+						onChange={(e) => setImportoMax(e.target.value)}
+						placeholder="Max"
+						type="number"
+						value={importoMax}
+					/>
+				</label>
+				<Button
+					className="h-10 w-full rounded-xl text-sm"
+					onClick={handleReimposta}
+					size="sm"
+					type="button"
+					variant="outline"
+				>
+					Reimposta
+				</Button>
+			</div>
+			{/* Mappa: su mobile h-360 fissa (no stretch); da sm+ fill container */}
+			<div className="relative h-[360px] shrink-0 sm:absolute sm:inset-0 sm:h-auto">
+				<NegotiationsMapInner
+					accessToken={mapboxToken}
+					filters={filters}
+					scope="me"
+				/>
+			</div>
+		</div>
 	);
 }
 

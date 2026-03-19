@@ -37,6 +37,7 @@
     "motion": "^12.31.0",
     "motion-plus": "file:./scripts/motion-plus.tgz",
     "recharts": "^3.7.0",
+    "retune": "^0.5.3",
     "zod": "catalog:"
   },
   "devDependencies": {

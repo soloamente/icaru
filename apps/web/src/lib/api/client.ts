@@ -19,6 +19,8 @@ import type {
 	ImportCheckResponse,
 	ImportConfirmResponse,
 	LoginResponse,
+	MonthlyNegotiationsStatistics,
+	NegotiationsMapFilters,
 	NegotiationsStatistics,
 	SearchResponse,
 	SpancoStatistics,
@@ -444,18 +446,55 @@ export async function listNegotiationsMeConcluded(
 }
 
 /**
+ * Build query string for GET /negotiations/me/with-coordinates filters.
+ * Supports spanco (string or array), percentuale, importo_min, importo_max.
+ */
+function buildMapFiltersQuery(params?: NegotiationsMapFilters): string {
+	if (!params) {
+		return "";
+	}
+	const searchParams = new URLSearchParams();
+	const spancoVal = params.spanco;
+	if (spancoVal != null) {
+		const arr = Array.isArray(spancoVal) ? spancoVal : [spancoVal];
+		for (const s of arr) {
+			if (s?.trim()) {
+				searchParams.append("spanco[]", s.trim());
+			}
+		}
+	}
+	if (params.percentuale != null) {
+		searchParams.set("percentuale", String(params.percentuale));
+	}
+	if (params.importo_min != null) {
+		searchParams.set("importo_min", String(params.importo_min));
+	}
+	if (params.importo_max != null) {
+		searchParams.set("importo_max", String(params.importo_max));
+	}
+	const q = searchParams.toString();
+	return q ? `?${q}` : "";
+}
+
+/**
  * GET /negotiations/me/with-coordinates — Negotiations assigned to the logged-in user
  * with client.address including latitude/longitude for map display.
  * Skips negotiations whose client address has no coordinates or geocoding_failed=true.
+ * Optional filters: spanco, percentuale, importo_min, importo_max.
  */
 export async function listNegotiationsMeWithCoordinates(
-	accessToken: string
+	accessToken: string,
+	params?: NegotiationsMapFilters
 ): Promise<{ data: ApiNegotiation[] } | { error: string }> {
 	try {
-		const res = await fetch(`${BASE_URL}/negotiations/me/with-coordinates`, {
-			method: "GET",
-			headers: getAuthHeaders(accessToken),
-		});
+		const query = buildMapFiltersQuery(params);
+		const res = await fetch(
+			`${BASE_URL}/negotiations/me/with-coordinates${query}`,
+			{
+				method: "GET",
+				headers: getAuthHeaders(accessToken),
+			}
+		);
 		const json = (await res.json()) as ApiNegotiation[] | { message?: string };
 		if (!res.ok) {
 			const msg =
@@ -733,6 +772,35 @@ export async function getNegotiationsSpancoStatistics(
 			return { error: msg };
 		}
 		return { data: json as SpancoStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /statistics/negotiations/monthly — Statistiche mensili per importo e conteggio.
+ * Contiene years, data (per anno) e storico (aggregato tutti i mesi).
+ */
+export async function getNegotiationsMonthlyStatistics(
+	accessToken: string
+): Promise<{ data: MonthlyNegotiationsStatistics } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/statistics/negotiations/monthly`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as
+			| MonthlyNegotiationsStatistics
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche mensili";
+			return { error: msg };
+		}
+		return { data: json as MonthlyNegotiationsStatistics };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };

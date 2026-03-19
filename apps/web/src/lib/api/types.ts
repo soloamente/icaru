@@ -177,6 +177,39 @@ export type SpancoStage = "S" | "P" | "A" | "N" | "C" | "O";
 export type SpancoStatistics = Partial<Record<SpancoStage, number>>;
 
 /**
+ * Dato mensile per GET /api/statistics/negotiations/monthly.
+ * Ogni mese (1-12) ha conteggi e importi per trattative aperte e concluse.
+ */
+export interface MonthlyNegotiationDatum {
+	month: number;
+	open_count: number;
+	open_amount: number;
+	concluded_count: number;
+	concluded_amount: number;
+}
+
+/**
+ * Risposta GET /api/statistics/negotiations/monthly.
+ * Contiene dati per anno e storico complessivo (tutti i Gennaio, tutti i Febbraio, ecc.).
+ */
+export interface MonthlyNegotiationsStatistics {
+	years: number[];
+	data: Record<string, MonthlyNegotiationDatum[]>;
+	storico: MonthlyNegotiationDatum[];
+}
+
+/**
+ * Filtri opzionali per GET /api/negotiations/me/with-coordinates.
+ * Usati dalla mappa nella pagina Statistiche.
+ */
+export interface NegotiationsMapFilters {
+	spanco?: string | string[];
+	percentuale?: number;
+	importo_min?: number;
+	importo_max?: number;
+}
+
+/**
  * Confronto mensile (questo mese vs mese precedente) per statistiche trattative.
  * Usato in NegotiationsStatistics per aperte e concluse.
  */

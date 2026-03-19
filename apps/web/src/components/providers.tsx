@@ -2,6 +2,7 @@
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Agentation } from "agentation";
+import { Retune } from "retune";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { PreferencesProvider } from "@/lib/preferences/preferences-context";
 import { queryClient } from "@/utils/trpc";
@@ -31,6 +32,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 						{/* <ReactQueryDevtools /> */}
 					</AuthProvider>
 				</QueryClientProvider>
+				<Retune />
 				<Toaster richColors />
 			</PreferencesProvider>
 		</ThemeProvider>
