@@ -85,7 +85,7 @@ export function PreferencesDialog({
 							style={{ contain: "layout" }}
 						>
 							<p className="sr-only" id="preferences-dialog-desc">
-								Personalizza tema, colore di accento e stile del carattere.
+								Personalizza tema, palette e stile del carattere.
 							</p>
 							<PreferencesContent isMobile={isMobile} />
 						</div>

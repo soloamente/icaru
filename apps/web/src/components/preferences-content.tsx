@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
-	ACCENT_OPTIONS,
 	COLOR_SCHEME_OPTIONS,
 	FONT_SIZE_OPTIONS,
 	NAVIGATION_POSITION_OPTIONS,
@@ -18,27 +17,13 @@ const THEME_PREVIEW_IMAGES: Record<string, string> = {
 	system: "/images/system.png",
 };
 
-/** Swatch colors shown in the accent picker (approximate match to CSS accent overrides). */
-export const ACCENT_SWATCH_COLORS: Record<
-	(typeof ACCENT_OPTIONS)[number]["id"],
-	string
-> = {
-	blue: "#4f6bed",
-	green: "#22c55e",
-	purple: "#a855f7",
-	orange: "#f97316",
-	pink: "#ec4899",
-	red: "#ef4444",
-	yellow: "#eab308",
-};
-
 interface PreferencesContentProps {
 	/** When true, theme picker uses CSS-only previews (no images) to avoid layout shift in bottom sheet. */
 	isMobile?: boolean;
 }
 
 /**
- * Preferences UI: theme, accent, font size, navigation position.
+ * Preferences UI: theme, palette, font size, navigation position.
  * On mobile uses CSS-only theme previews to prevent image-load layout shifts.
  */
 export function PreferencesContent({
@@ -46,8 +31,6 @@ export function PreferencesContent({
 }: PreferencesContentProps = {}) {
 	const { theme, setTheme } = useTheme();
 	const {
-		accent,
-		setAccent,
 		colorScheme,
 		setColorScheme,
 		fontSize,
@@ -152,41 +135,6 @@ export function PreferencesContent({
 							);
 						}
 					)}
-				</div>
-			</section>
-
-			{/* Accent color */}
-			<section aria-labelledby="accent-heading" className="mb-8">
-				<h3
-					className="mb-3 font-medium text-base text-card-foreground"
-					id="accent-heading"
-				>
-					Colore di accento
-				</h3>
-				<div className="flex flex-wrap gap-3">
-					{ACCENT_OPTIONS.map((opt) => {
-						const isSelected = accent === opt.id;
-						return (
-							<button
-								aria-label={`Accento ${opt.label}`}
-								aria-pressed={isSelected}
-								className={cn(
-									"size-11 rounded-xl border-2 transition-transform",
-									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-									isSelected
-										? "scale-110 border-foreground"
-										: "border-transparent hover:scale-105"
-								)}
-								key={opt.id}
-								onClick={() => setAccent(opt.id)}
-								style={{
-									backgroundColor: ACCENT_SWATCH_COLORS[opt.id],
-								}}
-								title={opt.label}
-								type="button"
-							/>
-						);
-					})}
 				</div>
 			</section>
 
