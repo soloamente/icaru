@@ -3,6 +3,8 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { SKY_CTA_PILL_LIGHT_CLASSES } from "@/lib/pill-surface-classes";
+import { cn } from "@/lib/utils";
 
 /* ─────────────────────────────────────────────────────────
  * ANIMATION STORYBOARD — Animated Empty State
@@ -120,14 +122,17 @@ export function AnimatedEmptyState({
 				{subtitle}
 			</motion.p>
 
-			{/* CTA — renders only when provided */}
+			{/* CTA — token condivisi in pill-surface-classes (sky-200 su light default). */}
 			{cta && (
 				<motion.button
 					animate={{
 						opacity: stage >= 4 ? 1 : 0,
 						y: stage >= 4 ? 0 : CTA.offsetY,
 					}}
-					className="mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-full bg-sky-100 py-1.5 pr-3.5 pl-2.5 font-medium text-sky-800 text-sm transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
+					className={cn(
+						"mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-full py-1.5 pr-3.5 pl-2.5 font-medium text-sm",
+						SKY_CTA_PILL_LIGHT_CLASSES
+					)}
 					initial={{ opacity: 0, y: CTA.offsetY }}
 					onClick={cta.onClick}
 					transition={CTA.spring}

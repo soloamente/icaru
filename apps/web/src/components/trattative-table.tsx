@@ -10,20 +10,24 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DateRange as DayPickerDateRange } from "react-day-picker";
+import { toast } from "sonner";
 import { Drawer } from "vaul";
 import {
 	CheckIcon,
 	IconChartBarTrendUp,
 	IconCirclePlusFilled,
 	IconCurrencyExchangeFill18,
+	IconFileDownloadFill18,
 	IconFilePlusFill18,
 	IconVault3Fill18,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	createNegotiation,
+	downloadNegotiationsExportExcel,
 	listClientsWithoutNegotiations,
 	listNegotiationsMe,
 	listNegotiationsMeAbandoned,
@@ -36,6 +40,12 @@ import type {
 	SpancoStage,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { EXPORT_ACTION_PILL_BUTTON_CLASS } from "@/lib/export-action-pill-button-class";
+import {
+	GREEN_STATUS_PILL_LIGHT_CLASSES,
+	RED_STATUS_PILL_LIGHT_CLASSES,
+	SKY_STATUS_PILL_LIGHT_CLASSES,
+} from "@/lib/pill-surface-classes";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 import { AnimatedEmptyState } from "./animated-empty-state";
@@ -155,12 +165,9 @@ type SortColumn =
 	| "data_chiusura"
 	| "data_abbandono";
 
-const OPEN_STATUS_CLASSES =
-	"bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400";
-const COMPLETED_STATUS_CLASSES =
-	"bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-const ABANDONED_STATUS_CLASSES =
-	"bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+const OPEN_STATUS_CLASSES = SKY_STATUS_PILL_LIGHT_CLASSES;
+const COMPLETED_STATUS_CLASSES = GREEN_STATUS_PILL_LIGHT_CLASSES;
+const ABANDONED_STATUS_CLASSES = RED_STATUS_PILL_LIGHT_CLASSES;
 
 const isNegotiationCompleted = (negotiation: ApiNegotiation): boolean =>
 	negotiation.spanco === "O" || negotiation.percentuale === 100;
@@ -1376,7 +1383,7 @@ export default function TrattativeTable({
 	openCreateDialogInitially = false,
 	initialClientIdForNewNegotiation,
 }: TrattativeTableProps) {
-	const { token } = useAuth();
+	const { token, role } = useAuth();
 	const [negotiations, setNegotiations] = useState<ApiNegotiation[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -1440,6 +1447,24 @@ export default function TrattativeTable({
 		column: SortColumn;
 		direction: "asc" | "desc";
 	} | null>(null);
+
+	/** GET /negotiations/export/excel — Venditore e Direttore sulla vista "Tutte" (Admin escluso). */
+	const [isExportingExcel, setIsExportingExcel] = useState(false);
+	const showTutteExcelExport = filter === "all" && role !== "admin";
+
+	const handleExportNegotiationsExcel = useCallback(async () => {
+		if (!token) {
+			return;
+		}
+		setIsExportingExcel(true);
+		const result = await downloadNegotiationsExportExcel(token);
+		setIsExportingExcel(false);
+		if ("error" in result) {
+			toast.error(result.error);
+			return;
+		}
+		toast.success("Download Excel avviato");
+	}, [token]);
 
 	// Header filters visibility:
 	// - SPANCO filter is available on all views except "concluse" (where every row is già in stato finale).
@@ -1724,11 +1749,11 @@ export default function TrattativeTable({
 				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
 		>
-			{/* Header: mobile = stacked (title, then filters row, then search+button); desktop = title row + filters row per design */}
+			{/* Header: come Statistiche — titolo + azioni sulla stessa riga da sm+; sotto, filtri quando attivi. */}
 			<div className="relative flex w-full flex-col gap-4 sm:gap-4.5">
-				{/* Header - title and primary action: on mobile stacked/centered, on desktop single row justify-between */}
-				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
-					<h1 className="flex items-center justify-center gap-3.5">
+				{/* Riga titolo: stesso pattern di statistiche/page (flex-col → sm:flex-row justify-between). */}
+				<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
+					<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
 						<SignatureIcon aria-hidden size={24} />
 						<span>
 							{filter === "all" && "Tutte le trattative"}
@@ -1737,9 +1762,35 @@ export default function TrattativeTable({
 							{filter === "abbandonate" && "Trattative abbandonate"}
 						</span>
 					</h1>
-					{/* Desktop: search (when no filters) + Aggiungi, same row. Mobile: when hasHeaderFilters, search+button move to row below. */}
-					<div className="flex flex-row flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:items-center sm:justify-center sm:gap-2.5">
+					{/* Desktop: search (when no filters) + export + Aggiungi. Mobile: quando ci sono filtri, questa riga si riduce (search sotto). */}
+					<div className="flex flex-row flex-wrap items-center justify-center gap-2 sm:flex-nowrap sm:justify-end sm:gap-2.5">
 						{!hasHeaderFilters && searchField}
+						{showTutteExcelExport ? (
+							<button
+								aria-busy={isExportingExcel}
+								className={cn(
+									EXPORT_ACTION_PILL_BUTTON_CLASS,
+									/* Stessa altezza di “Aggiungi”: niente min-h-10 su sm+ (vedi pill Aggiungi: sm:min-h-0). */
+									"sm:min-h-0",
+									hasHeaderFilters && "hidden sm:flex",
+									(isExportingExcel || !token) &&
+										"pointer-events-none opacity-50"
+								)}
+								disabled={isExportingExcel || !token}
+								onClick={handleExportNegotiationsExcel}
+								type="button"
+							>
+								{isExportingExcel ? (
+									<Spinner
+										className="shrink-0 text-card-foreground"
+										size="sm"
+									/>
+								) : (
+									<IconFileDownloadFill18 className="size-4 shrink-0 text-button-secondary" />
+								)}
+								<span className="hidden sm:inline">Esporta Excel</span>
+							</button>
+						) : null}
 						<button
 							aria-label="Aggiungi trattativa"
 							className={cn(
@@ -1951,18 +2002,49 @@ export default function TrattativeTable({
 								</Select.Root>
 							)}
 						</div>
-						{/* Row 2 (mobile): search + Aggiungi; desktop: search only (Aggiungi is in title row), same row as filters */}
+						{/* Row 2 (mobile): search + export Excel (tutte) + Aggiungi; desktop: search only (altri controlli in title row) */}
 						<div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0">
 							{searchField}
-							<button
-								aria-label="Aggiungi trattativa"
-								className="flex min-h-[48px] min-w-[48px] shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:hidden"
-								onClick={() => setIsCreateDialogOpen(true)}
-								type="button"
-							>
-								<span className="hidden sm:inline">Aggiungi</span>
-								<Plus className="size-4 shrink-0 text-button-secondary" />
-							</button>
+							<div className="flex shrink-0 items-center gap-2">
+								{showTutteExcelExport ? (
+									<button
+										aria-busy={isExportingExcel}
+										aria-label={
+											isExportingExcel
+												? "Esportazione in corso"
+												: "Esporta Excel trattative"
+										}
+										className={cn(
+											EXPORT_ACTION_PILL_BUTTON_CLASS,
+											/* Stessa area tocco di Aggiungi sulla riga mobile (48×48). */
+											"min-h-[48px] min-w-[48px] sm:hidden",
+											(isExportingExcel || !token) &&
+												"pointer-events-none opacity-50"
+										)}
+										disabled={isExportingExcel || !token}
+										onClick={handleExportNegotiationsExcel}
+										type="button"
+									>
+										{isExportingExcel ? (
+											<Spinner
+												className="shrink-0 text-card-foreground"
+												size="sm"
+											/>
+										) : (
+											<IconFileDownloadFill18 className="size-4 shrink-0 text-button-secondary" />
+										)}
+									</button>
+								) : null}
+								<button
+									aria-label="Aggiungi trattativa"
+									className="flex min-h-[48px] min-w-[48px] shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:hidden"
+									onClick={() => setIsCreateDialogOpen(true)}
+									type="button"
+								>
+									<span className="hidden sm:inline">Aggiungi</span>
+									<Plus className="size-4 shrink-0 text-button-secondary" />
+								</button>
+							</div>
 						</div>
 					</div>
 				)}

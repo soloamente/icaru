@@ -43,6 +43,11 @@ import type {
 } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import {
+	GREEN_STATUS_PILL_LIGHT_CLASSES,
+	RED_STATUS_PILL_LIGHT_CLASSES,
+	SKY_STATUS_PILL_LIGHT_CLASSES,
+} from "@/lib/pill-surface-classes";
+import {
 	isNegotiationAbandoned,
 	isNegotiationCompleted,
 } from "@/lib/trattative-utils";
@@ -229,23 +234,20 @@ function getNegotiationStatus(negotiation: ApiNegotiation): {
 	if (isAbandoned) {
 		return {
 			label: "Abbandonata",
-			classes: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+			classes: RED_STATUS_PILL_LIGHT_CLASSES,
 			icon: "close",
 		};
 	}
 	if (isCompleted) {
 		return {
 			label: "Conclusa",
-			classes:
-				"bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+			classes: GREEN_STATUS_PILL_LIGHT_CLASSES,
 			icon: "check",
 		};
 	}
 	return {
 		label: "Aperta",
-		// In tema Dataweb light il wrapper usa spesso bg-table-header; alziamo leggermente la luminosità
-		// rispetto a sky-100 per rendere la pill visibile anche sopra superfici azzurre simili.
-		classes: "bg-sky-200 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400",
+		classes: SKY_STATUS_PILL_LIGHT_CLASSES,
 		icon: "circle-plus",
 	};
 }

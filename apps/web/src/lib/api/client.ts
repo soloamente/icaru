@@ -25,6 +25,7 @@ import type {
 	SearchResponse,
 	SpancoStatistics,
 	TeamMemberStatistics,
+	TeamMonthlyStatistics,
 	UpdateClientBody,
 	UpdateNegotiationBody,
 	UpdateTeamBody,
@@ -33,6 +34,11 @@ import type {
 const BASE_URL =
 	(typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) ||
 	"https://web-production-7ff544.up.railway.app/api";
+
+/** Regex per parsing Content-Disposition (top-level per regola Biome useTopLevelRegex). */
+const CD_FILENAME_STAR = /filename\*=UTF-8''([^;]+)/i;
+const CD_FILENAME_QUOTED = /filename="([^"]+)"/i;
+const CD_FILENAME_PLAIN = /filename=([^;\s]+)/i;
 
 const DEFAULT_HEADERS: HeadersInit = {
 	Accept: "application/json",
@@ -446,14 +452,16 @@ export async function listNegotiationsMeConcluded(
 }
 
 /**
- * Build query string for GET /negotiations/me/with-coordinates filters.
- * Supports spanco (string or array), percentuale, importo_min, importo_max.
+ * Aggiunge i filtri mappa (spanco, percentuale, importo) a query string già in costruzione.
+ * Usato da /negotiations/me/with-coordinates e dagli export mappa (personale e team).
  */
-function buildMapFiltersQuery(params?: NegotiationsMapFilters): string {
+export function appendNegotiationsMapFiltersToSearchParams(
+	searchParams: URLSearchParams,
+	params?: NegotiationsMapFilters
+): void {
 	if (!params) {
-		return "";
+		return;
 	}
-	const searchParams = new URLSearchParams();
 	const spancoVal = params.spanco;
 	if (spancoVal != null) {
 		const arr = Array.isArray(spancoVal) ? spancoVal : [spancoVal];
@@ -472,8 +480,172 @@ function buildMapFiltersQuery(params?: NegotiationsMapFilters): string {
 	if (params.importo_max != null) {
 		searchParams.set("importo_max", String(params.importo_max));
 	}
+}
+
+/**
+ * Build query string for GET /negotiations/me/with-coordinates filters.
+ * Supports spanco (string or array), percentuale, importo_min, importo_max.
+ */
+function buildMapFiltersQuery(params?: NegotiationsMapFilters): string {
+	if (!params) {
+		return "";
+	}
+	const searchParams = new URLSearchParams();
+	appendNegotiationsMapFiltersToSearchParams(searchParams, params);
 	const q = searchParams.toString();
 	return q ? `?${q}` : "";
+}
+
+/** Query opzionale `user_id` + filtri mappa per export GET /teams/{id}/export/map. */
+function buildTeamMapExportQuery(opts: {
+	user_id?: number;
+	filters?: NegotiationsMapFilters;
+}): string {
+	const searchParams = new URLSearchParams();
+	if (opts.user_id != null) {
+		searchParams.set("user_id", String(opts.user_id));
+	}
+	appendNegotiationsMapFiltersToSearchParams(searchParams, opts.filters);
+	const q = searchParams.toString();
+	return q ? `?${q}` : "";
+}
+
+/**
+ * Estrae il nome file da Content-Disposition (attachment) con fallback.
+ */
+function filenameFromContentDisposition(
+	header: string | null,
+	fallback: string
+): string {
+	if (!header) {
+		return fallback;
+	}
+	const star = CD_FILENAME_STAR.exec(header);
+	if (star?.[1]) {
+		try {
+			return decodeURIComponent(star[1].trim());
+		} catch {
+			return star[1].trim();
+		}
+	}
+	const plain = CD_FILENAME_QUOTED.exec(header);
+	if (plain?.[1]) {
+		return plain[1].trim();
+	}
+	const plain2 = CD_FILENAME_PLAIN.exec(header);
+	if (plain2?.[1]) {
+		return plain2[1].replace(/"/g, "").trim();
+	}
+	return fallback;
+}
+
+/** Scarica un blob nel browser con nome file suggerito. */
+function triggerBlobDownload(blob: Blob, filename: string): void {
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement("a");
+	anchor.href = url;
+	anchor.download = filename;
+	anchor.click();
+	URL.revokeObjectURL(url);
+}
+
+async function fetchAuthorizedBlob(
+	accessToken: string,
+	url: string
+): Promise<{ blob: Blob; filename: string } | { error: string }> {
+	try {
+		const res = await fetch(url, {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: "*/*",
+			},
+		});
+		if (!res.ok) {
+			let message = `Richiesta non riuscita (${String(res.status)})`;
+			try {
+				const json = (await res.json()) as { message?: string };
+				if (typeof json.message === "string" && json.message.length > 0) {
+					message = json.message;
+				}
+			} catch {
+				// risposta non JSON (es. HTML errore)
+			}
+			return { error: message };
+		}
+		const blob = await res.blob();
+		const headerName = res.headers.get("Content-Disposition");
+		const fallback = url.split("/").pop()?.split("?")[0] ?? "download";
+		const filename = filenameFromContentDisposition(headerName, fallback);
+		return { blob, filename };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/negotiations/export/excel — Scarica .xlsx delle trattative personali.
+ */
+export async function downloadNegotiationsExportExcel(
+	accessToken: string
+): Promise<{ ok: true } | { error: string }> {
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/negotiations/export/excel`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	triggerBlobDownload(result.blob, result.filename);
+	return { ok: true };
+}
+
+/**
+ * GET /api/negotiations/export/map — HTML Leaflet offline; filtri opzionali come la mappa statistiche.
+ */
+export async function downloadNegotiationsExportMap(
+	accessToken: string,
+	filters?: NegotiationsMapFilters
+): Promise<{ ok: true } | { error: string }> {
+	const q = buildMapFiltersQuery(filters);
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/negotiations/export/map${q}`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	triggerBlobDownload(result.blob, result.filename);
+	return { ok: true };
+}
+
+/**
+ * GET /api/statistics/export/pdf — PDF statistiche personali.
+ * `year` assente o `storico` = aggregato tutti gli anni.
+ */
+export async function downloadStatisticsExportPdf(
+	accessToken: string,
+	params?: { year?: string }
+): Promise<{ ok: true } | { error: string }> {
+	const searchParams = new URLSearchParams();
+	if (
+		params?.year &&
+		params.year !== "storico" &&
+		params.year.trim().length > 0
+	) {
+		searchParams.set("year", params.year);
+	}
+	const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/statistics/export/pdf${q}`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	triggerBlobDownload(result.blob, result.filename);
+	return { ok: true };
 }
 
 /**
@@ -1522,6 +1694,120 @@ export async function listTeamMemberNegotiationsWithCoordinates(
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
 	}
+}
+
+/**
+ * GET /api/teams/{teamId}/monthly — Serie mensili team (importi e conteggi aperte/concluse) + membri per filtro.
+ * Solo Direttore Vendite.
+ */
+export async function getTeamMonthlyStatistics(
+	accessToken: string,
+	teamId: number,
+	params?: { user_id?: number }
+): Promise<{ data: TeamMonthlyStatistics } | { error: string }> {
+	try {
+		const searchParams = new URLSearchParams();
+		if (params?.user_id != null) {
+			searchParams.set("user_id", String(params.user_id));
+		}
+		const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
+		const res = await fetch(`${BASE_URL}/teams/${teamId}/monthly${q}`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as
+			| TeamMonthlyStatistics
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle statistiche mensili del team";
+			return { error: msg };
+		}
+		return { data: json as TeamMonthlyStatistics };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /api/teams/{teamId}/export/pdf — PDF grafici statistiche team.
+ */
+export async function downloadTeamStatisticsExportPdf(
+	accessToken: string,
+	teamId: number,
+	params?: { year?: string; user_id?: number }
+): Promise<{ ok: true } | { error: string }> {
+	const searchParams = new URLSearchParams();
+	if (params?.user_id != null) {
+		searchParams.set("user_id", String(params.user_id));
+	}
+	if (
+		params?.year &&
+		params.year !== "storico" &&
+		params.year.trim().length > 0
+	) {
+		searchParams.set("year", params.year);
+	}
+	const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/teams/${teamId}/export/pdf${q}`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	triggerBlobDownload(result.blob, result.filename);
+	return { ok: true };
+}
+
+/**
+ * GET /api/teams/{teamId}/export/excel — Excel trattative team.
+ */
+export async function downloadTeamNegotiationsExportExcel(
+	accessToken: string,
+	teamId: number,
+	params?: { user_id?: number }
+): Promise<{ ok: true } | { error: string }> {
+	const searchParams = new URLSearchParams();
+	if (params?.user_id != null) {
+		searchParams.set("user_id", String(params.user_id));
+	}
+	const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/teams/${teamId}/export/excel${q}`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	triggerBlobDownload(result.blob, result.filename);
+	return { ok: true };
+}
+
+/**
+ * GET /api/teams/{teamId}/export/map — Mappa HTML team; filtri opzionali allineati all'export personale.
+ */
+export async function downloadTeamNegotiationsExportMap(
+	accessToken: string,
+	teamId: number,
+	opts?: { user_id?: number; filters?: NegotiationsMapFilters }
+): Promise<{ ok: true } | { error: string }> {
+	const q = buildTeamMapExportQuery({
+		user_id: opts?.user_id,
+		filters: opts?.filters,
+	});
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/teams/${teamId}/export/map${q}`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	triggerBlobDownload(result.blob, result.filename);
+	return { ok: true };
 }
 
 export { BASE_URL };

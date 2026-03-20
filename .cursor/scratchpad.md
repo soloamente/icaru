@@ -296,4 +296,22 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 
 - Quando si lavora con token come `primary-foreground`, usare invece i token specifici della sezione (es. `sidebar-*`) per evitare problemi di contrasto quando lo sfondo non è quello "primary".
  - Evitare dipendenze locali `.tgz` non versionate in un monorepo destinato a Vercel; preferire pacchetti pubblicati su npm (o repository privati configurati esplicitamente) così che l'install in CI non dipenda da file presenti solo in locale.
+ - **Export file da API Laravel:** usare `fetch` con `Authorization` + `Accept: */*`, `res.blob()`, nome file da `Content-Disposition` (regex top-level per Biome). Funzioni dedicata in `client.ts` (`download*`) che chiamano `URL.createObjectURL` + `<a download>`.
+
+---
+
+## Executor's Feedback — Statistiche / export / team monthly (2026-03-20)
+
+Implementato wiring frontend per export Excel/PDF/HTML e grafici mensili team come da prompt utente.
+
+**File principali:** `client.ts` (download + `getTeamMonthlyStatistics`), `types.ts` (`TeamMonthlyMember`, `TeamMonthlyStatistics`), `trattative-table.tsx` (Esporta Excel su “Tutte”), `statistiche/page.tsx` + `negotiations-map.tsx` (filtri → export mappa), `statistiche-monthly-charts.tsx` (Esporta PDF + export helper condivisi esportati), `team-detail-monthly-section.tsx` (nuovo), `team-org-chart.tsx` (inclusione sezione).
+
+**Da verificare manualmente:** download reali contro backend Railway; ruoli 403/422. `tsc` locale segnala ancora errori preesistenti in `sidebar.tsx` (`/statistiche` RouteImpl), non introdotti da questo intervento.
+
+---
+
+## Project Status Board
+
+- [x] Export trattative + statistiche + team monthly (codice)
+- [ ] Verifica umana QA su staging/produzione API
 

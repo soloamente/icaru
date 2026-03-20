@@ -527,9 +527,11 @@ export default function Sidebar({
 						</button>
 					)}
 				</div>
-				{/* Navigation: fills remaining space so footer stays at bottom */}
+				{/* Navigation: fills remaining space so footer stays at bottom.
+				    min-h-0 + overflow on the link column prevents tall menus (e.g. Trattative expanded)
+				    from painting over the footer on short viewports. */}
 				<div className="flex min-h-0 flex-1 flex-col gap-4 pt-2">
-					<div className="flex items-center gap-3.5 rounded-xl bg-sidebar-accent/80 px-2 py-1.5 pl-1.5">
+					<div className="flex shrink-0 items-center gap-3.5 rounded-xl bg-sidebar-accent/80 px-2 py-1.5 pl-1.5">
 						<Avatar className="size-9 rounded-md! bg-background text-sidebar-primary">
 							<AvatarFallback
 								className="rounded-md! bg-background text-sidebar-primary"
@@ -576,7 +578,10 @@ export default function Sidebar({
 							<OpenRectArrowOutIcon className="size-5" />
 						</button>
 					</div>
-					<div className="flex flex-col gap-2.5">
+					<nav
+						aria-label="Navigazione principale"
+						className="scroll-fade-y flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden overscroll-y-contain"
+					>
 						{/* Flat nav items: Dashboard per tutti; Clienti e Team solo per Direttore Vendite / Venditore (Admin riceve 403). */}
 						{flatNavItems
 							.filter((item) => {
@@ -689,7 +694,7 @@ export default function Sidebar({
 								Statistiche
 							</Link>
 						)}
-					</div>
+					</nav>
 				</div>
 
 				{/* Footer: Ricerca rapida, Preferenze.

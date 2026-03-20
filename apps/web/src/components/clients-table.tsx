@@ -25,6 +25,10 @@ import {
 } from "@/lib/api/client";
 import type { ApiClient, ApiClientAddress } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+	GREEN_CTA_PILL_LIGHT_CLASSES,
+	SKY_CTA_PILL_LIGHT_CLASSES,
+} from "@/lib/pill-surface-classes";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 import { AddClientDialog } from "./add-client-dialog";
@@ -724,9 +728,12 @@ export default function ClientsTable() {
 																	// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
 																	// invece di navigare a /trattative/aperte.
 																	// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-																	// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base) per coerenza visiva.
+																	// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base); superfici da pill-surface-classes.
 																	// whitespace-nowrap keeps pill label on one line (especially with text size preference "grande").
-																	className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-sky-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-sky-800 transition-colors hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/40"
+																	className={cn(
+																		"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+																		SKY_CTA_PILL_LIGHT_CLASSES
+																	)}
 																	onClick={(event) => {
 																		event.stopPropagation();
 																		setClientIdForNewNegotiation(c.id);
@@ -749,7 +756,10 @@ export default function ClientsTable() {
 																			// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
 																			// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
 																			// così che "Ha trattativa" appaia come uno stato concluso coerente.
-																			className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-green-100 py-1.25 pr-3 pl-2.5 font-medium text-base text-green-800 transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/70 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
+																			className={cn(
+																				"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+																				GREEN_CTA_PILL_LIGHT_CLASSES
+																			)}
 																			onClick={(event) => {
 																				// Anche qui blocchiamo la propagazione per evitare
 																				// che la riga cliccabile porti al dettaglio cliente

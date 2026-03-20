@@ -198,6 +198,20 @@ export interface MonthlyNegotiationsStatistics {
 	storico: MonthlyNegotiationDatum[];
 }
 
+/** Membro team restituito da GET /api/teams/{id}/monthly (dropdown venditori). */
+export interface TeamMonthlyMember {
+	id: number;
+	nome: string;
+	cognome: string;
+}
+
+/**
+ * Risposta GET /api/teams/{id}/monthly — stessa struttura delle statistiche mensili personali + elenco membri.
+ */
+export interface TeamMonthlyStatistics extends MonthlyNegotiationsStatistics {
+	members: TeamMonthlyMember[];
+}
+
 /**
  * Filtri opzionali per GET /api/negotiations/me/with-coordinates.
  * Usati dalla mappa nella pagina Statistiche.

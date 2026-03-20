@@ -1,7 +1,7 @@
 "use client";
 
 import { Select } from "@base-ui/react/select";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import {
 } from "react";
 import type { ClusterProperties, PointFeature } from "supercluster";
 import useSupercluster from "use-supercluster";
+import { Drawer } from "vaul";
 import {
 	CheckIcon,
 	IconCircleInfoSparkle,
@@ -933,17 +934,15 @@ export function TeamMemberNegotiationsMap(props: {
 	);
 }
 
-/** SPANCO stage labels for filter panel (S · Sospetto, etc.). */
-const SPANCO_FILTER_LABELS: Record<SpancoStage, string> = {
-	S: "S · Sospetto",
-	P: "P · Prospetto",
-	A: "A · Approccio",
-	N: "N · Negoziazione",
-	C: "C · Chiusura",
-	O: "O · Ordine",
+/** Etichette compatte SPANCO (stesso schema del filtro tabella trattative). */
+const SPANCO_LABELS: Record<SpancoStage, string> = {
+	S: "S",
+	P: "P",
+	A: "A",
+	N: "N",
+	C: "C",
+	O: "O",
 };
-
-const SPANCO_OPTIONS: SpancoStage[] = ["S", "P", "A", "N", "C", "O"];
 
 /** Percentuale options: Tutti = no filter; 0, 20, 40, 60, 80, 100. */
 const PERCENTUALE_OPTIONS: { value: string; label: string }[] = [
@@ -956,24 +955,47 @@ const PERCENTUALE_OPTIONS: { value: string; label: string }[] = [
 	{ value: "100", label: "100%" },
 ];
 
+export interface NegotiationsMapWithFiltersProps {
+	/** Notifica la pagina Statistiche così l'export mappa HTML può riusare gli stessi filtri. */
+	onActiveFiltersChange?: (filters: NegotiationsMapFilters | undefined) => void;
+}
+
 /**
- * Mappa con pannello filtri per la pagina Statistiche.
- * Filtri: Spanco (multiselect), Percentuale, Importo (Da/A €).
- * Reimposta rilancia la chiamata senza parametri.
+ * Mappa con barra filtri per la pagina Statistiche (stesso pattern pill della tabella trattative).
+ * Filtri: Spanco (select), Percentuale (select), Importo (Da/A €), Reimposta.
  */
-export function NegotiationsMapWithFilters(): ReactNode {
+export function NegotiationsMapWithFilters({
+	onActiveFiltersChange,
+}: NegotiationsMapWithFiltersProps = {}): ReactNode {
 	const mapboxToken =
 		typeof process !== "undefined"
 			? process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 			: null;
 
-	const [spancoSelected, setSpancoSelected] = useState<SpancoStage[]>([]);
+	const [spancoFilter, setSpancoFilter] = useState<"all" | SpancoStage>("all");
 	const [percentuale, setPercentuale] = useState<string>("");
 	const [importoMin, setImportoMin] = useState<string>("");
 	const [importoMax, setImportoMax] = useState<string>("");
+	/** Mobile: un solo bottone apre il drawer per Da/A € (evita due pill larghe in scroll-fade-x). */
+	const [importoDrawerOpen, setImportoDrawerOpen] = useState(false);
+
+	const importoRangePillLabel = useMemo(() => {
+		const hasMin = importoMin !== "" && !Number.isNaN(Number(importoMin));
+		const hasMax = importoMax !== "" && !Number.isNaN(Number(importoMax));
+		if (!(hasMin || hasMax)) {
+			return "Importo €";
+		}
+		if (hasMin && hasMax) {
+			return `${importoMin}–${importoMax} €`;
+		}
+		if (hasMin) {
+			return `Da ${importoMin} €`;
+		}
+		return `Fino a ${importoMax} €`;
+	}, [importoMin, importoMax]);
 
 	const filters: NegotiationsMapFilters | undefined = useMemo(() => {
-		const hasSpanco = spancoSelected.length > 0;
+		const hasSpanco = spancoFilter !== "all";
 		const hasPercentuale = percentuale !== "";
 		const hasImportoMin =
 			importoMin !== "" && !Number.isNaN(Number(importoMin));
@@ -983,24 +1005,24 @@ export function NegotiationsMapWithFilters(): ReactNode {
 			return undefined;
 		}
 		return {
-			...(hasSpanco && { spanco: spancoSelected }),
+			...(hasSpanco && { spanco: [spancoFilter] }),
 			...(hasPercentuale && { percentuale: Number(percentuale) }),
 			...(hasImportoMin && { importo_min: Number(importoMin) }),
 			...(hasImportoMax && { importo_max: Number(importoMax) }),
 		};
-	}, [spancoSelected, percentuale, importoMin, importoMax]);
+	}, [spancoFilter, percentuale, importoMin, importoMax]);
+
+	const onFiltersParentRef = useRef(onActiveFiltersChange);
+	onFiltersParentRef.current = onActiveFiltersChange;
+	useEffect(() => {
+		onFiltersParentRef.current?.(filters);
+	}, [filters]);
 
 	const handleReimposta = useCallback(() => {
-		setSpancoSelected([]);
+		setSpancoFilter("all");
 		setPercentuale("");
 		setImportoMin("");
 		setImportoMax("");
-	}, []);
-
-	const handleSpancoToggle = useCallback((stage: SpancoStage) => {
-		setSpancoSelected((prev) =>
-			prev.includes(stage) ? prev.filter((s) => s !== stage) : [...prev, stage]
-		);
 	}, []);
 
 	if (!mapboxToken) {
@@ -1019,123 +1041,250 @@ export function NegotiationsMapWithFilters(): ReactNode {
 
 	return (
 		<div className="relative flex min-h-[360px] w-full min-w-0 flex-col overflow-hidden rounded-xl sm:h-full">
-			{/* Filtri: su mobile sopra la mappa; da sm+ overlay in alto a destra. scroll-fade-y (table.css) indica contenuto sopra/sotto quando c’è overflow verticale. */}
-			<div className="stat-card-bg z-10 flex min-h-0 w-full min-w-0 shrink-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-2xl bg-background p-2.5 sm:absolute sm:top-3 sm:right-3 sm:max-h-[calc(100%-1.5rem)] sm:w-44">
-				<div className="scroll-fade-y flex flex-col gap-2 overflow-y-auto">
-					<div className="font-medium text-card-foreground text-sm">Filtri</div>
-					{/* Spanco: checkboxes in colonna verticale */}
-					<div className="flex flex-col gap-1.5 rounded-2xl bg-table-buttons px-3 py-2">
-						<span className="font-medium text-sm text-stats-title">Spanco</span>
-						<div className="flex flex-col gap-1">
-							{SPANCO_OPTIONS.map((stage) => (
-								<label
-									className="flex cursor-pointer items-center gap-2 text-card-foreground text-sm"
-									key={stage}
-								>
-									<input
-										checked={spancoSelected.includes(stage)}
-										className="h-4 w-4 rounded border-input"
-										onChange={() => handleSpancoToggle(stage)}
-										type="checkbox"
-									/>
-									{SPANCO_FILTER_LABELS[stage]}
-								</label>
-							))}
-						</div>
-					</div>
-					{/* Percentuale: dropdown come nelle pagine dettagli */}
-					<div className="flex flex-col gap-1">
-						<span className="font-medium text-sm text-stats-title">
-							Percentuale
-						</span>
-						<Select.Root
-							onValueChange={(value) => {
-								setPercentuale(value === null ? "" : String(value));
-							}}
-							value={percentuale === "" ? null : (percentuale as string)}
+			{/*
+			 * Mobile: riga orizzontale sopra la mappa.
+			 * Desktop (md+): colonna allineata a destra sulla mappa (overlay), scroll verticale se serve.
+			 */}
+			<div className="relative z-10 flex w-full min-w-0 shrink-0 flex-col gap-2 pb-2 sm:pb-2.5 md:absolute md:top-3 md:right-3 md:max-h-[calc(100%-1.5rem)] md:w-auto md:justify-start md:pb-0">
+				<div className="negotiations-map-filters-scroll-fade flex w-full min-w-0 flex-nowrap items-center gap-1.25 overflow-x-auto pb-0.5 md:h-auto md:w-fit md:flex-col md:items-end md:gap-2 md:overflow-y-auto md:overflow-x-visible md:pb-0">
+					<Select.Root
+						onValueChange={(value) => {
+							if (value === null) {
+								setSpancoFilter("all");
+								return;
+							}
+							setSpancoFilter(value as SpancoStage);
+						}}
+						value={spancoFilter === "all" ? null : spancoFilter}
+					>
+						<Select.Trigger
+							className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
+							id="map-filter-spanco"
 						>
-							<Select.Trigger
-								className="flex w-full items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 data-popup-open:bg-table-buttons"
-								id="map-filter-percentuale"
+							<Select.Value
+								className="data-placeholder:text-stats-title"
+								placeholder="Filtra per SPANCO"
 							>
-								<Select.Value
-									className="data-placeholder:text-stats-title"
-									placeholder="Tutti"
-								>
-									{(value: string | null) => (value ? `${value}%` : "Tutti")}
-								</Select.Value>
-								<Select.Icon className="text-button-secondary">
-									<ChevronDown aria-hidden className="size-3.5" />
-								</Select.Icon>
-							</Select.Trigger>
-							<Select.Portal>
-								<Select.Positioner
-									alignItemWithTrigger={false}
-									className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
-									sideOffset={8}
-								>
-									<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
-										<Select.List className="flex h-fit flex-col gap-1">
-											{PERCENTUALE_OPTIONS.map((opt) => (
+								{(value: SpancoStage | null) =>
+									value ? `Solo ${SPANCO_LABELS[value]}` : "Filtra per SPANCO"
+								}
+							</Select.Value>
+							<Select.Icon className="text-button-secondary">
+								<ChevronDown aria-hidden className="size-3.5" />
+							</Select.Icon>
+						</Select.Trigger>
+						<Select.Portal>
+							<Select.Positioner
+								alignItemWithTrigger={false}
+								className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+								sideOffset={8}
+							>
+								<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+									<Select.List className="flex h-fit flex-col gap-1">
+										<Select.Item
+											className="relative flex cursor-default select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+											value={null}
+										>
+											<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+												<CheckIcon aria-hidden className="size-4" />
+											</Select.ItemIndicator>
+											<Select.ItemText>Tutte le fasi SPANCO</Select.ItemText>
+										</Select.Item>
+										{(Object.keys(SPANCO_LABELS) as SpancoStage[]).map(
+											(stage) => (
 												<Select.Item
 													className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-													key={opt.value || "all"}
-													value={opt.value === "" ? null : opt.value}
+													key={stage}
+													value={stage}
 												>
 													<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
 														<CheckIcon aria-hidden className="size-4" />
 													</Select.ItemIndicator>
-													<Select.ItemText>{opt.label}</Select.ItemText>
+													<Select.ItemText>
+														{`Solo ${SPANCO_LABELS[stage]}`}
+													</Select.ItemText>
 												</Select.Item>
-											))}
-										</Select.List>
-									</Select.Popup>
-								</Select.Positioner>
-							</Select.Portal>
-						</Select.Root>
-					</div>
-					{/* Importo: due row verticali */}
+											)
+										)}
+									</Select.List>
+								</Select.Popup>
+							</Select.Positioner>
+						</Select.Portal>
+					</Select.Root>
+					<Select.Root
+						onValueChange={(value) => {
+							setPercentuale(value === null ? "" : String(value));
+						}}
+						value={percentuale === "" ? null : (percentuale as string)}
+					>
+						<Select.Trigger
+							className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+							id="map-filter-percentuale"
+						>
+							<Select.Value
+								className="data-placeholder:text-stats-title"
+								placeholder="Filtra per %"
+							>
+								{(value: string | null) =>
+									value ? `${value}%` : "Filtra per %"
+								}
+							</Select.Value>
+							<Select.Icon className="text-button-secondary">
+								<ChevronDown aria-hidden className="size-3.5" />
+							</Select.Icon>
+						</Select.Trigger>
+						<Select.Portal>
+							<Select.Positioner
+								alignItemWithTrigger={false}
+								className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+								sideOffset={8}
+							>
+								<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+									<Select.List className="flex h-fit flex-col gap-1">
+										{PERCENTUALE_OPTIONS.map((opt) => (
+											<Select.Item
+												className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+												key={opt.value || "all"}
+												value={opt.value === "" ? null : opt.value}
+											>
+												<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+													<CheckIcon aria-hidden className="size-4" />
+												</Select.ItemIndicator>
+												<Select.ItemText>{opt.label}</Select.ItemText>
+											</Select.Item>
+										))}
+									</Select.List>
+								</Select.Popup>
+							</Select.Positioner>
+						</Select.Portal>
+					</Select.Root>
+					<button
+						aria-expanded={importoDrawerOpen}
+						aria-haspopup="dialog"
+						aria-label="Filtro importo da e a euro"
+						className="flex min-w-0 max-w-[12rem] shrink-0 items-center justify-center gap-2 truncate rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-card-foreground text-sm transition-colors hover:bg-table-hover hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+						onClick={() => setImportoDrawerOpen(true)}
+						type="button"
+					>
+						{importoRangePillLabel}
+					</button>
 					<label
-						className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
+						className="hidden w-[9rem] shrink-0 items-center justify-between gap-1.5 rounded-full border-0 bg-table-buttons px-3 py-1.5 md:flex"
 						htmlFor="map-filter-importo-min"
 					>
-						<span className="font-medium text-sm text-stats-title">Da €</span>
+						<span className="shrink-0 whitespace-nowrap font-medium text-sm text-stats-title">
+							Da €
+						</span>
 						<input
-							className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+							className="w-[4.5rem] min-w-0 shrink-0 rounded-none border-none bg-transparent py-0 text-right font-medium text-card-foreground text-sm tabular-nums outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 							id="map-filter-importo-min"
 							inputMode="numeric"
 							onChange={(e) => setImportoMin(e.target.value)}
-							placeholder="Min"
+							placeholder="—"
 							type="number"
 							value={importoMin}
 						/>
 					</label>
 					<label
-						className="flex items-center justify-between gap-2 rounded-2xl bg-table-buttons px-3.75 py-2.25"
+						className="hidden w-[9rem] shrink-0 items-center justify-between gap-1.5 rounded-full border-0 bg-table-buttons px-3 py-1.5 md:flex"
 						htmlFor="map-filter-importo-max"
 					>
-						<span className="font-medium text-sm text-stats-title">A €</span>
+						<span className="shrink-0 whitespace-nowrap font-medium text-sm text-stats-title">
+							A €
+						</span>
 						<input
-							className="h-8 min-w-0 flex-1 rounded-none border-none bg-transparent px-0 py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+							className="w-[4.5rem] min-w-0 shrink-0 rounded-none border-none bg-transparent py-0 text-right font-medium text-card-foreground text-sm tabular-nums outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 							id="map-filter-importo-max"
 							inputMode="numeric"
 							onChange={(e) => setImportoMax(e.target.value)}
-							placeholder="Max"
+							placeholder="—"
 							type="number"
 							value={importoMax}
 						/>
 					</label>
-					<Button
-						className="h-10 w-full rounded-xl border-0 text-sm focus-visible:border-transparent focus-visible:ring-0"
+					<button
+						className="shrink-0 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-card-foreground text-sm transition-colors hover:bg-table-hover hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						onClick={handleReimposta}
-						size="sm"
 						type="button"
-						variant="outline"
 					>
 						Reimposta
-					</Button>
+					</button>
 				</div>
 			</div>
+			{/* Mobile: drawer per Da € / A € (stesso sheet dei grafici mensili su statistiche). */}
+			<Drawer.Root onOpenChange={setImportoDrawerOpen} open={importoDrawerOpen}>
+				<Drawer.Portal>
+					<Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
+					<Drawer.Content className="fixed inset-x-[10px] bottom-[10px] z-50 flex max-h-[90vh] flex-col rounded-[36px] bg-card px-6 py-5 text-card-foreground outline-none drop-shadow-[0_18px_45px_rgba(15,23,42,0.55)]">
+						<Drawer.Title className="sr-only">
+							Filtro importo in euro
+						</Drawer.Title>
+						<Drawer.Description className="sr-only">
+							Imposta importo minimo e massimo per filtrare le trattative sulla
+							mappa.
+						</Drawer.Description>
+						<div className="mx-auto mt-0.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
+						<div className="flex items-start justify-between gap-3 pb-4">
+							<h2 className="font-bold text-card-foreground text-xl tracking-tight">
+								Importo (€)
+							</h2>
+							<button
+								aria-label="Chiudi"
+								className="flex size-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+								onClick={() => setImportoDrawerOpen(false)}
+								type="button"
+							>
+								<X aria-hidden className="size-4" />
+							</button>
+						</div>
+						<div className="flex flex-col gap-3">
+							<label
+								className="flex min-h-11 items-center gap-2 rounded-2xl bg-input px-3.75 py-2.25"
+								htmlFor="map-filter-importo-min-mobile"
+							>
+								<span className="whitespace-nowrap font-medium text-sm text-stats-title">
+									Da €
+								</span>
+								<input
+									className="min-w-0 flex-1 rounded-none border-none bg-transparent py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+									id="map-filter-importo-min-mobile"
+									inputMode="numeric"
+									onChange={(e) => setImportoMin(e.target.value)}
+									placeholder="—"
+									type="number"
+									value={importoMin}
+								/>
+							</label>
+							<label
+								className="flex min-h-11 items-center gap-2 rounded-2xl bg-input px-3.75 py-2.25"
+								htmlFor="map-filter-importo-max-mobile"
+							>
+								<span className="whitespace-nowrap font-medium text-sm text-stats-title">
+									A €
+								</span>
+								<input
+									className="min-w-0 flex-1 rounded-none border-none bg-transparent py-0 text-right font-medium text-card-foreground text-sm outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+									id="map-filter-importo-max-mobile"
+									inputMode="numeric"
+									onChange={(e) => setImportoMax(e.target.value)}
+									placeholder="—"
+									type="number"
+									value={importoMax}
+								/>
+							</label>
+						</div>
+						<div className="mt-6 flex justify-end">
+							<Button
+								className="h-10 min-w-26 rounded-xl text-sm"
+								onClick={() => setImportoDrawerOpen(false)}
+								type="button"
+							>
+								Chiudi
+							</Button>
+						</div>
+					</Drawer.Content>
+				</Drawer.Portal>
+			</Drawer.Root>
 			{/* Mappa: su mobile h-360 fissa (no stretch); da sm+ fill container */}
 			<div className="relative h-[360px] shrink-0 sm:absolute sm:inset-0 sm:h-auto">
 				<NegotiationsMapInner
