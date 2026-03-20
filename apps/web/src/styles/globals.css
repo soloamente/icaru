@@ -19,6 +19,11 @@ html.dark[data-color-scheme="rich"] {
 	--table-header: oklch(0.28 0.075 252);
 	--table-buttons: oklch(0.29 0.08 252);
 	--table-hover: oklch(0.255 0.07 252);
+	--table-header-readonly: color-mix(
+		in oklch,
+		var(--table-header) 52%,
+		var(--card)
+	);
 
 	/* Popover/dropdown: darker blue tint than table-header so menus fit the theme. */
 	--popover: oklch(0.22 0.07 251);
@@ -81,6 +86,7 @@ html.dark[data-color-scheme="rich"] {
 	--color-stats-title: var(--stats-title);
 	--color-stats-secondary: var(--stats-secondary);
 	--color-table-header: var(--table-header);
+	--color-table-header-readonly: var(--table-header-readonly);
 	--color-table-header-foreground: var(--table-header-foreground);
 	--color-green: var(--green);
 	--color-dark-green: var(--dark-green);
@@ -170,10 +176,17 @@ html.dark[data-color-scheme="rich"] {
 	--secondary-foreground: oklch(0.205 0 0);
 	--green: oklch(0.5579 0.183 141.5);
 	--dark-green: oklch(0.9678 0.0263 138.29);
-	--table-header: oklch(0.88 0 0);
-	/* Hover background for table rows in the default light theme.
-	   Slightly darker than the card/background to be visible but subtle. */
-	--table-hover: oklch(0.84 0 0);
+	/* Slightly darker than --card so table-header surfaces (form rows, org nodes)
+	   read as distinct "chips" inside bg-card panels on the default light theme. */
+	--table-header: oklch(0.82 0 0);
+	/* Hover: one step darker than table-header for visible interaction. */
+	--table-hover: oklch(0.77 0 0);
+	/* Read-only field rows: blend toward card so they read softer than editable bg-table-header chips. */
+	--table-header-readonly: color-mix(
+		in oklch,
+		var(--table-header) 32%,
+		var(--card)
+	);
 	--table-header-foreground: oklch(0.35 0 0);
 	--muted: oklch(0.86 0 0);
 	--muted-foreground: oklch(0.38 0 0);
@@ -269,6 +282,11 @@ html.dark[data-color-scheme="rich"] {
 	/* Hover background for table rows in the default dark theme.
 	   A touch lighter than the container to give a clear but soft highlight. */
 	--table-hover: oklch(0.285 0 0);
+	--table-header-readonly: color-mix(
+		in oklch,
+		var(--table-header) 42%,
+		var(--card)
+	);
 	--table-header-foreground: oklch(0.7187 0 0);
 	--checkbox-border: oklch(0.4712 0 0);
 	--primary: oklch(0.922 0 0);
@@ -413,6 +431,11 @@ html.dark[data-color-scheme="rich"] {
 	--table-header: oklch(0.28 0.075 252);
 	--table-buttons: oklch(0.29 0.08 252);
 	--table-hover: oklch(0.255 0.07 252);
+	--table-header-readonly: color-mix(
+		in oklch,
+		var(--table-header) 52%,
+		var(--card)
+	);
 
 	/* Popover/dropdown: darker blue tint than table-header so menus fit the theme. */
 	--popover: oklch(0.22 0.07 251);
@@ -471,6 +494,12 @@ html.dark[data-color-scheme="rich"] {
 	--table-container-background: oklch(1 0 0);
 	--table-buttons: oklch(0.96 0.025 250);
 	--table-hover: oklch(0.96 0.025 250);
+	/* Softer chips for read-only rows: table-header and card are very close in Dataweb light. */
+	--table-header-readonly: color-mix(
+		in oklch,
+		var(--table-header) 55%,
+		var(--card)
+	);
 
 	/* Foreground on blue (body, outline buttons): light for contrast. Card content keeps dark text. */
 	--foreground: oklch(0.98 0 0);

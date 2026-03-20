@@ -7,6 +7,7 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import {
@@ -17,16 +18,21 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { toast } from "sonner";
 import { Drawer } from "vaul";
-import { CheckIcon } from "@/components/icons";
+import { CheckIcon, IconDesignFileDownloadFill18 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/use-is-mobile";
-import { getNegotiationsMonthlyStatistics } from "@/lib/api/client";
+import { Spinner } from "@/components/ui/spinner";
+import {
+	downloadStatisticsExportPdf,
+	getNegotiationsMonthlyStatistics,
+} from "@/lib/api/client";
 import type {
 	MonthlyNegotiationDatum,
 	MonthlyNegotiationsStatistics,
 } from "@/lib/api/types";
+import { EXPORT_ACTION_PILL_BUTTON_CLASS } from "@/lib/export-action-pill-button-class";
 import { cn } from "@/lib/utils";
 
 /** Nomi brevi mesi in italiano per le label dell'asse X. */
@@ -50,6 +56,10 @@ const STORICO_VALUE = "storico";
 
 interface StatisticheMonthlyChartsProps {
 	accessToken: string | null;
+	/** Notifica il genitore (es. export PDF) quando l'anno selezionato cambia o viene impostato al primo load. */
+	onSelectedYearChange?: (year: string) => void;
+	/** Mostra il pulsante GET /statistics/export/pdf allineato all'anno selezionato. */
+	showPersonalPdfExport?: boolean;
 }
 
 /** Formatta l'importo in EUR per tooltip e assi. */
@@ -116,7 +126,7 @@ function MonthlySeriesRows({
 }
 
 /** Custom tooltip: font più grande, gap ridotto tra Aperte e Concluse. */
-function ChartTooltipContent({
+export function ChartTooltipContent({
 	formatValue,
 	label,
 	payload,
@@ -149,7 +159,7 @@ function ChartTooltipContent({
 	);
 }
 
-interface MonthlyChartDatum {
+export interface MonthlyChartDatum {
 	month: number;
 	monthLabel: string;
 	open_amount: number;
@@ -162,7 +172,19 @@ interface MonthlyChartDatum {
 const SERIE_APERTE_FILL = "oklch(0.72 0.19 55)";
 const SERIE_CONCLUSE_FILL = "oklch(0.5315 0.1179 157.23)";
 
+/**
+ * Fascia hover verticale sul gruppo di barre: `muted` + bassa opacità si confonde con lo sfondo
+ * stat-card in dataweb light. `card-foreground` è scuro in light e chiaro in dark → velo leggibile su entrambi.
+ */
+export const BAR_CHART_TOOLTIP_CURSOR = {
+	fill: "var(--card-foreground)",
+	fillOpacity: 0.14,
+} as const;
+
 const MOBILE_PILL_MIN_PX = 5;
+
+/** Altezza area grafico colonne mensili su mobile (stessa baseline delle card dual-series). */
+const MOBILE_CHART_COLUMN_PX = 160;
 
 /** Titolo drawer: nome mese esteso in italiano + contesto anno / Storico. */
 function formatMonthDrawerTitle(month: number, yearCaption: string): string {
@@ -173,59 +195,39 @@ function formatMonthDrawerTitle(month: number, yearCaption: string): string {
 	return `${capitalized} · ${yearCaption}`;
 }
 
-/** Pesi flex per pillole proporzionali ai valori (vs yMax); Concluse sopra, Aperte sotto. */
-function mobilePillFlexWeights(
-	aperte: number,
-	concluse: number,
-	yMax: number
-): { flexAperte: number; flexConcluse: number } {
-	if (yMax <= 0) {
-		return { flexAperte: 0, flexConcluse: 0 };
-	}
-	const wA = Math.max(0, aperte / yMax);
-	const wC = Math.max(0, concluse / yMax);
-	const sum = wA + wC;
-	if (sum <= 0) {
-		return { flexAperte: 0, flexConcluse: 0 };
-	}
-	return { flexAperte: wA / sum, flexConcluse: wC / sum };
-}
-
 /**
- * Mobile: colonna stretta per mese — pillole colorate separate (gap = sfondo card),
- * niente wrapper grigio attorno alla colonna; mese sotto in maiuscolo.
- * Tap sulla colonna apre un bottom sheet (Vaul) con gli stessi valori del tooltip desktop.
+ * Mobile: una serie per mese (es. solo importo aperte) — pillola singola proporzionale a yMax.
+ * Stesso pattern scroll orizzontale + drawer del vecchio grafico combinato.
  */
-function MobileMonthlyPillColumns({
+export function MobileMonthlySingleSeriesColumns({
+	barColor,
 	chartData,
 	formatValue,
-	getAperte,
-	getConcluse,
-	sheetKind,
+	getValue,
+	seriesLabel,
+	sheetDescription,
 	yearCaption,
 	yMax,
 }: {
+	barColor: string;
 	chartData: MonthlyChartDatum[];
 	formatValue: (value: number) => string;
-	getAperte: (d: MonthlyChartDatum) => number;
-	getConcluse: (d: MonthlyChartDatum) => number;
-	/** Usato solo per testo accessibile nel drawer. */
-	sheetKind: "amount" | "count";
+	getValue: (d: MonthlyChartDatum) => number;
+	/** Titolo breve metrica (es. "Importo aperte") per aria e drawer. */
+	seriesLabel: string;
+	sheetDescription: string;
 	yearCaption: string;
 	yMax: number;
 }) {
-	/** Mese selezionato per il foglio: tiene il datum fino a chiusura (animazione Vaul + coerenza contenuto). */
 	const [sheetDatum, setSheetDatum] = useState<MonthlyChartDatum | null>(null);
 
-	// Cambio anno o nuovi dati (nuovo array da useMemo): chiudi il foglio per evitare valori obsoleti.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: `chartData` è la dipendenza voluta (identity da useMemo quando cambiano anno o stats).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset foglio quando cambiano anno/dati (identity chartData da useMemo).
 	useEffect(() => {
 		setSheetDatum(null);
 	}, [chartData]);
 
 	const handleMonthActivate = (month: number) => {
 		setSheetDatum((prev) => {
-			// Secondo tap sullo stesso mese chiude il foglio.
 			if (prev?.month === month) {
 				return null;
 			}
@@ -239,66 +241,45 @@ function MobileMonthlyPillColumns({
 		}
 	};
 
-	const sheetDescription =
-		sheetKind === "amount"
-			? "Importi delle trattative aperte e concluse per il mese selezionato."
-			: "Numero di trattative aperte e concluse per il mese selezionato.";
+	const safeYMax = yMax > 0 ? yMax : 1;
 
 	return (
 		<>
-			{/*
-			 * scroll-fade-x (table.css): fade ai bordi quando c’è overflow orizzontale,
-			 * come filtri clienti / trattative — stesso pattern di scroll(self inline).
-			 */}
 			<ul className="scroll-fade-x flex w-full min-w-0 touch-pan-x list-none gap-1 overflow-x-auto overflow-y-hidden p-0 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 				{chartData.map((d) => {
-					const aperte = getAperte(d);
-					const concluse = getConcluse(d);
-					const { flexAperte, flexConcluse } = mobilePillFlexWeights(
-						aperte,
-						concluse,
-						yMax
-					);
+					const value = getValue(d);
 					const label = d.monthLabel.toUpperCase();
-					const aria = `${label}: Aperte ${formatValue(aperte)}, Concluse ${formatValue(concluse)}. Tocca per i dettagli.`;
+					const pct =
+						value > 0
+							? Math.max(
+									(value / safeYMax) * 100,
+									(MOBILE_PILL_MIN_PX / MOBILE_CHART_COLUMN_PX) * 100
+								)
+							: 0;
+					const aria = `${label}: ${seriesLabel} ${formatValue(value)}. Tocca per i dettagli.`;
 					return (
 						<li className="shrink-0 list-none" key={d.month}>
-							{/*
-							 * Button: area tocco ~44px (linee guida touch) con pillole visive al centro (w-6).
-							 * `touch-action: manipulation` evita doppio-tap zoom su iOS sul controllo.
-							 */}
 							<button
 								aria-label={aria}
 								className="flex min-h-[44px] min-w-[44px] touch-manipulation flex-col items-center gap-0.5 rounded-lg py-1 [-webkit-tap-highlight-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								onClick={() => handleMonthActivate(d.month)}
 								type="button"
 							>
-								{/* Solo layout flex (nessun bg): il gap tra le pillole mostra lo sfondo della card. */}
-								<div className="flex h-[160px] w-6 flex-col">
-									<div className="flex min-h-0 flex-1 flex-col justify-end gap-1">
-										{concluse > 0 && (
-											<div
-												aria-hidden
-												className="min-h-0 w-full rounded-md opacity-85"
-												style={{
-													backgroundColor: SERIE_CONCLUSE_FILL,
-													flex: `${flexConcluse} 1 0px`,
-													minHeight: MOBILE_PILL_MIN_PX,
-												}}
-											/>
-										)}
-										{aperte > 0 && (
-											<div
-												aria-hidden
-												className="min-h-0 w-full rounded-md opacity-85"
-												style={{
-													backgroundColor: SERIE_APERTE_FILL,
-													flex: `${flexAperte} 1 0px`,
-													minHeight: MOBILE_PILL_MIN_PX,
-												}}
-											/>
-										)}
-									</div>
+								<div
+									className="flex w-6 flex-col justify-end"
+									style={{ height: MOBILE_CHART_COLUMN_PX }}
+								>
+									{value > 0 ? (
+										<div
+											aria-hidden
+											className="w-full rounded-md opacity-85"
+											style={{
+												backgroundColor: barColor,
+												minHeight: MOBILE_PILL_MIN_PX,
+												height: `${pct}%`,
+											}}
+										/>
+									) : null}
 								</div>
 								<span className="w-6 shrink-0 text-center font-medium text-[9px] text-card-foreground uppercase leading-tight tracking-tighter">
 									{label}
@@ -338,27 +319,12 @@ function MobileMonthlyPillColumns({
 										<X aria-hidden className="size-4" />
 									</button>
 								</div>
-								<div
-									className="flex flex-col gap-2 text-base"
-									style={{ fontSize: "1rem" }}
-								>
-									<MonthlySeriesRows
-										entries={[
-											{
-												name: "Aperte",
-												value: getAperte(sheetDatum),
-												color: SERIE_APERTE_FILL,
-											},
-											{
-												name: "Concluse",
-												value: getConcluse(sheetDatum),
-												color: SERIE_CONCLUSE_FILL,
-											},
-										]}
-										formatValue={formatValue}
-										variant="card"
-									/>
-								</div>
+								<p className="font-medium text-base text-card-foreground">
+									<span className="text-card-foreground/80">
+										{seriesLabel}:{" "}
+									</span>
+									{formatValue(getValue(sheetDatum))}
+								</p>
 								<div className="mt-6 flex justify-end">
 									<Button
 										className="h-10 min-w-26 rounded-xl text-sm"
@@ -378,11 +344,14 @@ function MobileMonthlyPillColumns({
 }
 
 /**
- * Grafici mensili: importo (aperte vs concluse) e numero trattative (aperte vs concluse).
+ * Grafici mensili: importo e numero trattative (Aperte vs Concluse).
+ * Sotto 768px (md): quattro grafici a serie singola in verticale; altrimenti due bar chart affiancati.
  * Condivide il selector anno (anni specifici + "Storico").
  */
 export function StatisticheMonthlyCharts({
 	accessToken,
+	onSelectedYearChange,
+	showPersonalPdfExport = false,
 }: StatisticheMonthlyChartsProps): ReactNode {
 	const [stats, setStats] = useState<MonthlyNegotiationsStatistics | null>(
 		null
@@ -392,7 +361,9 @@ export function StatisticheMonthlyCharts({
 
 	const currentYear = new Date().getFullYear();
 	const [selectedYear, setSelectedYear] = useState<string>(STORICO_VALUE);
-	const isMobile = useIsMobile();
+	// Evita di rilanciare il fetch quando il genitore passa una callback inline instabile.
+	const onYearChangeRef = useRef(onSelectedYearChange);
+	onYearChangeRef.current = onSelectedYearChange;
 
 	useEffect(() => {
 		if (!accessToken) {
@@ -414,12 +385,15 @@ export function StatisticheMonthlyCharts({
 			} else {
 				setStats(result.data);
 				setError(null);
-				// Imposta default anno al primo caricamente
+				// Imposta default anno al primo caricamento
+				let nextYear = STORICO_VALUE;
 				if (result.data.years?.includes(currentYear)) {
-					setSelectedYear(String(currentYear));
+					nextYear = String(currentYear);
 				} else {
-					setSelectedYear(STORICO_VALUE);
+					nextYear = STORICO_VALUE;
 				}
+				setSelectedYear(nextYear);
+				onYearChangeRef.current?.(nextYear);
 			}
 			setIsLoading(false);
 		});
@@ -461,20 +435,24 @@ export function StatisticheMonthlyCharts({
 		});
 	}, [stats, selectedYear]);
 
-	/** Stessa scala Y per le due righe di barre su mobile (confronto Aperte vs Concluse). */
-	const yMaxAmount = useMemo(() => {
-		const max = Math.max(
-			...chartData.flatMap((d) => [d.open_amount, d.concluded_amount]),
-			1
-		);
+	/** Scala Y per grafici mobile a serie singola (una pillola per mese). */
+	const yMaxOpenAmount = useMemo(() => {
+		const max = Math.max(...chartData.map((d) => d.open_amount), 1);
 		return max * 1.08;
 	}, [chartData]);
 
-	const yMaxCount = useMemo(() => {
-		const max = Math.max(
-			...chartData.flatMap((d) => [d.open_count, d.concluded_count]),
-			1
-		);
+	const yMaxConcludedAmount = useMemo(() => {
+		const max = Math.max(...chartData.map((d) => d.concluded_amount), 1);
+		return max * 1.08;
+	}, [chartData]);
+
+	const yMaxOpenCount = useMemo(() => {
+		const max = Math.max(...chartData.map((d) => d.open_count), 1);
+		return max * 1.08;
+	}, [chartData]);
+
+	const yMaxConcludedCount = useMemo(() => {
+		const max = Math.max(...chartData.map((d) => d.concluded_count), 1);
 		return max * 1.08;
 	}, [chartData]);
 
@@ -492,8 +470,27 @@ export function StatisticheMonthlyCharts({
 	const handleYearChange = useCallback((value: string | null) => {
 		if (value !== null) {
 			setSelectedYear(value);
+			onYearChangeRef.current?.(value);
 		}
 	}, []);
+
+	const [isPdfExporting, setIsPdfExporting] = useState(false);
+
+	const handleExportPersonalPdf = useCallback(async () => {
+		if (!(accessToken && showPersonalPdfExport)) {
+			return;
+		}
+		setIsPdfExporting(true);
+		const result = await downloadStatisticsExportPdf(accessToken, {
+			year: selectedYear === STORICO_VALUE ? undefined : selectedYear,
+		});
+		setIsPdfExporting(false);
+		if ("error" in result) {
+			toast.error(result.error);
+			return;
+		}
+		toast.success("Download PDF avviato");
+	}, [accessToken, selectedYear, showPersonalPdfExport]);
 
 	if (isLoading || !(stats || error)) {
 		return (
@@ -501,8 +498,18 @@ export function StatisticheMonthlyCharts({
 				<div className="flex h-10 w-full max-w-xs">
 					<Skeleton className="h-full w-full rounded-lg" />
 				</div>
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					{/* stat-card-bg + bg-background: stesso pattern delle KPI dashboard (dataweb light → --stat-card). */}
+				{/* Mobile (sotto md / 768px): quattro skeleton; desktop: due card affiancate. */}
+				<div className="flex flex-col gap-4 md:hidden">
+					{[1, 2, 3, 4].map((key) => (
+						<div
+							className="stat-card-bg h-[220px] min-w-0 rounded-2xl bg-background p-4"
+							key={key}
+						>
+							<Skeleton className="h-full w-full rounded-xl" />
+						</div>
+					))}
+				</div>
+				<div className="hidden grid-cols-2 gap-4 md:grid">
 					<div className="stat-card-bg h-[280px] min-w-0 rounded-2xl bg-background p-4">
 						<Skeleton className="h-full w-full rounded-xl" />
 					</div>
@@ -538,95 +545,159 @@ export function StatisticheMonthlyCharts({
 	const yearCaption = selectedYear === STORICO_VALUE ? "Storico" : selectedYear;
 
 	return (
-		<div className="flex min-h-0 min-w-0 flex-col gap-4">
-			{/* Selector anno: label e valore dentro il trigger */}
-			<Select.Root onValueChange={handleYearChange} value={selectedYear}>
-				<Select.Trigger
-					aria-label="Seleziona anno"
-					className="flex h-10 w-fit items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
-					id="statistiche-year-select"
-				>
-					<span className="font-medium text-muted-foreground text-sm">
-						Anno
-					</span>
-					<Select.Value
-						className="data-placeholder:text-muted-foreground"
-						placeholder="—"
+		<div className="flex min-h-0 min-w-0 flex-col gap-2">
+			{/* Selector anno a sinistra, azioni PDF a destra (stessa riga su viewport larghi). */}
+			<div className="flex w-full flex-wrap items-center justify-between gap-2">
+				<Select.Root onValueChange={handleYearChange} value={selectedYear}>
+					<Select.Trigger
+						aria-label="Seleziona anno"
+						className="flex h-10 w-fit items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+						id="statistiche-year-select"
 					>
-						{(value: string | null) => {
-							if (!value) {
-								return "—";
-							}
-							const opt = selectOptions.find((o) => o.value === value);
-							return opt?.label ?? value;
-						}}
-					</Select.Value>
-					<Select.Icon className="text-button-secondary">
-						<ChevronDown aria-hidden className="size-3.5" />
-					</Select.Icon>
-				</Select.Trigger>
-				<Select.Portal>
-					<Select.Positioner
-						alignItemWithTrigger={false}
-						className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
-						sideOffset={8}
+						<span className="font-medium text-muted-foreground text-sm">
+							Anno
+						</span>
+						<Select.Value
+							className="data-placeholder:text-muted-foreground"
+							placeholder="—"
+						>
+							{(value: string | null) => {
+								if (!value) {
+									return "—";
+								}
+								const opt = selectOptions.find((o) => o.value === value);
+								return opt?.label ?? value;
+							}}
+						</Select.Value>
+						<Select.Icon className="text-button-secondary">
+							<ChevronDown aria-hidden className="size-3.5" />
+						</Select.Icon>
+					</Select.Trigger>
+					<Select.Portal>
+						<Select.Positioner
+							alignItemWithTrigger={false}
+							className="z-50 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
+							sideOffset={8}
+						>
+							<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
+								<Select.List className="flex h-fit flex-col gap-1">
+									{selectOptions.map((opt) => (
+										<Select.Item
+											className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
+											key={opt.value}
+											value={opt.value}
+										>
+											<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
+												<CheckIcon aria-hidden className="size-4" />
+											</Select.ItemIndicator>
+											<Select.ItemText>{opt.label}</Select.ItemText>
+										</Select.Item>
+									))}
+								</Select.List>
+							</Select.Popup>
+						</Select.Positioner>
+					</Select.Portal>
+				</Select.Root>
+				{showPersonalPdfExport ? (
+					<button
+						aria-busy={isPdfExporting}
+						className={EXPORT_ACTION_PILL_BUTTON_CLASS}
+						disabled={!accessToken || isPdfExporting}
+						onClick={handleExportPersonalPdf}
+						type="button"
 					>
-						<Select.Popup className="max-h-80 overflow-y-auto rounded-2xl bg-popover p-1">
-							<Select.List className="flex h-fit flex-col gap-1">
-								{selectOptions.map((opt) => (
-									<Select.Item
-										className="relative flex cursor-pointer select-none items-center gap-2 rounded-xl py-2 pr-8 pl-3 text-sm outline-hidden transition-colors data-highlighted:bg-accent data-selected:bg-accent data-highlighted:text-accent-foreground data-selected:text-accent-foreground"
-										key={opt.value}
-										value={opt.value}
-									>
-										<Select.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
-											<CheckIcon aria-hidden className="size-4" />
-										</Select.ItemIndicator>
-										<Select.ItemText>{opt.label}</Select.ItemText>
-									</Select.Item>
-								))}
-							</Select.List>
-						</Select.Popup>
-					</Select.Positioner>
-				</Select.Portal>
-			</Select.Root>
-			{/* Due bar chart affiancati, ciascuno in una card */}
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				{/* Card 1: Importo mensile (Aperte vs Concluse) — shell come KPI dashboard (stat-card in dataweb light). */}
-				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
-					<h3 className="font-medium text-card-foreground text-sm">
-						Importo mensile trattative (€)
-					</h3>
-					{/* Mobile: colonne tipo mockup — contenitore muted, pillole separate con gap, mese sotto. */}
-					{isMobile ? (
+						{isPdfExporting ? (
+							<Spinner className="shrink-0 text-card-foreground" size="sm" />
+						) : (
+							<IconDesignFileDownloadFill18 className="size-4 shrink-0 text-button-secondary" />
+						)}
+						Esporta PDF
+					</button>
+				) : null}
+			</div>
+			{/* Fascia grafici: gap interno tra le card invariato (gap-4). */}
+			<div className="flex min-h-0 min-w-0 flex-col gap-4">
+				{/*
+				 * Mobile: quattro grafici verticali (ordine richiesto: importo aperte, importo chiuse, n. aperte, n. chiuse).
+				 * md+ (768px): due bar chart affiancati (Aperte vs Concluse) come prima.
+				 */}
+				<div className="flex flex-col gap-4 md:hidden">
+					<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+						<h3 className="font-medium text-card-foreground text-sm">
+							Importo aperte (€)
+						</h3>
 						<div className="min-h-[200px] min-w-0 py-1">
-							<MobileMonthlyPillColumns
+							<MobileMonthlySingleSeriesColumns
+								barColor={SERIE_APERTE_FILL}
 								chartData={chartData}
 								formatValue={formatAmount}
-								getAperte={(row) => row.open_amount}
-								getConcluse={(row) => row.concluded_amount}
-								sheetKind="amount"
+								getValue={(row) => row.open_amount}
+								seriesLabel="Importo aperte"
+								sheetDescription="Importo delle trattative aperte nel mese selezionato."
 								yearCaption={yearCaption}
-								yMax={yMaxAmount}
+								yMax={yMaxOpenAmount}
 							/>
-							<p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-card-foreground text-xs">
-								<span className="inline-flex items-center gap-1">
-									<span
-										className="size-2 shrink-0 rounded-full opacity-85"
-										style={{ backgroundColor: SERIE_APERTE_FILL }}
-									/>
-									Aperte
-								</span>
-								<span className="inline-flex items-center gap-1">
-									<span
-										className="size-2 shrink-0 rounded-full opacity-85"
-										style={{ backgroundColor: SERIE_CONCLUSE_FILL }}
-									/>
-									Concluse
-								</span>
-							</p>
 						</div>
-					) : (
+					</div>
+					<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+						<h3 className="font-medium text-card-foreground text-sm">
+							Importo chiuse (€)
+						</h3>
+						<div className="min-h-[200px] min-w-0 py-1">
+							<MobileMonthlySingleSeriesColumns
+								barColor={SERIE_CONCLUSE_FILL}
+								chartData={chartData}
+								formatValue={formatAmount}
+								getValue={(row) => row.concluded_amount}
+								seriesLabel="Importo chiuse"
+								sheetDescription="Importo delle trattative concluse nel mese selezionato."
+								yearCaption={yearCaption}
+								yMax={yMaxConcludedAmount}
+							/>
+						</div>
+					</div>
+					<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+						<h3 className="font-medium text-card-foreground text-sm">
+							Numero trattative aperte
+						</h3>
+						<div className="min-h-[200px] min-w-0 py-1">
+							<MobileMonthlySingleSeriesColumns
+								barColor={SERIE_APERTE_FILL}
+								chartData={chartData}
+								formatValue={(v) => String(v)}
+								getValue={(row) => row.open_count}
+								seriesLabel="Numero aperte"
+								sheetDescription="Numero di trattative aperte nel mese selezionato."
+								yearCaption={yearCaption}
+								yMax={yMaxOpenCount}
+							/>
+						</div>
+					</div>
+					<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+						<h3 className="font-medium text-card-foreground text-sm">
+							Numero trattative chiuse
+						</h3>
+						<div className="min-h-[200px] min-w-0 py-1">
+							<MobileMonthlySingleSeriesColumns
+								barColor={SERIE_CONCLUSE_FILL}
+								chartData={chartData}
+								formatValue={(v) => String(v)}
+								getValue={(row) => row.concluded_count}
+								seriesLabel="Numero chiuse"
+								sheetDescription="Numero di trattative concluse nel mese selezionato."
+								yearCaption={yearCaption}
+								yMax={yMaxConcludedCount}
+							/>
+						</div>
+					</div>
+				</div>
+
+				<div className="hidden grid-cols-2 gap-4 md:grid">
+					{/* Card 1: Importo mensile (Aperte vs Concluse). */}
+					<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+						<h3 className="font-medium text-card-foreground text-sm">
+							Importo mensile trattative (€)
+						</h3>
 						<div className="h-[240px] min-w-0">
 							<ResponsiveContainer height="100%" width="100%">
 								<BarChart
@@ -664,7 +735,7 @@ export function StatisticheMonthlyCharts({
 												/>
 											) : null
 										}
-										cursor={{ fill: "var(--muted)", fillOpacity: 0.2 }}
+										cursor={BAR_CHART_TOOLTIP_CURSOR}
 									/>
 									<Bar
 										dataKey="open_amount"
@@ -683,42 +754,12 @@ export function StatisticheMonthlyCharts({
 								</BarChart>
 							</ResponsiveContainer>
 						</div>
-					)}
-				</div>
-				{/* Card 2: Numero trattative mensili — stessa shell delle card dashboard. */}
-				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
-					<h3 className="font-medium text-card-foreground text-sm">
-						Numero trattative mensili
-					</h3>
-					{isMobile ? (
-						<div className="min-h-[200px] min-w-0 py-1">
-							<MobileMonthlyPillColumns
-								chartData={chartData}
-								formatValue={(v) => String(v)}
-								getAperte={(row) => row.open_count}
-								getConcluse={(row) => row.concluded_count}
-								sheetKind="count"
-								yearCaption={yearCaption}
-								yMax={yMaxCount}
-							/>
-							<p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-card-foreground text-xs">
-								<span className="inline-flex items-center gap-1">
-									<span
-										className="size-2 shrink-0 rounded-full opacity-85"
-										style={{ backgroundColor: SERIE_APERTE_FILL }}
-									/>
-									Aperte
-								</span>
-								<span className="inline-flex items-center gap-1">
-									<span
-										className="size-2 shrink-0 rounded-full opacity-85"
-										style={{ backgroundColor: SERIE_CONCLUSE_FILL }}
-									/>
-									Concluse
-								</span>
-							</p>
-						</div>
-					) : (
+					</div>
+					{/* Card 2: Numero trattative mensili. */}
+					<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
+						<h3 className="font-medium text-card-foreground text-sm">
+							Numero trattative mensili
+						</h3>
 						<div className="h-[240px] min-w-0">
 							<ResponsiveContainer height="100%" width="100%">
 								<BarChart
@@ -750,7 +791,7 @@ export function StatisticheMonthlyCharts({
 												/>
 											) : null
 										}
-										cursor={{ fill: "var(--muted)", fillOpacity: 0.2 }}
+										cursor={BAR_CHART_TOOLTIP_CURSOR}
 									/>
 									<Bar
 										dataKey="open_count"
@@ -769,7 +810,7 @@ export function StatisticheMonthlyCharts({
 								</BarChart>
 							</ResponsiveContainer>
 						</div>
-					)}
+					</div>
 				</div>
 			</div>
 		</div>

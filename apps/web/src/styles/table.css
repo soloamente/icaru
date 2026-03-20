@@ -121,6 +121,38 @@ html[data-font-size="large"] .clients-table-grid {
 			88% 100%;
 	}
 
+	/*
+	 * Filtri mappa statistiche: fade orizzontale solo sotto md (riga scrollabile).
+	 * Su md+ niente maschera: colonna a destra (Reimposta incluso) resta piena, senza scroll-fade-y né bordi smussati dal mask orizzontale.
+	 */
+	.negotiations-map-filters-scroll-fade {
+		--fl: 0px;
+		--fr: 40px;
+		mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			#000 var(--fl),
+			#000 calc(100% - var(--fr)),
+			transparent 100%
+		);
+		mask-size: 100% 100%;
+		mask-repeat: no-repeat;
+		animation:
+			fadeLeft 1 linear both,
+			fadeRight 1 linear both;
+		animation-timeline: scroll(self inline), scroll(self inline);
+		animation-range:
+			0% 12%,
+			88% 100%;
+	}
+
+	@media (min-width: 768px) {
+		.negotiations-map-filters-scroll-fade {
+			mask-image: none;
+			animation: none;
+		}
+	}
+
 	@keyframes fadeLeft {
 		from {
 			--fl: 0px;

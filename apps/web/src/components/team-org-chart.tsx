@@ -26,6 +26,7 @@ import type {
 	NegotiationsStatistics,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { GREEN_STATUS_PILL_LIGHT_CLASSES } from "@/lib/pill-surface-classes";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -34,13 +35,13 @@ import {
 	IconCrown2Fill18,
 	IconFilePlusFill18,
 	IconPenWritingFill18,
-	IconPeople,
 	IconQuickstartFill18,
 	IconSackDollarFill18,
 	IconTarget,
 	IconUTurnToLeft,
 	IconVault3Fill18,
 } from "./icons";
+import { TeamDetailMonthlySection } from "./team-detail-monthly-section";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -51,6 +52,13 @@ export const UPDATE_TEAM_FORM_ID = "update-team-form";
 /** Pill field container — same style as UpdateClientForm / UpdateNegotiationForm. */
 const FIELD_CONTAINER_CLASSES =
 	"flex items-center justify-between gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none";
+
+/**
+ * Read-only field row: softer fill (`--table-header-readonly`) so it reads clearly
+ * against full `bg-table-header` editable rows, including default light theme.
+ */
+const FIELD_CONTAINER_READ_ONLY_CLASSES =
+	"flex items-center justify-between gap-2 rounded-2xl bg-table-header-readonly px-3.75 py-4.25 leading-none ring-1 ring-border/30";
 
 /** Field label text — consistent with other update forms. */
 const FIELD_LABEL_TEXT_CLASSES =
@@ -72,6 +80,25 @@ interface TeamOrgChartProps {
 interface TeamFormState {
 	nome: string;
 	description: string;
+}
+
+/**
+ * Effective members (including creator when they participate): prefer the value
+ * on the team payload from GET /teams/:id; fall back to team KPI stats for directors.
+ */
+function resolveEffectiveMembersCount(
+	team: ApiTeam,
+	stats: ApiTeamStats | null
+): number | null {
+	const fromTeam = team.effective_members_count;
+	if (typeof fromTeam === "number" && Number.isFinite(fromTeam)) {
+		return fromTeam;
+	}
+	const fromStats = stats?.effective_members_count;
+	if (typeof fromStats === "number" && Number.isFinite(fromStats)) {
+		return fromStats;
+	}
+	return null;
 }
 
 /** Checks whether the team form has been modified compared to the API data. */
@@ -294,37 +321,23 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 				</div>
 				<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
 					<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
-						{/* Stats cards skeleton — 4 on top, 3 on bottom (matches loaded state). */}
+						{/* Stats cards skeleton — same 3-column grid as loaded state (lg+). */}
 						{isDirector && (
-							<div className="flex flex-col gap-3.75">
-								<div className="flex flex-wrap items-start gap-3.75">
-									{Array.from({ length: 4 }).map((_, i) => (
-										<div
-											aria-hidden
-											className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
-											key={`stat-skeleton-top-${String(i)}`}
-										>
-											<Skeleton className="h-4 w-20" />
-											<Skeleton className="h-7 w-16" />
-										</div>
-									))}
-								</div>
-								<div className="flex flex-wrap items-start gap-3.75">
-									{Array.from({ length: 3 }).map((_, i) => (
-										<div
-											aria-hidden
-											className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
-											key={`stat-skeleton-bottom-${String(i)}`}
-										>
-											<Skeleton className="h-4 w-20" />
-											<Skeleton className="h-7 w-16" />
-										</div>
-									))}
-								</div>
+							<div className="grid w-full grid-cols-1 gap-3.75 sm:grid-cols-2 lg:grid-cols-3">
+								{Array.from({ length: 6 }).map((_, i) => (
+									<div
+										aria-hidden
+										className="relative flex flex-col items-start justify-center gap-3.75 rounded-xl bg-table-header p-3.75"
+										key={`stat-skeleton-${String(i)}`}
+									>
+										<Skeleton className="h-4 w-20" />
+										<Skeleton className="h-7 w-16" />
+									</div>
+								))}
 							</div>
 						)}
 
-						{/* Form section skeleton — Dati team with Nome and Descrizione fields */}
+						{/* Form section skeleton — Dati team: Nome, Descrizione, membri */}
 						<section
 							aria-hidden
 							className={cn(SECTION_CARD_CLASSES, isMobile && "flex-col")}
@@ -341,6 +354,10 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								<div aria-hidden className={FIELD_CONTAINER_CLASSES}>
 									<Skeleton className="h-4 w-20" />
 									<Skeleton className="h-4 w-40" />
+								</div>
+								<div aria-hidden className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
+									<Skeleton className="h-4 w-14" />
+									<Skeleton className="h-4 w-8" />
 								</div>
 							</div>
 						</section>
@@ -434,7 +451,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 							/>
 						</button>
 						<h1
-							className="min-w-0 truncate font-medium text-card-foreground text-xl tracking-tight"
+							className="min-w-0 flex-1 break-words font-medium text-card-foreground text-xl tracking-tight sm:truncate"
 							id="update-team-title"
 						>
 							Team {team.nome}
@@ -447,7 +464,8 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 							className={
 								isDirty || isSubmitting
 									? "flex shrink-0 scale-100 items-center justify-center gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out"
-									: "pointer-events-none flex shrink-0 scale-[0.98] items-center justify-center gap-2.5 opacity-0 transition-[opacity,transform] duration-200 ease-out"
+									: /* hidden: non solo opacity — altrimenti la flex riserva larghezza e il titolo va in truncate su mobile */
+										"hidden"
 							}
 						>
 							{isSubmitting ? (
@@ -489,57 +507,51 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
 				{/* Scroll container with gap-2.5 between sections — aligned with UpdateClientForm / UpdateNegotiationForm. */}
 				<div className="scroll-fade-y flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
-					{/* Stats cards — 4 on top row, 3 on bottom row (same gap and stretch as before). */}
+					{/* Stats cards — up to 3 per row on lg+; tighter columns on small screens. */}
 					{isDirector && stats && (
-						<div className="flex w-full flex-col gap-3.75">
-							<div className="flex w-full flex-wrap items-stretch gap-3.75">
-								<StatCard
-									primaryLabel="Trattative aperte"
-									primaryValue={stats.total_open_negotiations}
-									title="Trattative aperte"
-									variant="total-open"
-								/>
-								<StatCard
-									primaryLabel="Totale importo aperte"
-									primaryValue={Number(stats.total_open_amount)}
-									title="Valore pipeline"
-									variant="total-open-amount"
-								/>
-								<StatCard
-									primaryLabel="Importo medio aperte"
-									primaryValue={stats.average_open_amount}
-									title="Importo medio"
-									variant="average-open-amount"
-								/>
-								<StatCard
-									primaryLabel="Importo medio concluse"
-									primaryValue={stats.average_concluded_amount}
-									title="Importo medio concluse"
-									variant="average-concluded-amount"
-								/>
-							</div>
-							<div className="flex w-full flex-wrap items-stretch gap-3.75">
-								<StatCard
-									primaryLabel="Percentuale conclusione"
-									primaryValue={stats.conclusion_percentage}
-									title="Performance chiusura"
-									variant="conclusion-pct"
-								/>
-								<StatCard
-									primaryLabel="Giorni medi chiusura"
-									primaryValue={stats.average_closing_days}
-									title="Tempo medio chiusura"
-									variant="average-closing-days"
-								/>
-								<StatCard
-									primaryLabel="Membri effettivi"
-									primaryValue={stats.effective_members_count}
-									title="Membri effettivi"
-									variant="members"
-								/>
-							</div>
+						<div className="grid w-full grid-cols-1 gap-3.75 sm:grid-cols-2 lg:grid-cols-3">
+							<StatCard
+								primaryLabel="Trattative aperte"
+								primaryValue={stats.total_open_negotiations}
+								title="Trattative aperte"
+								variant="total-open"
+							/>
+							<StatCard
+								primaryLabel="Totale importo aperte"
+								primaryValue={Number(stats.total_open_amount)}
+								title="Valore pipeline"
+								variant="total-open-amount"
+							/>
+							<StatCard
+								primaryLabel="Importo medio aperte"
+								primaryValue={stats.average_open_amount}
+								title="Importo medio"
+								variant="average-open-amount"
+							/>
+							<StatCard
+								primaryLabel="Importo medio concluse"
+								primaryValue={stats.average_concluded_amount}
+								title="Importo medio concluse"
+								variant="average-concluded-amount"
+							/>
+							<StatCard
+								primaryLabel="Percentuale conclusione"
+								primaryValue={stats.conclusion_percentage}
+								title="Performance chiusura"
+								variant="conclusion-pct"
+							/>
+							<StatCard
+								primaryLabel="Giorni medi chiusura"
+								primaryValue={stats.average_closing_days}
+								title="Tempo medio chiusura"
+								variant="average-closing-days"
+							/>
 						</div>
 					)}
+
+					{isDirector && token ? (
+						<TeamDetailMonthlySection accessToken={token} teamId={teamId} />
+					) : null}
 
 					{/* Error banner */}
 					{error && (
@@ -641,6 +653,14 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 											value={form.description}
 										/>
 									</label>
+
+									{/* Read-only KPI field: count comes from team or stats, not editable here. */}
+									<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
+										<span className={FIELD_LABEL_TEXT_CLASSES}>membri</span>
+										<span className="flex-1 text-right font-medium text-base text-card-foreground tabular-nums">
+											{resolveEffectiveMembersCount(team, stats) ?? "—"}
+										</span>
+									</div>
 								</div>
 							</section>
 						</form>
@@ -653,16 +673,22 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								<h2 className="font-medium text-2xl">Dati team</h2>
 							</div>
 							<div className="flex w-full min-w-0 flex-col gap-2">
-								<div className={FIELD_CONTAINER_CLASSES}>
+								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
 									<span className={FIELD_LABEL_TEXT_CLASSES}>Nome</span>
 									<span className="flex-1 text-right font-medium text-base">
 										{team.nome}
 									</span>
 								</div>
-								<div className={FIELD_CONTAINER_CLASSES}>
+								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
 									<span className={FIELD_LABEL_TEXT_CLASSES}>Descrizione</span>
 									<span className="flex-1 text-right font-medium text-base text-muted-foreground">
 										{team.description?.trim() || "Nessuna descrizione"}
+									</span>
+								</div>
+								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
+									<span className={FIELD_LABEL_TEXT_CLASSES}>membri</span>
+									<span className="flex-1 text-right font-medium text-base text-card-foreground tabular-nums">
+										{resolveEffectiveMembersCount(team, null) ?? "—"}
 									</span>
 								</div>
 							</div>
@@ -1042,7 +1068,7 @@ function CreatorNode({
 				<button
 					className={`mt-1 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
 						creatorParticipates
-							? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+							? GREEN_STATUS_PILL_LIGHT_CLASSES
 							: "bg-muted text-muted-foreground"
 					} ${isToggling ? "opacity-50" : "hover:opacity-80"}`}
 					disabled={isToggling}
@@ -1266,8 +1292,7 @@ interface StatCardProps {
 		| "average-open-amount"
 		| "average-concluded-amount"
 		| "conclusion-pct"
-		| "average-closing-days"
-		| "members";
+		| "average-closing-days";
 }
 
 /**
@@ -1284,7 +1309,7 @@ function StatCard({
 	variant,
 }: StatCardProps) {
 	return (
-		<div className="stat-card-bg relative flex w-full flex-col gap-2 rounded-4xl bg-card px-7 py-7 sm:flex-1">
+		<div className="stat-card-bg relative flex w-full min-w-0 flex-col gap-2 rounded-4xl bg-card px-7 py-7">
 			{/* Decorative background icons — riusiamo le stesse icone delle altre sezioni (clienti, trattative). */}
 			{variant === "total-open" && (
 				<div
@@ -1355,19 +1380,6 @@ function StatCard({
 					<IconQuickstartFill18
 						aria-hidden="true"
 						className="text-emerald-500 dark:text-emerald-300"
-						size={96}
-					/>
-				</div>
-			)}
-			{variant === "members" && (
-				<div
-					aria-hidden="true"
-					className="pointer-events-none absolute right-2 bottom-2 opacity-[0.18] dark:opacity-[0.22]"
-				>
-					{/* Icona condivisa con la sezione Clienti per rappresentare persone/membri. */}
-					<IconPeople
-						aria-hidden="true"
-						className="text-sky-500 dark:text-sky-300"
 						size={96}
 					/>
 				</div>
