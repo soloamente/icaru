@@ -186,6 +186,44 @@ const MOBILE_PILL_MIN_PX = 5;
 /** Altezza area grafico colonne mensili su mobile (stessa baseline delle card dual-series). */
 const MOBILE_CHART_COLUMN_PX = 160;
 
+/** Rimuove ".0" finale nelle etichette compatte milioni (es. "1.0M" → "1M"). */
+const TRIM_TRAILING_ZERO_DECIMAL = /\.0$/;
+
+/** Chiavi stabili per i quattro tick scala Y (evita key={index}). */
+const MOBILE_Y_AXIS_TICK_KEYS = ["max", "mid-high", "mid-low", "zero"] as const;
+
+/** Quattro tick da max a 0 per la colonna fissa a sinistra (scroll orizzontale solo sulle colonne mese). */
+function getMobileYAxisTicks(yMax: number, integerScale: boolean): number[] {
+	const safe = yMax > 0 ? yMax : 1;
+	const raw: number[] = [safe, (safe * 2) / 3, safe / 3, 0];
+	if (integerScale) {
+		return raw.map((v, i) => (i === raw.length - 1 ? 0 : Math.round(v)));
+	}
+	return raw;
+}
+
+/** Etichette corte nella colonna scala (`w-fit` sul contenitore): k/M € per importi, interi per conteggi. */
+function formatMobileYAxisLabel(
+	value: number,
+	integerScale: boolean,
+	formatValue: (v: number) => string
+): string {
+	if (integerScale) {
+		return String(Math.round(value));
+	}
+	if (value === 0) {
+		return formatValue(0);
+	}
+	const abs = Math.abs(value);
+	if (abs >= 1_000_000) {
+		return `${(value / 1_000_000).toFixed(1).replace(TRIM_TRAILING_ZERO_DECIMAL, "")}M €`;
+	}
+	if (abs >= 1000) {
+		return `${(value / 1000).toFixed(0)}k €`;
+	}
+	return formatValue(value);
+}
+
 /** Titolo drawer: nome mese esteso in italiano + contesto anno / Storico. */
 function formatMonthDrawerTitle(month: number, yearCaption: string): string {
 	const raw = new Intl.DateTimeFormat("it-IT", { month: "long" }).format(
@@ -208,6 +246,7 @@ export function MobileMonthlySingleSeriesColumns({
 	sheetDescription,
 	yearCaption,
 	yMax,
+	integerScale = false,
 }: {
 	barColor: string;
 	chartData: MonthlyChartDatum[];
@@ -218,6 +257,8 @@ export function MobileMonthlySingleSeriesColumns({
 	sheetDescription: string;
 	yearCaption: string;
 	yMax: number;
+	/** true = assi con numeri interi (conteggi trattative); false = importi EUR. */
+	integerScale?: boolean;
 }) {
 	const [sheetDatum, setSheetDatum] = useState<MonthlyChartDatum | null>(null);
 
@@ -242,53 +283,74 @@ export function MobileMonthlySingleSeriesColumns({
 	};
 
 	const safeYMax = yMax > 0 ? yMax : 1;
+	const yTicks = getMobileYAxisTicks(safeYMax, integerScale);
 
 	return (
 		<>
-			<ul className="scroll-fade-x flex w-full min-w-0 touch-pan-x list-none gap-1 overflow-x-auto overflow-y-hidden p-0 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-				{chartData.map((d) => {
-					const value = getValue(d);
-					const label = d.monthLabel.toUpperCase();
-					const pct =
-						value > 0
-							? Math.max(
-									(value / safeYMax) * 100,
-									(MOBILE_PILL_MIN_PX / MOBILE_CHART_COLUMN_PX) * 100
-								)
-							: 0;
-					const aria = `${label}: ${seriesLabel} ${formatValue(value)}. Tocca per i dettagli.`;
-					return (
-						<li className="shrink-0 list-none" key={d.month}>
-							<button
-								aria-label={aria}
-								className="flex min-h-[44px] min-w-[44px] touch-manipulation flex-col items-center gap-0.5 rounded-lg py-1 [-webkit-tap-highlight-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								onClick={() => handleMonthActivate(d.month)}
-								type="button"
-							>
-								<div
-									className="flex w-6 flex-col justify-end"
-									style={{ height: MOBILE_CHART_COLUMN_PX }}
+			{/*
+			 * Colonna sinistra fissa con riferimento scala (max → 0); il contenitore a destra
+			 * scrolla in orizzontale così le etichette restano visibili durante lo scroll.
+			 */}
+			<div className="flex w-full min-w-0 items-center gap-1.5">
+				<div
+					aria-hidden
+					className="flex h-full w-fit shrink-0 flex-col justify-between border-border/50 border-r pr-1.5 pl-2 text-right"
+					style={{ height: MOBILE_CHART_COLUMN_PX }}
+				>
+					{yTicks.map((tick, tickIndex) => (
+						<span
+							className="block whitespace-nowrap text-[9px] text-muted-foreground tabular-nums leading-none"
+							key={MOBILE_Y_AXIS_TICK_KEYS[tickIndex] ?? `tick-${String(tick)}`}
+						>
+							{formatMobileYAxisLabel(tick, integerScale, formatValue)}
+						</span>
+					))}
+				</div>
+				<ul className="scroll-fade-x flex min-w-0 flex-1 touch-pan-x list-none gap-1 overflow-x-auto overflow-y-hidden p-0 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+					{chartData.map((d) => {
+						const value = getValue(d);
+						const label = d.monthLabel.toUpperCase();
+						const pct =
+							value > 0
+								? Math.max(
+										(value / safeYMax) * 100,
+										(MOBILE_PILL_MIN_PX / MOBILE_CHART_COLUMN_PX) * 100
+									)
+								: 0;
+						const aria = `${label}: ${seriesLabel} ${formatValue(value)}. Tocca per i dettagli.`;
+						return (
+							<li className="shrink-0 list-none" key={d.month}>
+								<button
+									aria-label={aria}
+									className="flex min-h-[44px] min-w-[44px] touch-manipulation flex-col items-center gap-0.5 rounded-lg py-1 [-webkit-tap-highlight-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									onClick={() => handleMonthActivate(d.month)}
+									type="button"
 								>
-									{value > 0 ? (
-										<div
-											aria-hidden
-											className="w-full rounded-md opacity-85"
-											style={{
-												backgroundColor: barColor,
-												minHeight: MOBILE_PILL_MIN_PX,
-												height: `${pct}%`,
-											}}
-										/>
-									) : null}
-								</div>
-								<span className="w-6 shrink-0 text-center font-medium text-[9px] text-card-foreground uppercase leading-tight tracking-tighter">
-									{label}
-								</span>
-							</button>
-						</li>
-					);
-				})}
-			</ul>
+									<div
+										className="flex w-6 flex-col justify-end"
+										style={{ height: MOBILE_CHART_COLUMN_PX }}
+									>
+										{value > 0 ? (
+											<div
+												aria-hidden
+												className="w-full rounded-md opacity-85"
+												style={{
+													backgroundColor: barColor,
+													minHeight: MOBILE_PILL_MIN_PX,
+													height: `${pct}%`,
+												}}
+											/>
+										) : null}
+									</div>
+									<span className="w-6 shrink-0 text-center font-medium text-[9px] text-card-foreground uppercase leading-tight tracking-tighter">
+										{label}
+									</span>
+								</button>
+							</li>
+						);
+					})}
+				</ul>
+			</div>
 
 			<Drawer.Root
 				onOpenChange={handleDrawerOpenChange}
@@ -666,6 +728,7 @@ export function StatisticheMonthlyCharts({
 								chartData={chartData}
 								formatValue={(v) => String(v)}
 								getValue={(row) => row.open_count}
+								integerScale
 								seriesLabel="Numero aperte"
 								sheetDescription="Numero di trattative aperte nel mese selezionato."
 								yearCaption={yearCaption}
@@ -683,6 +746,7 @@ export function StatisticheMonthlyCharts({
 								chartData={chartData}
 								formatValue={(v) => String(v)}
 								getValue={(row) => row.concluded_count}
+								integerScale
 								seriesLabel="Numero chiuse"
 								sheetDescription="Numero di trattative concluse nel mese selezionato."
 								yearCaption={yearCaption}

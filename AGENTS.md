@@ -136,7 +136,8 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Team member map: zoom first, then click to open detail dialog (same as clients map)
 - Table sections: title on row 1, filters plus search bar on row 2 with `justify-between` (like trattative page)
 - Editable row icons (pen, envelope): show on detail pages only, not in dialogs
-- Default light theme (non-dataweb): adjust neutral gray tokens in `globals.css` `:root` (keep `--table-header` darker than `--card` so `bg-table-header` rows and chips read inside `bg-card` panels); rich/dataweb uses `[data-color-scheme="rich"]` and `.dark`—change the matching block for that mode
+- Default light theme (non-dataweb): adjust neutral gray tokens in `globals.css` `:root` (keep `--table-header` darker than `--card` so `bg-table-header` rows and chips read inside `bg-card` panels; use `bg-table-header-readonly` / `--table-header-readonly` for read-only field rows so they read softer than editable `bg-table-header` chips); rich/dataweb uses `[data-color-scheme="rich"]` and `.dark`—change the matching block for that mode
+- Mobile left/right overlay sidebar: close the menu after navigating via sidebar links or the logo so the new page is not covered on narrow viewports
 
 ## Learned Workspace Facts
 
