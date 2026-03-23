@@ -243,6 +243,13 @@ export default function Sidebar({
 	const sidebarOpen = useSidebarOpen();
 	const isHorizontal = variant === "top" || variant === "bottom";
 
+	/** Chiude la sidebar overlay su mobile dopo una scelta di destinazione (link, logo, ecc.). */
+	function closeMobileSidebarIfOpen() {
+		if (sidebarOpen?.isMobile && sidebarOpen.isOpen) {
+			sidebarOpen.setOpen(false);
+		}
+	}
+
 	/**
 	 * Gestisce il click su un link di navigazione dell'app (Dashboard, Clienti, Trattative, ecc.)
 	 * tenendo conto di eventuali modifiche non salvate in pagine di edit.
@@ -250,6 +257,7 @@ export default function Sidebar({
 	 * - Se esiste un listener registrato (pagina di edit aperta) → delega a lui la decisione:
 	 *   apre il dialog "Modifiche non salvate" oppure naviga direttamente.
 	 * - Se non esiste alcun listener → il click procede normalmente (Link/router gestiscono la nav).
+	 * In entrambi i casi, su mobile chiudiamo la sidebar così non resta sopra alla nuova pagina.
 	 */
 	function handleAppNavClick(
 		event: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
@@ -257,17 +265,14 @@ export default function Sidebar({
 	) {
 		const handled = requestUnsavedNavigation(href);
 		if (!handled) {
-			// Nessun listener registrato: lasciamo che sia Next Link a gestire la navigazione.
+			// Nessun listener: Next Link naviga — chiudiamo comunque il menu mobile (prima era solo nel ramo handled).
+			closeMobileSidebarIfOpen();
 			return;
 		}
 		// La richiesta è stata gestita dal listener (dialog o navigazione esplicita):
 		// blocchiamo la navigazione predefinita del Link per evitare doppi push.
 		event.preventDefault();
-		// Se siamo in modalità sidebar mobile e la sidebar è aperta, chiudiamola dopo il click
-		// così da non lasciare il menu aperto sopra la nuova pagina.
-		if (sidebarOpen?.isMobile && sidebarOpen.isOpen) {
-			sidebarOpen.setOpen(false);
-		}
+		closeMobileSidebarIfOpen();
 	}
 
 	// Horizontal bar (top or bottom): single row, compact nav with Trattative as dropdown
@@ -506,6 +511,7 @@ export default function Sidebar({
 						aria-label="Vai alla home"
 						className="flex min-w-0 shrink-0 items-center"
 						href="/dashboard"
+						onClick={(event) => handleAppNavClick(event, "/dashboard")}
 					>
 						<Image
 							alt="Logo Positivo"
