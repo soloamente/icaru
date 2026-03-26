@@ -184,6 +184,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - [ ] `/team/[id]/members/[memberId]` refinement: filtri pill (data/SPANCO/stato + search pill) con `bg-card` in light e dark. **In attesa di validazione manuale**.
 - [ ] `/team/[id]/members/[memberId]` refinement: rimuovere la shadow non necessaria dal surface della search pill ("SegmentViewNode" feedback). **In attesa di validazione manuale**.
 - [ ] `/team/[id]/members/[memberId]` refinement: spostare il conteggio “trattative trovate” sulla stessa riga del titolo (allineato a destra) come richiesto dal feedback. **In attesa di validazione manuale**.
+- [ ] Fix mobile `/trattative/tutte` dialog "Nuova trattativa": dropdown `Spanco` deve ricevere correttamente i tap sopra i campi sottostanti (portal dentro Drawer). **Implementato, in attesa di validazione manuale utente.**
 
 ## Executor's Feedback or Assistance Requests
 
@@ -291,6 +292,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - **Fix pill bg filter (DateRangeFilter):** in `DateRangeFilter` ho reso esplicito `bg-card` anche sul `Popover.Trigger` quando `variant="table"`, così la pill dei filtri data apertura/chiusura appare con lo stesso background degli altri filtri in tabella.
 
 - **Fix pill bg filter (DateRangeFilter, override):** se Base UI manteneva `bg-transparent` sul trigger, ho cambiato la logica del background della `Popover.Trigger` in modo deterministico: in `variant="table"` forza `bg-card!` (important) così il trigger risulta pienamente visivo.
+- Ho corretto il bug mobile segnalato su `/trattative/tutte` nel dialog "Nuova trattativa": il dropdown `Spanco` apriva una lista che non intercettava i tap e quindi i click finivano sui campi sotto (es. note). Causa: `Select.Portal` del campo `Spanco` andava su `body` invece che nel contenitore Vaul del Drawer. Fix: ora usa `container={selectPortalContainer ?? undefined}` (stesso pattern già usato nel select `Cliente`), così la lista resta nello stesso stacking context del Drawer e le opzioni sono cliccabili correttamente su telefono. Chiedo verifica manuale su mobile aprendo il dialog e selezionando una fase SPANCO.
 
 ## Lessons
 

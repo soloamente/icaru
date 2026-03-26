@@ -947,7 +947,9 @@ export function CreateNegotiationDialog({
 									<ChevronDown className="size-4" />
 								</Select.Icon>
 							</Select.Trigger>
-							<Select.Portal>
+							{/* On mobile Drawer, portal into the drawer content so taps hit
+								the dropdown options instead of the underlying form fields. */}
+							<Select.Portal container={selectPortalContainer ?? undefined}>
 								<Select.Positioner
 									alignItemWithTrigger={false}
 									className="z-100 max-h-80 min-w-32 rounded-2xl text-popover-foreground shadow-xl"
