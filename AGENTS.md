@@ -129,8 +129,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Hover on card/panel surfaces in dataweb light: use `hover:text-card-foreground` (not `hover:text-foreground`)
 - Dataweb light: form inputs on cards/panels use `bg-input` (not `bg-background`) so fields stay readable and distinct from the card/dialog surface
 - Dialog close buttons: use `bg-table-header`, `text-card-foreground`, `hover:bg-table-hover` to match input fields
-- Stat card values on `bg-card`: use `text-card-foreground` for contrast in dataweb light
-- Empty state text: use `text-card-foreground` (heading) and `text-card-foreground/80` (subtitle)
+- Stat card values on `bg-card` and empty state headings: use `text-card-foreground` for contrast in dataweb light; empty state subtitles use `text-card-foreground/80`
 - "Aperta" status pill: use `bg-sky-200` when on azzurrino/table-header backgrounds in dataweb light
 - Pass only numeric values to AnimateNumber; formatted strings cause NaN
 - Team member map: zoom first, then click to open detail dialog (same as clients map)
@@ -146,7 +145,9 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - framer-motion: do not use `motion/react`; use package-specific import paths
 - Dataweb dark theme: define `--popover`, `--muted`, `--accent`, `--accent-foreground` for dropdowns and avatar fallbacks to match theme
 - Tooltips inside scroll-fade-y or masked containers: use Tooltip with FloatingPortal to avoid clipping
-- Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks
+- Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks; keep a fixed left Y-axis rail so scale labels stay visible while the month row scrolls horizontally
+- Statistiche page layout: negotiations map → monthly charts → SPANCO donut; below `md` (768px) the monthly block is four stacked single-series charts in order: importo aperte, importo chiuse, numero aperte, numero chiuse; at `md+` use the two dual-series chart grids
+- Negotiations map filter panel on statistiche: use `stat-card-bg` with `bg-stat-card` to match monthly stat cards (avoid relying on `bg-background` alone in dataweb light)
 - Root `main` on mobile-heavy routes often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
 - Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight
 - `update-negotiation-form.tsx`: label and value stack on mobile (`flex-col md:flex-row`); read-only row values use `truncate` when ellipsis is preferred over wrapping

@@ -13,6 +13,7 @@ import {
 import {
 	Bar,
 	BarChart,
+	LabelList,
 	ResponsiveContainer,
 	Tooltip,
 	XAxis,
@@ -224,6 +225,21 @@ function formatMobileYAxisLabel(
 	return formatValue(value);
 }
 
+/** Formatter asse Y desktop per importi: mostra k€ per migliorare la leggibilita'. */
+function formatDesktopAmountAxisLabel(value: number): string {
+	if (value === 0) {
+		return "0€";
+	}
+	const abs = Math.abs(value);
+	if (abs >= 1_000_000) {
+		return `${(value / 1_000_000).toFixed(1).replace(TRIM_TRAILING_ZERO_DECIMAL, "")}M€`;
+	}
+	if (abs >= 1000) {
+		return `${(value / 1000).toFixed(0)}k€`;
+	}
+	return `${Math.round(value)}€`;
+}
+
 /** Titolo drawer: nome mese esteso in italiano + contesto anno / Storico. */
 function formatMonthDrawerTitle(month: number, yearCaption: string): string {
 	const raw = new Intl.DateTimeFormat("it-IT", { month: "long" }).format(
@@ -332,14 +348,28 @@ export function MobileMonthlySingleSeriesColumns({
 									>
 										{value > 0 ? (
 											<div
-												aria-hidden
-												className="w-full rounded-md opacity-85"
+												className="relative w-full"
 												style={{
-													backgroundColor: barColor,
-													minHeight: MOBILE_PILL_MIN_PX,
 													height: `${pct}%`,
+													minHeight: MOBILE_PILL_MIN_PX,
 												}}
-											/>
+											>
+												<div
+													aria-hidden
+													className="w-full rounded-md opacity-85"
+													style={{
+														backgroundColor: barColor,
+														height: "100%",
+													}}
+												/>
+												<span className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap font-semibold text-[9px] text-card-foreground tabular-nums leading-none">
+													{formatMobileYAxisLabel(
+														value,
+														integerScale,
+														formatValue
+													)}
+												</span>
+											</div>
 										) : null}
 									</div>
 									<span className="w-6 shrink-0 text-center font-medium text-[9px] text-card-foreground uppercase leading-tight tracking-tighter">
@@ -777,11 +807,13 @@ export function StatisticheMonthlyCharts({
 										tickLine={false}
 									/>
 									<YAxis
-										hide
-										tickFormatter={(v) =>
-											v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+										axisLine={false}
+										tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+										tickFormatter={(value) =>
+											formatDesktopAmountAxisLabel(Number(value))
 										}
-										width={0}
+										tickLine={false}
+										width={44}
 									/>
 									<Tooltip
 										content={(props) =>
@@ -807,14 +839,32 @@ export function StatisticheMonthlyCharts({
 										fillOpacity={0.85}
 										name="Aperte"
 										radius={[8, 8, 8, 8]}
-									/>
+									>
+										<LabelList
+											className="font-semibold text-[10px] text-card-foreground tabular-nums"
+											dataKey="open_amount"
+											formatter={(value: number) =>
+												formatDesktopAmountAxisLabel(value)
+											}
+											position="top"
+										/>
+									</Bar>
 									<Bar
 										dataKey="concluded_amount"
 										fill={SERIE_CONCLUSE_FILL}
 										fillOpacity={0.85}
 										name="Concluse"
 										radius={[8, 8, 8, 8]}
-									/>
+									>
+										<LabelList
+											className="font-semibold text-[10px] text-card-foreground tabular-nums"
+											dataKey="concluded_amount"
+											formatter={(value: number) =>
+												formatDesktopAmountAxisLabel(value)
+											}
+											position="top"
+										/>
+									</Bar>
 								</BarChart>
 							</ResponsiveContainer>
 						</div>
@@ -838,7 +888,13 @@ export function StatisticheMonthlyCharts({
 										tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
 										tickLine={false}
 									/>
-									<YAxis hide width={0} />
+									<YAxis
+										axisLine={false}
+										tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+										tickFormatter={(value) => String(Math.round(Number(value)))}
+										tickLine={false}
+										width={38}
+									/>
 									<Tooltip
 										content={(props) =>
 											props.active && props.payload?.length ? (
@@ -863,14 +919,28 @@ export function StatisticheMonthlyCharts({
 										fillOpacity={0.85}
 										name="Aperte"
 										radius={[8, 8, 8, 8]}
-									/>
+									>
+										<LabelList
+											className="font-semibold text-[10px] text-card-foreground tabular-nums"
+											dataKey="open_count"
+											formatter={(value: number) => String(Math.round(value))}
+											position="top"
+										/>
+									</Bar>
 									<Bar
 										dataKey="concluded_count"
 										fill={SERIE_CONCLUSE_FILL}
 										fillOpacity={0.85}
 										name="Concluse"
 										radius={[8, 8, 8, 8]}
-									/>
+									>
+										<LabelList
+											className="font-semibold text-[10px] text-card-foreground tabular-nums"
+											dataKey="concluded_count"
+											formatter={(value: number) => String(Math.round(value))}
+											position="top"
+										/>
+									</Bar>
 								</BarChart>
 							</ResponsiveContainer>
 						</div>

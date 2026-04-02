@@ -116,7 +116,7 @@ export default function StatistichePage() {
 		>
 			{/* Header: titolo + Esporta Mappa sulla stessa riga da sm+ (come Team / Crea team). */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
-				<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
+				<h1 className="main-page-title flex items-center justify-center gap-3.5 text-card-foreground sm:justify-start">
 					{/* Stessa scala delle icone Esporta (size-4) sulla stessa pagina. */}
 					<IconChartBarTrendUp aria-hidden className="size-4 shrink-0" />
 					<span>Statistiche</span>

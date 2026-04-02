@@ -28,6 +28,15 @@ interface SpancoChartDatum {
 	color: string;
 }
 
+interface SpancoSliceLabelProps {
+	cx?: number;
+	cy?: number;
+	innerRadius?: number;
+	outerRadius?: number;
+	midAngle?: number;
+	value?: number | string;
+}
+
 /**
  * Colori SPANCO allineati alle pill della tabella trattative (trattative-table.tsx:
  * SPANCO_STAGE_COLORS). Stesso ordine e stessi valori main per coerenza visiva.
@@ -77,6 +86,51 @@ function computeTotal(stats: SpancoStatistics | null): number {
 		(accumulator: number, value: number | undefined) =>
 			accumulator + (value ?? 0),
 		0
+	);
+}
+
+/**
+ * Rende il valore direttamente sul segmento del donut.
+ * Posizioniamo il testo a meta' spessore dell'anello per mantenere le label leggibili.
+ */
+function renderSpancoSliceLabel({
+	cx,
+	cy,
+	innerRadius,
+	outerRadius,
+	midAngle,
+	value,
+}: SpancoSliceLabelProps): ReactNode | null {
+	if (
+		typeof cx !== "number" ||
+		typeof cy !== "number" ||
+		typeof innerRadius !== "number" ||
+		typeof outerRadius !== "number" ||
+		typeof midAngle !== "number" ||
+		typeof value !== "number" ||
+		value <= 0
+	) {
+		return null;
+	}
+
+	// Coordinate polari -> cartesiane per centrare la label nel segmento.
+	const labelRadius = innerRadius + (outerRadius - innerRadius) * 0.58;
+	const x = cx + labelRadius * Math.cos((-midAngle * Math.PI) / 180);
+	const y = cy + labelRadius * Math.sin((-midAngle * Math.PI) / 180);
+
+	return (
+		<text
+			className="pointer-events-none select-none"
+			dominantBaseline="central"
+			fill="var(--card-foreground)"
+			fontSize={14}
+			fontWeight={700}
+			textAnchor="middle"
+			x={x}
+			y={y}
+		>
+			{value}
+		</text>
 	);
 }
 
@@ -261,7 +315,10 @@ export function SpancoDonutChart({
 							data={chartData}
 							dataKey="value"
 							innerRadius="75%"
-							isAnimationActive
+							/* Evita il ritardo delle label sui segmenti: i numeri appaiono subito al primo render. */
+							isAnimationActive={false}
+							label={renderSpancoSliceLabel}
+							labelLine={false}
 							nameKey="stage"
 							outerRadius="95%"
 							paddingAngle={10}

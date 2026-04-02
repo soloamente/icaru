@@ -283,7 +283,7 @@ export default function DashboardPage() {
 			{/* Header */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					<h1 className="flex items-center justify-center gap-3.5">
+					<h1 className="main-page-title flex items-center justify-center gap-3.5 text-card-foreground">
 						<DashboardIcon aria-hidden="true" size={24} />
 						<span>Dashboard</span>
 					</h1>

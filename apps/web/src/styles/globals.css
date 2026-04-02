@@ -647,6 +647,19 @@ html[data-font-size="large"] {
 	font-size: 112.5%;
 }
 
+/*
+ * Titoli pagina su superfici `bg-card` (Dashboard, Statistiche, …): leggermente più grandi del default h1.
+ * `rem` segue la preferenza font-size su `html`; il termine in px aggiunge ~3px (4px se preferenza large).
+ */
+.main-page-title {
+	font-size: calc(2rem + 3px);
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+}
+html[data-font-size="large"] .main-page-title {
+	font-size: calc(2rem + 4px);
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
