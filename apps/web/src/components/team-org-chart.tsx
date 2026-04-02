@@ -572,7 +572,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								className={sectionCardClasses}
 							>
 								<div className="flex w-full min-w-0">
-									<h2 className="font-medium text-2xl" id="team-info-heading">
+									<h2 className="font-medium text-xl" id="team-info-heading">
 										Dati team
 									</h2>
 								</div>
@@ -670,7 +670,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 					{!isDirector && (
 						<section className={sectionCardClasses}>
 							<div className="flex w-full min-w-0">
-								<h2 className="font-medium text-2xl">Dati team</h2>
+								<h2 className="font-medium text-xl">Dati team</h2>
 							</div>
 							<div className="flex w-full min-w-0 flex-col gap-2">
 								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>

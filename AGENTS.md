@@ -147,6 +147,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Tooltips inside scroll-fade-y or masked containers: use Tooltip with FloatingPortal to avoid clipping
 - Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks; keep a fixed left Y-axis rail so scale labels stay visible while the month row scrolls horizontally
 - Statistiche page layout: negotiations map → monthly charts → SPANCO donut; below `md` (768px) the monthly block is four stacked single-series charts in order: importo aperte, importo chiuse, numero aperte, numero chiuse; at `md+` use the two dual-series chart grids
+- Dashboard and Statistiche main page titles: do not use a global “hero” `main-page-title` class on the `h1`; use plain heading styling (inherits body scale) so titles stay modest and consistent across both pages
 - Negotiations map filter panel on statistiche: use `stat-card-bg` with `bg-stat-card` to match monthly stat cards (avoid relying on `bg-background` alone in dataweb light)
 - Root `main` on mobile-heavy routes often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
 - Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight

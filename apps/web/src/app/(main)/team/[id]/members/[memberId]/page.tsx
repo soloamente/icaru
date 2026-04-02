@@ -676,7 +676,7 @@ export default function TeamMemberSupervisionPage() {
 					>
 						{/* Row 1: title + count on the same line (right aligned) */}
 						<div className="flex w-full items-center justify-between gap-4">
-							<h2 className="font-medium text-2xl">Trattative del venditore</h2>
+							<h2 className="font-medium text-xl">Trattative del venditore</h2>
 							{!isNegotiationsLoading && negotiations.length > 0 && (
 								<span className="shrink-0 text-muted-foreground text-sm">
 									<AnimateNumber className="tabular-nums">
