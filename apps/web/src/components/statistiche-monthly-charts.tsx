@@ -843,8 +843,8 @@ export function StatisticheMonthlyCharts({
 										<LabelList
 											className="font-semibold text-[10px] text-card-foreground tabular-nums"
 											dataKey="open_amount"
-											formatter={(value: number) =>
-												formatDesktopAmountAxisLabel(value)
+											formatter={(value) =>
+												formatDesktopAmountAxisLabel(Number(value ?? 0))
 											}
 											position="top"
 										/>
@@ -859,8 +859,8 @@ export function StatisticheMonthlyCharts({
 										<LabelList
 											className="font-semibold text-[10px] text-card-foreground tabular-nums"
 											dataKey="concluded_amount"
-											formatter={(value: number) =>
-												formatDesktopAmountAxisLabel(value)
+											formatter={(value) =>
+												formatDesktopAmountAxisLabel(Number(value ?? 0))
 											}
 											position="top"
 										/>
@@ -923,7 +923,9 @@ export function StatisticheMonthlyCharts({
 										<LabelList
 											className="font-semibold text-[10px] text-card-foreground tabular-nums"
 											dataKey="open_count"
-											formatter={(value: number) => String(Math.round(value))}
+											formatter={(value) =>
+												String(Math.round(Number(value ?? 0)))
+											}
 											position="top"
 										/>
 									</Bar>
@@ -937,7 +939,9 @@ export function StatisticheMonthlyCharts({
 										<LabelList
 											className="font-semibold text-[10px] text-card-foreground tabular-nums"
 											dataKey="concluded_count"
-											formatter={(value: number) => String(Math.round(value))}
+											formatter={(value) =>
+												String(Math.round(Number(value ?? 0)))
+											}
 											position="top"
 										/>
 									</Bar>
