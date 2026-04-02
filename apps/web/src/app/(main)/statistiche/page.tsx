@@ -115,9 +115,9 @@ export default function StatistichePage() {
 			data-statistiche
 		>
 			{/* Header: titolo + Esporta Mappa sulla stessa riga da sm+ (come Team / Crea team).
-			    Nessun `main-page-title` (stesso pattern della Dashboard): titolo alla scala del body, non hero 2rem+. */}
+			    Titolo leggermente piu grande con scala rem (rispetta le preferenze font-size globali). */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
-				<h1 className="flex items-center justify-center gap-3.5 text-card-foreground sm:justify-start">
+				<h1 className="flex items-center justify-center gap-3.5 text-card-foreground text-xl sm:justify-start">
 					{/* Stessa scala delle icone Esporta (size-4) sulla stessa pagina. */}
 					<IconChartBarTrendUp aria-hidden className="size-4 shrink-0" />
 					<span>Statistiche</span>

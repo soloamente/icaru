@@ -280,10 +280,10 @@ export default function DashboardPage() {
 			className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pt-6 pb-10 font-medium"
 			data-dashboard
 		>
-			{/* Header: titolo senza `main-page-title` (stesso pattern di Statistiche — scala tipografica del body, non h1 “hero”). */}
+			{/* Header: titolo leggermente piu grande con scala rem (rispetta le preferenze font-size globali). */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					<h1 className="flex items-center justify-center gap-3.5 text-card-foreground">
+					<h1 className="flex items-center justify-center gap-3.5 text-card-foreground text-xl">
 						<DashboardIcon aria-hidden="true" size={24} />
 						<span>Dashboard</span>
 					</h1>

@@ -298,6 +298,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - In seguito al feedback su `/statistiche` desktop (“titolo troppo grande”), ho ridotto la scala globale di `.main-page-title` in `globals.css` da `calc(2rem + 3px)` a `calc(2rem + 1px)` e per preferenza `large` da `calc(2rem + 4px)` a `calc(2rem + 2px)`, mantenendo comunque un incremento lieve rispetto al default.
 - Ulteriore riduzione dopo nuovo feedback (“ancora troppo grande”): `.main-page-title` è stato allineato al default `2rem`, con solo micro-incremento in preferenza `large` (`calc(2rem + 1px)`), per mantenere gerarchia senza effetto oversize.
 - Executor update (feedback: Statistiche e Dashboard con titoli uguali / “non era così all’inizio”): verificato il primo commit della pagina Statistiche (`77de0ac`): l’`h1` **non** usava `main-page-title`, solo layout flex. Rimosso `main-page-title` da `statistiche/page.tsx` e ripristinato `.main-page-title` in `globals.css` come su `origin/main` (`calc(2rem + 3px)` / `calc(2rem + 4px)` large) per la Dashboard sola.
+- Executor update (nuovo feedback: "make all the titles a bit bigger, based on text scale preferences"): ho aumentato leggermente i titoli `h1` di `/dashboard` e `/statistiche` aggiungendo `text-xl` direttamente alle classi dei due header. L'aumento e basato su `rem`, quindi segue automaticamente le preferenze di scala testo (`html[data-font-size]`).
 
 ## Lessons
 
