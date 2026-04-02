@@ -322,7 +322,7 @@ export function MobileMonthlySingleSeriesColumns({
 						</span>
 					))}
 				</div>
-				<ul className="scroll-fade-x flex min-w-0 flex-1 touch-pan-x list-none gap-1 overflow-x-auto overflow-y-hidden p-0 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+				<ul className="scroll-fade-x flex min-w-0 flex-1 touch-pan-x list-none gap-1 overflow-x-auto overflow-y-visible p-0 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 					{chartData.map((d) => {
 						const value = getValue(d);
 						const label = d.monthLabel.toUpperCase();

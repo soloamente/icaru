@@ -293,12 +293,14 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 
 - **Fix pill bg filter (DateRangeFilter, override):** se Base UI manteneva `bg-transparent` sul trigger, ho cambiato la logica del background della `Popover.Trigger` in modo deterministico: in `variant="table"` forza `bg-card!` (important) così il trigger risulta pienamente visivo.
 - Ho corretto il bug mobile segnalato su `/trattative/tutte` nel dialog "Nuova trattativa": il dropdown `Spanco` apriva una lista che non intercettava i tap e quindi i click finivano sui campi sotto (es. note). Causa: `Select.Portal` del campo `Spanco` andava su `body` invece che nel contenitore Vaul del Drawer. Fix: ora usa `container={selectPortalContainer ?? undefined}` (stesso pattern già usato nel select `Cliente`), così la lista resta nello stesso stacking context del Drawer e le opzioni sono cliccabili correttamente su telefono. Chiedo verifica manuale su mobile aprendo il dialog e selezionando una fase SPANCO.
+- Ho applicato la fix al feedback UI su `/statistiche` mobile (viewport ~423px): nel componente condiviso `MobileMonthlySingleSeriesColumns` (`statistiche-monthly-charts.tsx`) il contenitore orizzontale delle colonne usava `overflow-y-hidden`, che tagliava la label numerica posizionata sopra la barra (`absolute -top-*`). Ho cambiato a `overflow-y-visible` mantenendo `overflow-x-auto`, così le etichette in cima alle barre non vengono più clippate. Chiedo verifica manuale su `/statistiche` mobile per confermare che il valore sopra le colonne resti interamente visibile.
 
 ## Lessons
 
 - Quando si lavora con token come `primary-foreground`, usare invece i token specifici della sezione (es. `sidebar-*`) per evitare problemi di contrasto quando lo sfondo non è quello "primary".
  - Evitare dipendenze locali `.tgz` non versionate in un monorepo destinato a Vercel; preferire pacchetti pubblicati su npm (o repository privati configurati esplicitamente) così che l'install in CI non dipenda da file presenti solo in locale.
  - **Export file da API Laravel:** usare `fetch` con `Authorization` + `Accept: */*`, `res.blob()`, nome file da `Content-Disposition` (regex top-level per Biome). Funzioni dedicata in `client.ts` (`download*`) che chiamano `URL.createObjectURL` + `<a download>`.
+- Nei grafici mobile a colonne con etichetta valore assoluta sopra la barra, evitare `overflow-y-hidden` sul contenitore scrollabile orizzontale (`ul`): causa clipping del testo in alto sulle colonne più alte.
 
 ---
 
@@ -316,4 +318,5 @@ Implementato wiring frontend per export Excel/PDF/HTML e grafici mensili team co
 
 - [x] Export trattative + statistiche + team monthly (codice)
 - [ ] Verifica umana QA su staging/produzione API
+- [ ] Fix UI mobile `/statistiche`: evitare clipping in alto delle etichette valore nei grafici mensili a colonna singola. **Implementato, in attesa di validazione manuale utente.**
 
