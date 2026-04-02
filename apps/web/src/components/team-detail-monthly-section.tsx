@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	Bar,
 	BarChart,
+	LabelList,
 	ResponsiveContainer,
 	Tooltip,
 	XAxis,
@@ -22,6 +23,7 @@ import {
 import {
 	BAR_CHART_TOOLTIP_CURSOR,
 	ChartTooltipContent,
+	formatDesktopAmountAxisLabel,
 	MobileMonthlySingleSeriesColumns,
 	type MonthlyChartDatum,
 } from "@/components/statistiche-monthly-charts";
@@ -335,7 +337,12 @@ export function TeamDetailMonthlySection({
 			>
 				<Skeleton className="h-8 w-48" />
 				<Skeleton className="h-10 w-full max-w-md" />
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="flex flex-col gap-4 md:hidden">
+					{[1, 2, 3, 4].map((key) => (
+						<Skeleton className="h-[220px] rounded-2xl" key={key} />
+					))}
+				</div>
+				<div className="hidden grid-cols-2 gap-4 md:grid">
 					<Skeleton className="h-[280px] rounded-2xl" />
 					<Skeleton className="h-[280px] rounded-2xl" />
 				</div>
@@ -731,61 +738,71 @@ export function TeamDetailMonthlySection({
 					<h3 className="font-medium text-card-foreground text-sm">
 						Importo aperte (€)
 					</h3>
-					<MobileMonthlySingleSeriesColumns
-						barColor={TEAM_OPEN_FILL}
-						chartData={chartData}
-						formatValue={formatAmount}
-						getValue={(row) => row.open_amount}
-						seriesLabel="Importo aperte"
-						sheetDescription="Importo delle trattative aperte nel mese."
-						yearCaption={yearCaption}
-						yMax={yMaxOpenAmount}
-					/>
+					<div className="min-h-[200px] min-w-0 py-1">
+						<MobileMonthlySingleSeriesColumns
+							barColor={TEAM_OPEN_FILL}
+							chartData={chartData}
+							formatValue={formatAmount}
+							getValue={(row) => row.open_amount}
+							seriesLabel="Importo aperte"
+							sheetDescription="Importo delle trattative aperte nel mese."
+							yearCaption={yearCaption}
+							yMax={yMaxOpenAmount}
+						/>
+					</div>
 				</div>
 				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
 					<h3 className="font-medium text-card-foreground text-sm">
 						Importo concluse (€)
 					</h3>
-					<MobileMonthlySingleSeriesColumns
-						barColor={TEAM_CONCLUDED_FILL}
-						chartData={chartData}
-						formatValue={formatAmount}
-						getValue={(row) => row.concluded_amount}
-						seriesLabel="Importo concluse"
-						sheetDescription="Importo delle trattative concluse nel mese."
-						yearCaption={yearCaption}
-						yMax={yMaxConcludedAmount}
-					/>
+					<div className="min-h-[200px] min-w-0 py-1">
+						<MobileMonthlySingleSeriesColumns
+							barColor={TEAM_CONCLUDED_FILL}
+							chartData={chartData}
+							formatValue={formatAmount}
+							getValue={(row) => row.concluded_amount}
+							seriesLabel="Importo concluse"
+							sheetDescription="Importo delle trattative concluse nel mese."
+							yearCaption={yearCaption}
+							yMax={yMaxConcludedAmount}
+						/>
+					</div>
 				</div>
 				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
 					<h3 className="font-medium text-card-foreground text-sm">
 						Numero trattative aperte
 					</h3>
-					<MobileMonthlySingleSeriesColumns
-						barColor={TEAM_OPEN_FILL}
-						chartData={chartData}
-						formatValue={(v) => String(v)}
-						getValue={(row) => row.open_count}
-						seriesLabel="N. aperte"
-						sheetDescription="Conteggio trattative aperte nel mese."
-						yearCaption={yearCaption}
-						yMax={yMaxOpenCount}
-					/>
+					<div className="min-h-[200px] min-w-0 py-1">
+						<MobileMonthlySingleSeriesColumns
+							barColor={TEAM_OPEN_FILL}
+							chartData={chartData}
+							formatValue={(v) => String(v)}
+							getValue={(row) => row.open_count}
+							integerScale
+							seriesLabel="N. aperte"
+							sheetDescription="Conteggio trattative aperte nel mese."
+							yearCaption={yearCaption}
+							yMax={yMaxOpenCount}
+						/>
+					</div>
 				</div>
 				<div className="stat-card-bg flex min-w-0 flex-col gap-2 rounded-2xl bg-background p-4">
 					<h3 className="font-medium text-card-foreground text-sm">
 						Numero trattative concluse
 					</h3>
-					<MobileMonthlySingleSeriesColumns
-						barColor={TEAM_CONCLUDED_FILL}
-						chartData={chartData}
-						formatValue={(v) => String(v)}
-						getValue={(row) => row.concluded_count}
-						seriesLabel="N. concluse"
-						sheetDescription="Conteggio trattative concluse nel mese."
-						yearCaption={yearCaption}
-						yMax={yMaxConcludedCount}
-					/>
+					<div className="min-h-[200px] min-w-0 py-1">
+						<MobileMonthlySingleSeriesColumns
+							barColor={TEAM_CONCLUDED_FILL}
+							chartData={chartData}
+							formatValue={(v) => String(v)}
+							getValue={(row) => row.concluded_count}
+							integerScale
+							seriesLabel="N. concluse"
+							sheetDescription="Conteggio trattative concluse nel mese."
+							yearCaption={yearCaption}
+							yMax={yMaxConcludedCount}
+						/>
+					</div>
 				</div>
 			</div>
 
@@ -808,7 +825,15 @@ export function TeamDetailMonthlySection({
 									tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
 									tickLine={false}
 								/>
-								<YAxis hide width={0} />
+								<YAxis
+									axisLine={false}
+									tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+									tickFormatter={(value) =>
+										formatDesktopAmountAxisLabel(Number(value))
+									}
+									tickLine={false}
+									width={44}
+								/>
 								<Tooltip
 									content={(props) =>
 										props.active && props.payload?.length ? (
@@ -833,14 +858,32 @@ export function TeamDetailMonthlySection({
 									fillOpacity={0.9}
 									name="Aperte"
 									radius={[8, 8, 8, 8]}
-								/>
+								>
+									<LabelList
+										className="font-semibold text-[10px] text-card-foreground tabular-nums"
+										dataKey="open_amount"
+										formatter={(value) =>
+											formatDesktopAmountAxisLabel(Number(value ?? 0))
+										}
+										position="top"
+									/>
+								</Bar>
 								<Bar
 									dataKey="concluded_amount"
 									fill={TEAM_CONCLUDED_FILL}
 									fillOpacity={0.9}
 									name="Concluse"
 									radius={[8, 8, 8, 8]}
-								/>
+								>
+									<LabelList
+										className="font-semibold text-[10px] text-card-foreground tabular-nums"
+										dataKey="concluded_amount"
+										formatter={(value) =>
+											formatDesktopAmountAxisLabel(Number(value ?? 0))
+										}
+										position="top"
+									/>
+								</Bar>
 							</BarChart>
 						</ResponsiveContainer>
 					</div>
@@ -863,7 +906,13 @@ export function TeamDetailMonthlySection({
 									tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
 									tickLine={false}
 								/>
-								<YAxis hide width={0} />
+								<YAxis
+									axisLine={false}
+									tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+									tickFormatter={(value) => String(Math.round(Number(value)))}
+									tickLine={false}
+									width={38}
+								/>
 								<Tooltip
 									content={(props) =>
 										props.active && props.payload?.length ? (
@@ -888,14 +937,32 @@ export function TeamDetailMonthlySection({
 									fillOpacity={0.9}
 									name="Aperte"
 									radius={[8, 8, 8, 8]}
-								/>
+								>
+									<LabelList
+										className="font-semibold text-[10px] text-card-foreground tabular-nums"
+										dataKey="open_count"
+										formatter={(value) =>
+											String(Math.round(Number(value ?? 0)))
+										}
+										position="top"
+									/>
+								</Bar>
 								<Bar
 									dataKey="concluded_count"
 									fill={TEAM_CONCLUDED_FILL}
 									fillOpacity={0.9}
 									name="Concluse"
 									radius={[8, 8, 8, 8]}
-								/>
+								>
+									<LabelList
+										className="font-semibold text-[10px] text-card-foreground tabular-nums"
+										dataKey="concluded_count"
+										formatter={(value) =>
+											String(Math.round(Number(value ?? 0)))
+										}
+										position="top"
+									/>
+								</Bar>
 							</BarChart>
 						</ResponsiveContainer>
 					</div>

@@ -226,7 +226,7 @@ function formatMobileYAxisLabel(
 }
 
 /** Formatter asse Y desktop per importi: mostra k€ per migliorare la leggibilita'. */
-function formatDesktopAmountAxisLabel(value: number): string {
+export function formatDesktopAmountAxisLabel(value: number): string {
 	if (value === 0) {
 		return "0€";
 	}
