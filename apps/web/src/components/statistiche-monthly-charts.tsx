@@ -310,7 +310,7 @@ export function MobileMonthlySingleSeriesColumns({
 			<div className="flex w-full min-w-0 items-center gap-1.5">
 				<div
 					aria-hidden
-					className="flex h-full w-fit shrink-0 flex-col justify-between border-border/50 border-r pr-1.5 pl-2 text-right"
+					className="flex h-full w-fit shrink-0 flex-col justify-between border-border/50 border-r pt-4 pr-1.5 pb-1 pl-2 text-right"
 					style={{ height: MOBILE_CHART_COLUMN_PX }}
 				>
 					{yTicks.map((tick, tickIndex) => (
