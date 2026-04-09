@@ -847,7 +847,8 @@ export function CreateNegotiationDialog({
 															size={16}
 														/>
 														<input
-															className="min-w-0 flex-1 bg-transparent text-foreground text-sm leading-none placeholder:text-muted-foreground focus:outline-none"
+															// text-card-foreground keeps typed text readable on dropdown/search surfaces in dataweb light.
+															className="min-w-0 flex-1 bg-transparent text-card-foreground text-sm leading-none placeholder:text-muted-foreground focus:outline-none"
 															onChange={(e) =>
 																setClientSearchQuery(e.target.value)
 															}
