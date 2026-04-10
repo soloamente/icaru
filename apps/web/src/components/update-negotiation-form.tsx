@@ -380,6 +380,18 @@ function DatiTrattativaSection({
 						id="update-referente"
 						name="referente"
 						onChange={(e) => onReferenteChange(e.target.value)}
+						onPointerDown={(event) => {
+							// UX request: when the user re-enters the field (not already focused),
+							// place the caret at the end on that first click.
+							const input = event.currentTarget;
+							if (document.activeElement === input) {
+								return;
+							}
+							event.preventDefault();
+							input.focus();
+							const end = input.value.length;
+							input.setSelectionRange(end, end);
+						}}
 						type="text"
 						value={referente}
 					/>
