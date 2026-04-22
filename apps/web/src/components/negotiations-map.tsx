@@ -37,6 +37,10 @@ import type {
 } from "@/lib/api/types";
 import { useAuthOptional } from "@/lib/auth/auth-context";
 import { usePreferencesOptional } from "@/lib/preferences/preferences-context";
+import {
+	TRATTATIVE_HEADER_FILTER_BG,
+	TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN,
+} from "@/lib/trattative-header-filter-classes";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 /** Mapbox GL CSS must be imported for proper rendering. */
@@ -1058,7 +1062,11 @@ export function NegotiationsMapWithFilters({
 						value={spancoFilter === "all" ? null : spancoFilter}
 					>
 						<Select.Trigger
-							className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
+							className={cn(
+								"flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none sm:shrink-0",
+								TRATTATIVE_HEADER_FILTER_BG,
+								TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
+							)}
 							id="map-filter-spanco"
 						>
 							<Select.Value
@@ -1118,7 +1126,11 @@ export function NegotiationsMapWithFilters({
 						value={percentuale === "" ? null : (percentuale as string)}
 					>
 						<Select.Trigger
-							className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+							className={cn(
+								"flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none",
+								TRATTATIVE_HEADER_FILTER_BG,
+								TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
+							)}
 							id="map-filter-percentuale"
 						>
 							<Select.Value
@@ -1162,14 +1174,20 @@ export function NegotiationsMapWithFilters({
 						aria-expanded={importoDrawerOpen}
 						aria-haspopup="dialog"
 						aria-label="Filtro importo da e a euro"
-						className="flex min-w-0 max-w-[12rem] shrink-0 items-center justify-center gap-2 truncate rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-card-foreground text-sm transition-colors hover:bg-table-hover hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+						className={cn(
+							"flex min-w-0 max-w-[12rem] shrink-0 items-center justify-center gap-2 truncate rounded-full border-0 px-3.75 py-1.75 font-normal text-card-foreground text-sm transition-colors hover:bg-table-hover hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						onClick={() => setImportoDrawerOpen(true)}
 						type="button"
 					>
 						{importoRangePillLabel}
 					</button>
 					<label
-						className="hidden w-[9rem] shrink-0 items-center justify-between gap-1.5 rounded-full border-0 bg-table-buttons px-3 py-1.5 md:flex"
+						className={cn(
+							"hidden w-[9rem] shrink-0 items-center justify-between gap-1.5 rounded-full border-0 px-3 py-1.5 md:flex",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						htmlFor="map-filter-importo-min"
 					>
 						<span className="shrink-0 whitespace-nowrap font-medium text-sm text-stats-title">
@@ -1186,7 +1204,10 @@ export function NegotiationsMapWithFilters({
 						/>
 					</label>
 					<label
-						className="hidden w-[9rem] shrink-0 items-center justify-between gap-1.5 rounded-full border-0 bg-table-buttons px-3 py-1.5 md:flex"
+						className={cn(
+							"hidden w-[9rem] shrink-0 items-center justify-between gap-1.5 rounded-full border-0 px-3 py-1.5 md:flex",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						htmlFor="map-filter-importo-max"
 					>
 						<span className="shrink-0 whitespace-nowrap font-medium text-sm text-stats-title">
@@ -1203,7 +1224,10 @@ export function NegotiationsMapWithFilters({
 						/>
 					</label>
 					<button
-						className="shrink-0 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-card-foreground text-sm transition-colors hover:bg-table-hover hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						className={cn(
+							"shrink-0 rounded-full border-0 px-3.75 py-1.75 font-normal text-card-foreground text-sm transition-colors hover:bg-table-hover hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						onClick={handleReimposta}
 						type="button"
 					>

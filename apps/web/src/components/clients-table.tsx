@@ -24,6 +24,7 @@ import {
 	GREEN_CTA_PILL_LIGHT_CLASSES,
 	SKY_CTA_PILL_LIGHT_CLASSES,
 } from "@/lib/pill-surface-classes";
+import { TRATTATIVE_HEADER_FILTER_BG } from "@/lib/trattative-header-filter-classes";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 import { AddClientDialog } from "./add-client-dialog";
@@ -311,7 +312,10 @@ export default function ClientsTable() {
 					{/* Search: on mobile full width (flex-1) on same line as buttons, no expand; on sm+ pill expands on focus. Larger tap target on mobile (min-h, py-3) for easier tapping. */}
 					<motion.label
 						animate={{ width: searchAnimateWidth }}
-						className="flex min-h-[48px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-3 text-base shadow-[-18px_0px_14px_var(--color-card)] sm:min-h-0 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:text-sm"
+						className={cn(
+							"flex min-h-[48px] min-w-0 flex-1 items-center justify-between rounded-full px-4 py-3 text-base shadow-[-18px_0px_14px_var(--color-card)] sm:min-h-0 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:text-sm",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						htmlFor="clients-search"
 						initial={false}
 						transition={{
@@ -393,7 +397,10 @@ export default function ClientsTable() {
 					{/* Primary action: add a single client. Icon-only on mobile to save space; label on sm+. Larger tap target on mobile (min 48px) for easier tapping. */}
 					<button
 						aria-label="Aggiungi cliente"
-						className="flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm"
+						className={cn(
+							"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						onClick={() => setIsAddClientDialogOpen(true)}
 						type="button"
 					>
@@ -403,7 +410,10 @@ export default function ClientsTable() {
 					{/* Import from Excel/CSV. Icon-only on mobile; label on sm+. Larger tap target on mobile (min 48px) for easier tapping. */}
 					<button
 						aria-label="Importa clienti"
-						className="flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm"
+						className={cn(
+							"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						onClick={() => setIsImportDialogOpen(true)}
 						type="button"
 					>

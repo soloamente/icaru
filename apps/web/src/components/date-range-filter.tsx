@@ -9,6 +9,10 @@ import {
 	DayPicker,
 	type DateRange as DayPickerDateRange,
 } from "react-day-picker";
+import {
+	TABLE_CONTAINER_FILTER_PILL_BG,
+	TRATTATIVE_HEADER_FILTER_BG,
+} from "@/lib/trattative-header-filter-classes";
 import { cn } from "@/lib/utils";
 
 /** Preset rapido: calcola from/to e label. */
@@ -90,6 +94,11 @@ export interface DateRangeFilterProps {
 	align?: "start" | "center" | "end";
 	/** Stile pill compatibile con i filtri tabella (bg-card). */
 	variant?: "default" | "table";
+	/**
+	 * Con `variant="table"`: dove sono disegnate le pill.
+	 * `pageHeader` = sopra `bg-card` (bg-background in default); `tableShell` = sopra `table-container-bg` (bg-card in default).
+	 */
+	tablePillPlacement?: "pageHeader" | "tableShell";
 }
 
 const DEFAULT_LABEL = "Filtra per data";
@@ -101,8 +110,14 @@ export function DateRangeFilter({
 	className,
 	align = "end",
 	variant = "table",
+	tablePillPlacement = "pageHeader",
 }: DateRangeFilterProps) {
 	const [open, setOpen] = useState(false);
+
+	const tableVariantBgClasses =
+		variant === "table" && tablePillPlacement === "tableShell"
+			? TABLE_CONTAINER_FILTER_PILL_BG
+			: TRATTATIVE_HEADER_FILTER_BG;
 
 	const getDateFilterDisplay = useCallback(() => {
 		if (dateRange?.from && dateRange?.to) {
@@ -160,10 +175,10 @@ export function DateRangeFilter({
 	const hasRange = Boolean(dateRange?.from ?? dateRange?.to);
 
 	// Pill container: un unico elemento visivo con due zone cliccabili (trigger + clear).
-	// In variant="table" use bg-table-buttons to match SPANCO/Stato filter pills in TrattativeTable.
+	// variant="table": pageHeader = bg-background su card; tableShell = bg-card su table-container-bg; Dataweb = table-buttons.
 	const pillClassName = cn(
 		"inline-flex items-center overflow-hidden rounded-full",
-		variant === "table" ? "bg-table-buttons" : "bg-card ring-1 ring-border",
+		variant === "table" ? tableVariantBgClasses : "bg-card ring-1 ring-border",
 		hasRange && variant === "default" && "bg-primary/10 ring-2 ring-primary/40"
 	);
 
@@ -175,8 +190,8 @@ export function DateRangeFilter({
 						aria-label={`Filtro ${label.toLowerCase()}: ${triggerLabel}`}
 						className={cn(
 							"flex items-center justify-between gap-2 border-none px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
-							// Ensure the pill trigger background matches SPANCO/Stato filter pills (bg-table-buttons).
-							variant === "table" ? "bg-table-buttons" : "bg-transparent",
+							// Match SPANCO/Stato/search surfaces (pageHeader vs tableShell vs Dataweb).
+							variant === "table" ? tableVariantBgClasses : "bg-transparent",
 							variant === "table" && "text-stats-title",
 							// When filter is active, use full-bright primary color so the user clearly sees it's applied
 							hasRange && variant === "table" && "text-primary",

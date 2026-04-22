@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { listMyTeams, listTeams } from "@/lib/api/client";
 import type { ApiTeam, ApiTeamMinimal } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { TRATTATIVE_HEADER_FILTER_BG } from "@/lib/trattative-header-filter-classes";
 import { cn } from "@/lib/utils";
 import { AnimatedEmptyState } from "./animated-empty-state";
 import { IconArrowUpRightFill12 } from "./icons/icon-arrow-up-right-fill-12";
@@ -262,7 +263,10 @@ export function TeamsView() {
 				<div className="flex items-center justify-end gap-2">
 					<button
 						aria-label="Crea team"
-						className="flex cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons px-3.75 py-1.75 text-sm"
+						className={cn(
+							"flex cursor-pointer items-center justify-center gap-2.5 rounded-full px-3.75 py-1.75 text-sm",
+							TRATTATIVE_HEADER_FILTER_BG
+						)}
 						onClick={() => {
 							// biome-ignore lint/suspicious/noExplicitAny: dynamic route path
 							router.push("/team/crea" as any);

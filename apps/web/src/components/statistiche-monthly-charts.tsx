@@ -34,6 +34,10 @@ import type {
 	MonthlyNegotiationsStatistics,
 } from "@/lib/api/types";
 import { EXPORT_ACTION_PILL_BUTTON_CLASS } from "@/lib/export-action-pill-button-class";
+import {
+	TRATTATIVE_HEADER_FILTER_BG,
+	TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN,
+} from "@/lib/trattative-header-filter-classes";
 import { cn } from "@/lib/utils";
 
 /** Nomi brevi mesi in italiano per le label dell'asse X. */
@@ -643,7 +647,11 @@ export function StatisticheMonthlyCharts({
 				<Select.Root onValueChange={handleYearChange} value={selectedYear}>
 					<Select.Trigger
 						aria-label="Seleziona anno"
-						className="flex h-10 w-fit items-center justify-between gap-2 rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+						className={cn(
+							"flex h-10 w-fit items-center justify-between gap-2 rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none",
+							TRATTATIVE_HEADER_FILTER_BG,
+							TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
+						)}
 						id="statistiche-year-select"
 					>
 						<span className="font-medium text-muted-foreground text-sm">

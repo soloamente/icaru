@@ -46,6 +46,10 @@ import {
 	RED_STATUS_PILL_LIGHT_CLASSES,
 	SKY_STATUS_PILL_LIGHT_CLASSES,
 } from "@/lib/pill-surface-classes";
+import {
+	TRATTATIVE_HEADER_FILTER_BG,
+	TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN,
+} from "@/lib/trattative-header-filter-classes";
 import { getNegotiationStatoSegment } from "@/lib/trattative-utils";
 import { cn } from "@/lib/utils";
 import { AnimatedEmptyState } from "./animated-empty-state";
@@ -1661,9 +1665,12 @@ export default function TrattativeTable({
 	const searchField = (
 		<div className="flex min-w-0 flex-1 sm:flex-initial">
 			<motion.label
-				/* Search bar background follows table buttons color for consistency. Larger tap target on mobile (min 48px) like clienti page. */
+				/* Default theme: bg-background on bg-card; Dataweb keeps bg-table-buttons (see trattative-header-filter-classes). */
 				animate={{ width: searchAnimateWidth }}
-				className="flex min-h-[48px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-3 text-base shadow-[-18px_0px_14px_var(--color-card)] sm:min-h-0 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:text-sm"
+				className={cn(
+					"flex min-h-[48px] min-w-0 flex-1 items-center justify-between rounded-full px-4 py-3 text-base shadow-[-18px_0px_14px_var(--color-card)] sm:min-h-0 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:text-sm",
+					TRATTATIVE_HEADER_FILTER_BG
+				)}
 				htmlFor="trattative-search"
 				initial={false}
 				transition={{ duration: 0.5, ease: [0.541, 0.232, 0.226, 1.002] }}
@@ -1797,7 +1804,8 @@ export default function TrattativeTable({
 						<button
 							aria-label="Aggiungi trattativa"
 							className={cn(
-								"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
+								"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
+								TRATTATIVE_HEADER_FILTER_BG,
 								hasHeaderFilters && "hidden sm:flex"
 							)}
 							onClick={() => setIsCreateDialogOpen(true)}
@@ -1854,7 +1862,11 @@ export default function TrattativeTable({
 									value={spancoFilter === "all" ? null : spancoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
+										className={cn(
+											"flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none sm:shrink-0",
+											TRATTATIVE_HEADER_FILTER_BG,
+											TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
+										)}
 										id="trattative-spanco-filter"
 									>
 										<Select.Value
@@ -1927,8 +1939,12 @@ export default function TrattativeTable({
 									value={statoFilter === "all" ? null : statoFilter}
 								>
 									<Select.Trigger
-										// Match the search input background token so all header filters share the same visual weight.
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										// Same surface as search + date filter (default vs Dataweb).
+										className={cn(
+											"flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none",
+											TRATTATIVE_HEADER_FILTER_BG,
+											TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
+										)}
 										id="trattative-stato-filter"
 									>
 										<Select.Value
@@ -2040,7 +2056,10 @@ export default function TrattativeTable({
 								) : null}
 								<button
 									aria-label="Aggiungi trattativa"
-									className="flex min-h-[48px] min-w-[48px] shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full bg-table-buttons p-3 text-base sm:hidden"
+									className={cn(
+										"flex min-h-[48px] min-w-[48px] shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:hidden",
+										TRATTATIVE_HEADER_FILTER_BG
+									)}
 									onClick={() => setIsCreateDialogOpen(true)}
 									type="button"
 								>

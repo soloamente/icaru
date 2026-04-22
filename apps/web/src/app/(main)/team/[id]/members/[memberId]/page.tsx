@@ -48,6 +48,10 @@ import {
 	SKY_STATUS_PILL_LIGHT_CLASSES,
 } from "@/lib/pill-surface-classes";
 import {
+	TABLE_CONTAINER_FILTER_PILL_BG,
+	TABLE_CONTAINER_FILTER_PILL_BG_POPUP_OPEN,
+} from "@/lib/trattative-header-filter-classes";
+import {
 	isNegotiationAbandoned,
 	isNegotiationCompleted,
 } from "@/lib/trattative-utils";
@@ -689,12 +693,14 @@ export default function TeamMemberSupervisionPage() {
 						{/* Row 2: filters (left) + search overlaying on top so it opens above filters (z-index) */}
 						<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
 							{/* Filters: date apertura, chiusura, abbandono, SPANCO, stato — same pill style as trattative */}
-							<div className="scroll-fade-x flex w-full items-center justify-start gap-1.25 overflow-x-auto sm:overflow-visible">
+							{/* scroll-fade-x + flex-nowrap / sm:flex-wrap come trattative: fade orizzontale su mobile, wrap su desktop. */}
+							<div className="scroll-fade-x flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
 								<DateRangeFilter
 									align="start"
 									dateRange={dateRangeApertura}
 									label="Filtra per data apertura"
 									onDateRangeChange={setDateRangeApertura}
+									tablePillPlacement="tableShell"
 									variant="table"
 								/>
 								<DateRangeFilter
@@ -702,6 +708,7 @@ export default function TeamMemberSupervisionPage() {
 									dateRange={dateRangeChiusura}
 									label="Filtra per data chiusura"
 									onDateRangeChange={setDateRangeChiusura}
+									tablePillPlacement="tableShell"
 									variant="table"
 								/>
 								<DateRangeFilter
@@ -709,6 +716,7 @@ export default function TeamMemberSupervisionPage() {
 									dateRange={dateRangeAbbandono}
 									label="Filtra per data abbandono"
 									onDateRangeChange={setDateRangeAbbandono}
+									tablePillPlacement="tableShell"
 									variant="table"
 								/>
 								<Select.Root
@@ -722,7 +730,11 @@ export default function TeamMemberSupervisionPage() {
 									value={spancoFilter === "all" ? null : spancoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
+										className={cn(
+											"flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none sm:shrink-0",
+											TABLE_CONTAINER_FILTER_PILL_BG,
+											TABLE_CONTAINER_FILTER_PILL_BG_POPUP_OPEN
+										)}
 										id="member-neg-spanco-filter"
 									>
 										<Select.Value
@@ -792,7 +804,11 @@ export default function TeamMemberSupervisionPage() {
 									value={statoFilter === "all" ? null : statoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
+										className={cn(
+											"flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none",
+											TABLE_CONTAINER_FILTER_PILL_BG,
+											TABLE_CONTAINER_FILTER_PILL_BG_POPUP_OPEN
+										)}
 										id="member-neg-stato-filter"
 									>
 										<Select.Value
@@ -870,8 +886,13 @@ export default function TeamMemberSupervisionPage() {
 							</div>
 							{/* Search bar: absolutely positioned on top of the filter row so it opens above filters (not pushed right) */}
 							<div className="absolute top-0 right-0 z-20 flex items-center sm:top-1/2 sm:-translate-y-1/2">
-								{/* Stessa superficie dei filtri data (bg-table-buttons) come in trattative-table. */}
-								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--color-card)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80">
+								{/* Pill su table-container-bg: bg-card (default) o bg-table-buttons (Dataweb). */}
+								<label
+									className={cn(
+										"flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--color-card)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80",
+										TABLE_CONTAINER_FILTER_PILL_BG
+									)}
+								>
 									<input
 										className="w-full truncate bg-transparent placeholder:text-search-placeholder focus-visible:outline-none"
 										onChange={(event) => {
