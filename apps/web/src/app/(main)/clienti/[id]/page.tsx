@@ -18,8 +18,20 @@ import UpdateClientForm, {
 import { deleteClient, getClient } from "@/lib/api/client";
 import type { ApiClient } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
-import { DELETE_TINT_BUTTON_CLASSNAME } from "@/lib/delete-action-button-class";
+import {
+	DELETE_TINT_BUTTON_CLASSNAME,
+	DELETE_TINT_FOOTER_CLASSNAME,
+	MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
+} from "@/lib/delete-action-button-class";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
+import { cn } from "@/lib/utils";
+
+/** Stili Annulla (outline) in riga compatta sotto al form, allineati a `MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME`. */
+const FOOTER_ANNULLA_OUTLINE = cn(
+	"inline-flex items-center justify-center border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+	MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
+	"max-sm:rounded-lg sm:rounded-xl"
+);
 
 /** Elimina / Annulla / Salva: stessa logica in header (md+) e sotto al form (mobile). */
 function ClientDetailActionsRow({
@@ -37,14 +49,79 @@ function ClientDetailActionsRow({
 	onSaveClick: () => void;
 	placement: "header" | "footer";
 }) {
-	const className =
-		placement === "header"
-			? "hidden shrink-0 items-center justify-end gap-2.5 md:flex"
-			: // Una sola riga su mobile: niente flex-wrap (prima: Elimina su una riga, coppia sotto)
-				"mt-1 flex w-full min-w-0 shrink-0 flex-nowrap items-center justify-between gap-1.5 overflow-x-auto pt-2 [scrollbar-width:thin] sm:gap-2 md:hidden";
+	const showSaveRow = isDirty || isSubmitting;
 
-	const actions = (
-		<>
+	// Mobile sotto al form: griglia 3 colonne (larghezze flessibili, niente scroll orizzontale)
+	if (placement === "footer") {
+		return (
+			<section
+				aria-label="Azioni cliente"
+				className={cn(
+					"mt-1 w-full min-w-0 pt-2 md:hidden",
+					showSaveRow
+						? "grid grid-cols-3 items-stretch gap-1.5 sm:gap-2"
+						: "flex"
+				)}
+			>
+				<div className={showSaveRow ? "min-w-0" : undefined}>
+					<Button
+						className={
+							showSaveRow
+								? DELETE_TINT_FOOTER_CLASSNAME
+								: DELETE_TINT_BUTTON_CLASSNAME
+						}
+						disabled={isSubmitting}
+						onClick={onDeleteClick}
+						type="button"
+						variant="destructive"
+					>
+						Elimina
+					</Button>
+				</div>
+				{showSaveRow ? (
+					<>
+						<div className="min-w-0">
+							{isSubmitting ? (
+								<span
+									className={cn(
+										FOOTER_ANNULLA_OUTLINE,
+										"cursor-not-allowed opacity-50"
+									)}
+								>
+									Annulla
+								</span>
+							) : (
+								<button
+									className={FOOTER_ANNULLA_OUTLINE}
+									onClick={onReset}
+									type="button"
+								>
+									Annulla
+								</button>
+							)}
+						</div>
+						<div className="min-w-0">
+							<Button
+								className={cn(
+									"rounded-xl text-sm",
+									MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME
+								)}
+								disabled={isSubmitting}
+								onClick={onSaveClick}
+								type="button"
+							>
+								{isSubmitting ? "Salvataggio…" : "Salva"}
+							</Button>
+						</div>
+					</>
+				) : null}
+			</section>
+		);
+	}
+
+	// md+ header: Elimina e gruppo a destra
+	return (
+		<div className="hidden shrink-0 items-center justify-end gap-2.5 md:flex">
 			<Button
 				className={DELETE_TINT_BUTTON_CLASSNAME}
 				disabled={isSubmitting}
@@ -54,8 +131,8 @@ function ClientDetailActionsRow({
 			>
 				Elimina
 			</Button>
-			{isDirty || isSubmitting ? (
-				<div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2.5">
+			{showSaveRow ? (
+				<div className="flex shrink-0 items-center justify-end gap-2.5">
 					{isSubmitting ? (
 						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
 							Annulla
@@ -79,18 +156,8 @@ function ClientDetailActionsRow({
 					</Button>
 				</div>
 			) : null}
-		</>
+		</div>
 	);
-
-	if (placement === "footer") {
-		return (
-			<section aria-label="Azioni cliente" className={className}>
-				{actions}
-			</section>
-		);
-	}
-
-	return <div className={className}>{actions}</div>;
 }
 
 /**

@@ -1242,11 +1242,30 @@ export default function UpdateNegotiationForm({
 	const isMobile = useIsMobile();
 	const sectionCardClasses = SECTION_CARD_CLASSES;
 
+	// Riga 3 col sotto al form (Elimina+Annulla+Salva): pulsanti flessibili, niente scroll orizzontale.
+	const compactFooterWithSlot = Boolean(
+		footerStartSlot && !renderActionsInHeader
+	);
 	// "Annulla" in the footer: either reset local edits (edit pages) or link back to the list.
-	const ANNULLA_OUTLINE =
-		"inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+	const ANNULLA_OUTLINE = compactFooterWithSlot
+		? cn(
+				"inline-flex items-center justify-center border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+				MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
+				"max-sm:rounded-lg sm:rounded-xl"
+			)
+		: "inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 	const annullaControl = isSubmitting ? (
-		<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+		<span
+			className={cn(
+				"inline-flex cursor-not-allowed items-center justify-center border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50",
+				compactFooterWithSlot
+					? cn(
+							MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
+							"max-sm:rounded-lg sm:rounded-xl"
+						)
+					: "h-10 min-w-26 rounded-xl"
+			)}
+		>
 			Annulla
 		</span>
 	) : onAnnullaDiscard ? (
@@ -1464,24 +1483,31 @@ export default function UpdateNegotiationForm({
 				(footerStartSlot ? (
 					<div
 						className={cn(
-							// Una riga anche su viewport stretto (Elimina + Annulla + Salva)
-							"flex w-full min-w-0 shrink-0 flex-nowrap items-center justify-between gap-1.5 overflow-x-auto pt-2 [scrollbar-width:thin] sm:gap-2",
+							// Griglia 3 colonne: larghezze flessibili, niente overflow orizzontale
+							"grid w-full min-w-0 shrink-0 items-stretch gap-1.5 pt-2 sm:gap-2",
+							showFooterSaveActions ? "grid-cols-3" : "grid-cols-1",
 							footerActionRowClassName
 						)}
 					>
-						{footerStartSlot}
+						<div className="min-w-0">{footerStartSlot}</div>
 						{showFooterSaveActions ? (
-							<div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2.5">
-								{annullaControl}
-								<Button
-									className="h-10 min-w-26 rounded-xl text-sm"
-									disabled={isSubmitting}
-									form={UPDATE_NEGOTIATION_FORM_ID}
-									type="submit"
-								>
-									{isSubmitting ? "Salvataggio…" : "Salva"}
-								</Button>
-							</div>
+							<>
+								<div className="min-w-0">{annullaControl}</div>
+								<div className="min-w-0">
+									<Button
+										className={cn(
+											"rounded-xl text-sm",
+											compactFooterWithSlot &&
+												MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME
+										)}
+										disabled={isSubmitting}
+										form={UPDATE_NEGOTIATION_FORM_ID}
+										type="submit"
+									>
+										{isSubmitting ? "Salvataggio…" : "Salva"}
+									</Button>
+								</div>
+							</>
 						) : null}
 					</div>
 				) : (

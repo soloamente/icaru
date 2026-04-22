@@ -405,7 +405,7 @@ export default function TrattativeAbbandonateEditPage() {
 					footerActionRowClassName="md:hidden"
 					footerStartSlot={
 						<Button
-							className={DELETE_TINT_BUTTON_CLASSNAME}
+							className={DELETE_TINT_FOOTER_CLASSNAME}
 							disabled={isSubmitting}
 							onClick={() => setIsDeleteDialogOpen(true)}
 							type="button"
