@@ -18,6 +18,7 @@ export const DELETE_TINT_FOOTER_CLASSNAME = cn(
 
 /**
  * Annulla / Salva (o controllo disabilitato) in cella sotto a viewport stretto.
+ * Stessa altezza di `DELETE_TINT_FOOTER` / Elimina (`h-10`); `!` batte l’`h-8` del Button default.
  */
 export const MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME =
-	"flex h-9 w-full min-w-0 max-sm:shrink max-sm:px-1.5 max-sm:text-xs sm:h-10 sm:px-2.5";
+	"flex !h-10 min-h-10 w-full min-w-0 max-sm:shrink max-sm:px-1.5 max-sm:text-xs sm:px-2.5";
