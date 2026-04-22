@@ -460,17 +460,9 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 							Team {team.nome}
 						</h1>
 					</div>
-					{/* Actions: appear only when the form is dirty or submitting */}
-					{isDirector && (
-						<div
-							aria-hidden={!(isDirty || isSubmitting)}
-							className={
-								isDirty || isSubmitting
-									? "flex shrink-0 scale-100 items-center justify-center gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out"
-									: /* hidden: non solo opacity — altrimenti la flex riserva larghezza e il titolo va in truncate su mobile */
-										"hidden"
-							}
-						>
+					{/* Azioni: md+ nell’header; sotto la card "Dati team" su mobile (come clienti / trattative). */}
+					{isDirector && (isDirty || isSubmitting) && (
+						<div className="hidden shrink-0 scale-100 items-center justify-end gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out md:flex">
 							{isSubmitting ? (
 								<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
 									Annulla
@@ -479,7 +471,6 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								<button
 									className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 									onClick={() => setResetTrigger((c) => c + 1)}
-									tabIndex={isDirty ? 0 : -1}
 									type="button"
 								>
 									Annulla
@@ -489,7 +480,6 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 								className="h-10 min-w-26 rounded-xl text-sm"
 								disabled={isSubmitting}
 								onClick={handleSaveClick}
-								tabIndex={isDirty || isSubmitting ? 0 : -1}
 								type="button"
 							>
 								{isSubmitting ? "Salvataggio…" : "Salva"}
@@ -671,6 +661,35 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 									</label>
 								</div>
 							</section>
+							{/* Stessa riga Annulla/Salva sotto i campi su viewport stretto (header nascosto fino a md). */}
+							{isDirty || isSubmitting ? (
+								<section
+									aria-label="Azioni modifica team"
+									className="mt-1 flex w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-2.5 pt-2 md:hidden"
+								>
+									{isSubmitting ? (
+										<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+											Annulla
+										</span>
+									) : (
+										<button
+											className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											onClick={() => setResetTrigger((c) => c + 1)}
+											type="button"
+										>
+											Annulla
+										</button>
+									)}
+									<Button
+										className="h-10 min-w-26 rounded-xl text-sm"
+										disabled={isSubmitting}
+										onClick={handleSaveClick}
+										type="button"
+									>
+										{isSubmitting ? "Salvataggio…" : "Salva"}
+									</Button>
+								</section>
+							) : null}
 						</form>
 					)}
 

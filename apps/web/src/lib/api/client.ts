@@ -293,6 +293,41 @@ export async function updateClient(
 }
 
 /**
+ * DELETE /api/clients/{id} — Elimina il cliente (autenticazione Sanctum).
+ * Risposta tipica: 200/204 con body opzionale.
+ */
+export async function deleteClient(
+	accessToken: string,
+	id: number
+): Promise<{ ok: true } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/clients/${id}`, {
+			method: "DELETE",
+			headers: getAuthHeaders(accessToken),
+		});
+		if (!res.ok) {
+			let message = "Errore nell'eliminazione del cliente";
+			try {
+				const json = (await res.json()) as { message?: string };
+				if (
+					typeof json.message === "string" &&
+					json.message.trim().length > 0
+				) {
+					message = json.message;
+				}
+			} catch {
+				// 204 o corpo non-JSON: manteniamo il messaggio predefinito
+			}
+			return { error: message };
+		}
+		return { ok: true };
+	} catch (e) {
+		const errMessage = e instanceof Error ? e.message : "Errore di rete";
+		return { error: errMessage };
+	}
+}
+
+/**
  * POST /clients — Crea un nuovo cliente.
  * Body: ragione_sociale (obbligatorio), p_iva, email, telefono, tipologia,
  * indirizzo, citta, cap, provincia, regione (tutti opzionali).
@@ -775,6 +810,40 @@ export async function updateNegotiation(
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
+	}
+}
+
+/**
+ * DELETE /api/negotiations/{id} — Elimina la trattativa (autenticazione Sanctum).
+ */
+export async function deleteNegotiation(
+	accessToken: string,
+	id: number
+): Promise<{ ok: true } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/negotiations/${id}`, {
+			method: "DELETE",
+			headers: getAuthHeaders(accessToken),
+		});
+		if (!res.ok) {
+			let message = "Errore nell'eliminazione della trattativa";
+			try {
+				const json = (await res.json()) as { message?: string };
+				if (
+					typeof json.message === "string" &&
+					json.message.trim().length > 0
+				) {
+					message = json.message;
+				}
+			} catch {
+				// 204 o corpo non-JSON: manteniamo il messaggio predefinito
+			}
+			return { error: message };
+		}
+		return { ok: true };
+	} catch (e) {
+		const errMessage = e instanceof Error ? e.message : "Errore di rete";
+		return { error: errMessage };
 	}
 }
 

@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Select } from "@base-ui/react/select";
 import { ChevronDown, Paperclip, X } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -1014,6 +1015,14 @@ interface UpdateNegotiationFormProps {
 	onFilesUploaded?: () => void;
 	/** When true, actions (Annulla / Salva) are not rendered; parent should put them in the page header and use UPDATE_NEGOTIATION_FORM_ID for the submit button. */
 	renderActionsInHeader?: boolean;
+	/** When not using the header, optional content at the start of the bottom action row (e.g. Elimina) — still in page flow, not position:fixed. */
+	footerStartSlot?: ReactNode;
+	/** If set, "Annulla" discards local edits (button) instead of navigating away (Link) — use on edit pages with resetTrigger. */
+	onAnnullaDiscard?: () => void;
+	/** When true, Annulla/Salva in the footer only appear if the form is dirty or submitting (e.g. edit detail pages with Elimina always visible). */
+	actionsVisibleOnlyWhenDirty?: boolean;
+	/** Extra classes on the in-flow action row (e.g. `md:hidden` when the same actions are shown in the page header on desktop). */
+	footerActionRowClassName?: string;
 	/** Notify parent when submit starts/ends so header buttons can show loading state. */
 	onSubmittingChange?: (submitting: boolean) => void;
 	/** Notify parent when form has unsaved changes (any editable field differs from initial negotiation). Used to show header actions only when user has edited. */
@@ -1032,6 +1041,10 @@ export default function UpdateNegotiationForm({
 	onSuccess,
 	onFilesUploaded,
 	renderActionsInHeader = false,
+	footerStartSlot,
+	onAnnullaDiscard,
+	actionsVisibleOnlyWhenDirty = false,
+	footerActionRowClassName,
 	onSubmittingChange,
 	onDirtyChange,
 	resetTrigger,
@@ -1064,6 +1077,9 @@ export default function UpdateNegotiationForm({
 	// Notify parent when form has unsaved changes (for header actions: show only when dirty).
 	// When the user reverts all fields to the initial values, isDirty becomes false and the actions hide.
 	const isDirty = isUpdateFormDirty(form, negotiation, clientTelefono);
+	// Con `actionsVisibleOnlyWhenDirty`, Annulla/Salva compaiono solo a form sporco o in invio (come l’ex header in pagina dettaglio).
+	const showFooterSaveActions =
+		!actionsVisibleOnlyWhenDirty || isDirty || isSubmitting;
 	useEffect(() => {
 		onDirtyChange?.(isDirty);
 	}, [isDirty, onDirtyChange]);
@@ -1225,6 +1241,30 @@ export default function UpdateNegotiationForm({
 	const files = negotiation.files ?? [];
 	const isMobile = useIsMobile();
 	const sectionCardClasses = SECTION_CARD_CLASSES;
+
+	// "Annulla" in the footer: either reset local edits (edit pages) or link back to the list.
+	const ANNULLA_OUTLINE =
+		"inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+	const annullaControl = isSubmitting ? (
+		<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+			Annulla
+		</span>
+	) : onAnnullaDiscard ? (
+		<button
+			className={ANNULLA_OUTLINE}
+			onClick={onAnnullaDiscard}
+			type="button"
+		>
+			Annulla
+		</button>
+	) : (
+		<Link
+			className={ANNULLA_OUTLINE}
+			href={backHref as Parameters<typeof Link>[0]["href"]}
+		>
+			Annulla
+		</Link>
+	);
 
 	/* Form wrapper fills the table-container-bg so content uses all available space (like list/dashboard pages).
 	   Usiamo un gap più compatto (gap-2.5) tra le card di sezione così che tutte le pagine di dettaglio
@@ -1419,31 +1459,43 @@ export default function UpdateNegotiationForm({
 						</Dialog.Portal>
 					</Dialog.Root>
 				))}
-			{/* When actions are not in the page header, render them outside the scrollable form (like "Aggiungi" on the list page) so they stay visible below the container. */}
-			{!renderActionsInHeader && (
-				<div className="flex justify-between gap-3 pt-2">
-					{isSubmitting ? (
-						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
-							Annulla
-						</span>
-					) : (
-						<Link
-							className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							href={backHref as Parameters<typeof Link>[0]["href"]}
-						>
-							Annulla
-						</Link>
-					)}
-					<Button
-						className="h-10 min-w-26 rounded-xl text-sm"
-						disabled={isSubmitting}
-						form={UPDATE_NEGOTIATION_FORM_ID}
-						type="submit"
+			{/* When actions are not in the page header, render them in flow below the scrollable form (not fixed to the viewport). Optional footerStartSlot (e.g. Elimina) goes left; Annulla+Salva right. */}
+			{!renderActionsInHeader &&
+				(footerStartSlot ? (
+					<div
+						className={cn(
+							"flex shrink-0 flex-wrap items-center justify-between gap-2 gap-y-2 pt-2",
+							footerActionRowClassName
+						)}
 					>
-						{isSubmitting ? "Salvataggio…" : "Salva"}
-					</Button>
-				</div>
-			)}
+						{footerStartSlot}
+						{showFooterSaveActions ? (
+							<div className="flex shrink-0 items-center justify-end gap-2.5">
+								{annullaControl}
+								<Button
+									className="h-10 min-w-26 rounded-xl text-sm"
+									disabled={isSubmitting}
+									form={UPDATE_NEGOTIATION_FORM_ID}
+									type="submit"
+								>
+									{isSubmitting ? "Salvataggio…" : "Salva"}
+								</Button>
+							</div>
+						) : null}
+					</div>
+				) : (
+					<div className="flex justify-between gap-3 pt-2">
+						{annullaControl}
+						<Button
+							className="h-10 min-w-26 rounded-xl text-sm"
+							disabled={isSubmitting}
+							form={UPDATE_NEGOTIATION_FORM_ID}
+							type="submit"
+						>
+							{isSubmitting ? "Salvataggio…" : "Salva"}
+						</Button>
+					</div>
+				))}
 		</div>
 	);
 }

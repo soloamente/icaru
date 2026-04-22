@@ -6,16 +6,19 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Drawer } from "vaul";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { IconUTurnToLeft } from "@/components/icons";
 import Loader from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import UpdateNegotiationForm, {
 	UPDATE_NEGOTIATION_FORM_ID,
 } from "@/components/update-negotiation-form";
-import { getNegotiation } from "@/lib/api/client";
+import { deleteNegotiation, getNegotiation } from "@/lib/api/client";
 import type { ApiNegotiation } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { DELETE_TINT_BUTTON_CLASSNAME } from "@/lib/delete-action-button-class";
 import {
 	getNegotiationStatoSegment,
 	STATO_LABELS,
@@ -45,6 +48,8 @@ export default function TrattativeConcluseEditPage() {
 	// Target dinamico per la navigazione dopo conferma (sidebar nav, ecc.).
 	const [pendingHref, setPendingHref] = useState<string | null>(null);
 	const [resetTrigger, setResetTrigger] = useState(0);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isDeletingNegotiation, setIsDeletingNegotiation] = useState(false);
 
 	const fetchNegotiation = useCallback(async () => {
 		if (!token || Number.isNaN(id)) {
@@ -103,6 +108,26 @@ export default function TrattativeConcluseEditPage() {
 	);
 
 	const backHref = "/trattative/concluse";
+
+	/**
+	 * Dopo conferma, DELETE /api/negotiations/{id} e redirect alla lista concluse.
+	 */
+	const handleDeleteNegotiation = useCallback(async () => {
+		if (!token || Number.isNaN(id)) {
+			return;
+		}
+		setIsDeletingNegotiation(true);
+		const result = await deleteNegotiation(token, id);
+		setIsDeletingNegotiation(false);
+		if ("error" in result) {
+			toast.error(result.error);
+			return;
+		}
+		toast.success("Trattativa eliminata");
+		setIsDeleteDialogOpen(false);
+		// biome-ignore lint/suspicious/noExplicitAny: vedi nota in handleConfirmLeave
+		router.push(backHref as any);
+	}, [id, router, token]);
 
 	// When the user confirms they want to leave without saving, close the dialog and navigate back.
 	const handleConfirmLeave = useCallback(() => {
@@ -217,10 +242,10 @@ export default function TrattativeConcluseEditPage() {
 
 	return (
 		<main className="m-1 flex flex-1 flex-col gap-2 overflow-hidden rounded-3xl bg-card px-3 pt-4 font-medium sm:m-2.5 sm:gap-2.5 sm:px-9 sm:pt-6">
-			{/* Header: back + title on left, Annulla + Salva on right (same line as list page "Aggiungi") */}
+			{/* Header: md+ azioni a destra; sotto md la riga duplicata vive sotto al form (md:hidden). */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					<div className="flex w-full min-w-0 flex-1 items-center justify-start gap-2.5">
+					<div className="flex w-full min-w-0 flex-1 items-center justify-start gap-1">
 						<button
 							aria-label={`Torna a ${STATO_LABELS.concluse}`}
 							className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -242,40 +267,46 @@ export default function TrattativeConcluseEditPage() {
 								`Cliente #${negotiation.client_id}`}
 						</h1>
 					</div>
-					{/* Actions appear only when form is dirty or submitting; they hide again when the user reverts all edits to initial values. Minimal smooth animation (per interface-craft). */}
-					<div
-						aria-hidden={!(isDirty || isSubmitting)}
-						className={
-							isDirty || isSubmitting
-								? "flex shrink-0 scale-100 items-center justify-center gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out"
-								: // When hidden, remove from the flex layout (not just visually),
-									// otherwise it still consumes width on mobile and squeezes the title.
-									"hidden"
-						}
-					>
-						{isSubmitting ? (
-							<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
-								Annulla
-							</span>
-						) : (
-							<button
-								className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								onClick={() => setResetTrigger((c) => c + 1)}
-								tabIndex={isDirty ? 0 : -1}
-								type="button"
-							>
-								Annulla
-							</button>
-						)}
+					<div className="hidden shrink-0 items-center justify-end gap-2.5 md:flex">
 						<Button
-							className="h-10 min-w-26 rounded-xl text-sm"
+							className={DELETE_TINT_BUTTON_CLASSNAME}
 							disabled={isSubmitting}
-							form={UPDATE_NEGOTIATION_FORM_ID}
-							tabIndex={isDirty || isSubmitting ? 0 : -1}
-							type="submit"
+							onClick={() => setIsDeleteDialogOpen(true)}
+							type="button"
+							variant="destructive"
 						>
-							{isSubmitting ? "Salvataggio…" : "Salva"}
+							Elimina
 						</Button>
+						<div
+							aria-hidden={!(isDirty || isSubmitting)}
+							className={
+								isDirty || isSubmitting
+									? "flex shrink-0 items-center justify-center gap-2.5"
+									: "hidden"
+							}
+						>
+							{isSubmitting ? (
+								<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+									Annulla
+								</span>
+							) : (
+								<button
+									className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									onClick={() => setResetTrigger((c) => c + 1)}
+									type="button"
+								>
+									Annulla
+								</button>
+							)}
+							<Button
+								className="h-10 min-w-26 rounded-xl text-sm"
+								disabled={isSubmitting}
+								form={UPDATE_NEGOTIATION_FORM_ID}
+								type="submit"
+							>
+								{isSubmitting ? "Salvataggio…" : "Salva"}
+							</Button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -354,15 +385,38 @@ export default function TrattativeConcluseEditPage() {
 						</Drawer.Portal>
 					</Drawer.Root>
 				))}
-			{/* Inner body: table-container-bg takes all remaining space (like list page); form fills and scrolls inside. */}
+
+			<ConfirmActionDialog
+				confirmLabel="Elimina trattativa"
+				description="L'operazione non può essere annullata. Verrà eliminata definitivamente questa trattativa e i riferimenti collegati lato server."
+				isConfirming={isDeletingNegotiation}
+				onConfirm={handleDeleteNegotiation}
+				onOpenChange={setIsDeleteDialogOpen}
+				open={isDeleteDialogOpen}
+				title="Eliminare questa trattativa?"
+			/>
+			{/* Corpo: su mobile stessa riga azioni sotto; su md+ nascosta (si usa l’header). */}
 			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-2.5 pt-3 pb-3 sm:px-5.5 sm:pt-6.25 sm:pb-6.25">
 				<UpdateNegotiationForm
+					actionsVisibleOnlyWhenDirty
+					footerActionRowClassName="md:hidden"
+					footerStartSlot={
+						<Button
+							className={DELETE_TINT_BUTTON_CLASSNAME}
+							disabled={isSubmitting}
+							onClick={() => setIsDeleteDialogOpen(true)}
+							type="button"
+							variant="destructive"
+						>
+							Elimina
+						</Button>
+					}
 					negotiation={negotiation}
+					onAnnullaDiscard={() => setResetTrigger((c) => c + 1)}
 					onDirtyChange={setIsDirty}
 					onFilesUploaded={fetchNegotiation}
 					onSubmittingChange={setIsSubmitting}
 					onSuccess={handleSuccess}
-					renderActionsInHeader
 					resetTrigger={resetTrigger}
 					stato="concluse"
 				/>

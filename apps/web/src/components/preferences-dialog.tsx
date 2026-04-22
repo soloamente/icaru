@@ -79,9 +79,13 @@ export function PreferencesDialog({
 								</Dialog.Close>
 							</div>
 						</div>
-						{/* Scrollable content: contain layout to prevent external reflow */}
+						{/* Scrollable content: stesso raggio in basso del dialog (desktop) così la “cella” rispetta il rounded */}
 						<div
-							className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-5"
+							className={cn(
+								"min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-5",
+								// Allinea il raggio inferiore al foglio: mobile rounded-t-2xl → completamento coerente in basso
+								isMobile ? "rounded-b-2xl" : "rounded-b-3xl"
+							)}
 							style={{ contain: "layout" }}
 						>
 							<p className="sr-only" id="preferences-dialog-desc">

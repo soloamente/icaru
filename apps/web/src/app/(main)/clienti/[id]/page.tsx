@@ -6,17 +6,91 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Drawer } from "vaul";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { IconUTurnToLeft } from "@/components/icons";
 import Loader from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import UpdateClientForm, {
 	UPDATE_CLIENT_FORM_ID,
 } from "@/components/update-client-form";
-import { getClient } from "@/lib/api/client";
+import { deleteClient, getClient } from "@/lib/api/client";
 import type { ApiClient } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { DELETE_TINT_BUTTON_CLASSNAME } from "@/lib/delete-action-button-class";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
+
+/** Elimina / Annulla / Salva: stessa logica in header (md+) e sotto al form (mobile). */
+function ClientDetailActionsRow({
+	isDirty,
+	isSubmitting,
+	onDeleteClick,
+	onReset,
+	onSaveClick,
+	placement,
+}: {
+	isDirty: boolean;
+	isSubmitting: boolean;
+	onDeleteClick: () => void;
+	onReset: () => void;
+	onSaveClick: () => void;
+	placement: "header" | "footer";
+}) {
+	const className =
+		placement === "header"
+			? "hidden shrink-0 items-center justify-end gap-2.5 md:flex"
+			: "mt-1 flex shrink-0 flex-wrap items-center justify-between gap-2 gap-y-2 pt-2 md:hidden";
+
+	const actions = (
+		<>
+			<Button
+				className={DELETE_TINT_BUTTON_CLASSNAME}
+				disabled={isSubmitting}
+				onClick={onDeleteClick}
+				type="button"
+				variant="destructive"
+			>
+				Elimina
+			</Button>
+			{isDirty || isSubmitting ? (
+				<div className="flex shrink-0 items-center justify-end gap-2.5">
+					{isSubmitting ? (
+						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+							Annulla
+						</span>
+					) : (
+						<button
+							className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							onClick={onReset}
+							type="button"
+						>
+							Annulla
+						</button>
+					)}
+					<Button
+						className="h-10 min-w-26 rounded-xl text-sm"
+						disabled={isSubmitting}
+						onClick={onSaveClick}
+						type="button"
+					>
+						{isSubmitting ? "Salvataggio…" : "Salva"}
+					</Button>
+				</div>
+			) : null}
+		</>
+	);
+
+	if (placement === "footer") {
+		return (
+			<section aria-label="Azioni cliente" className={className}>
+				{actions}
+			</section>
+		);
+	}
+
+	return <div className={className}>{actions}</div>;
+}
 
 /**
  * Pagina di dettaglio/modifica cliente.
@@ -25,7 +99,7 @@ import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
  * La struttura replica quella delle pagine di edit trattativa:
  * - shell grafica con header + table-container-bg
  * - form con sezioni "Dati cliente" e "Sede"
- * - azioni Annulla / Salva nel header
+ * - azioni Elimina / Annulla / Salva sotto al form (in flusso, non barra fissa)
  * - conferma "Modifiche non salvate" (dialog su desktop, drawer su mobile)
  *   integrata anche con la navigazione globale tramite `registerUnsavedNavigationListener`.
  */
@@ -51,6 +125,9 @@ export default function ClientiDettaglioPage() {
 	const [pendingHref, setPendingHref] = useState<string | null>(null);
 	// Contatore per resettare il form (usato dal pulsante "Annulla").
 	const [resetTrigger, setResetTrigger] = useState(0);
+	// Dialog e stato di invio per DELETE /api/clients/{id} con conferma utente.
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
 
 	/**
 	 * Carica il dettaglio del cliente dal backend usando l'endpoint
@@ -165,6 +242,27 @@ export default function ClientiDettaglioPage() {
 		}
 	}, [isSubmitting]);
 
+	/**
+	 * Dopo conferma nel dialog, chiama DELETE /api/clients/{id} e torna alla lista
+	 * clienti; in caso di errore lascia il dialog aperto e mostra un toast.
+	 */
+	const handleDeleteClient = useCallback(async () => {
+		if (!token || Number.isNaN(id)) {
+			return;
+		}
+		setIsDeleting(true);
+		const result = await deleteClient(token, id);
+		setIsDeleting(false);
+		if ("error" in result) {
+			toast.error(result.error);
+			return;
+		}
+		toast.success("Cliente eliminato");
+		setIsDeleteDialogOpen(false);
+		// biome-ignore lint/suspicious/noExplicitAny: vedi nota in handleConfirmLeave
+		router.push("/clienti" as any);
+	}, [id, router, token]);
+
 	// Integra la conferma "Modifiche non salvate" con la navigazione globale:
 	// quando la Sidebar (o altri componenti) chiamano requestUnsavedNavigation,
 	// questa pagina può bloccare la navigazione e mostrare prima il dialog.
@@ -258,10 +356,9 @@ export default function ClientiDettaglioPage() {
 
 	return (
 		<main className="m-1 flex flex-1 flex-col gap-2 overflow-hidden rounded-3xl bg-card px-3 pt-4 font-medium sm:m-2.5 sm:gap-2.5 sm:px-9 sm:pt-6">
-			{/* Header: pulsante back + titolo a sinistra; azioni Annulla/Salva a destra (stesso pattern pagine trattative). */}
+			{/* Header: md+ azioni in alto; sotto md la stessa riga sotto al form (md:hidden). */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
-					{/* Title row: back button + title; w-full so title uses full width on mobile and doesn't truncate. */}
 					<div className="flex w-full min-w-0 flex-1 items-center justify-start gap-1">
 						<button
 							aria-label="Torna alla lista clienti"
@@ -283,42 +380,14 @@ export default function ClientiDettaglioPage() {
 							{client.ragione_sociale ?? `#${client.id.toString()}`}
 						</h1>
 					</div>
-					{/* Azioni nel header: appaiono solo quando il form è sporco (o in submit) per
-					    ridurre il rumore visivo e allinearsi al comportamento delle trattative. */}
-					<div
-						aria-hidden={!(isDirty || isSubmitting)}
-						className={
-							isDirty || isSubmitting
-								? "flex shrink-0 scale-100 items-center justify-center gap-2.5 opacity-100 transition-[opacity,transform] duration-200 ease-out"
-								: // When hidden, we must remove it from layout entirely,
-									// otherwise it still consumes width and forces the title to shrink on mobile.
-									"hidden"
-						}
-					>
-						{isSubmitting ? (
-							<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
-								Annulla
-							</span>
-						) : (
-							<button
-								className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								onClick={() => setResetTrigger((value) => value + 1)}
-								tabIndex={isDirty ? 0 : -1}
-								type="button"
-							>
-								Annulla
-							</button>
-						)}
-						<Button
-							className="h-10 min-w-26 rounded-xl text-sm"
-							disabled={isSubmitting}
-							onClick={handleSaveClick}
-							tabIndex={isDirty || isSubmitting ? 0 : -1}
-							type="button"
-						>
-							{isSubmitting ? "Salvataggio…" : "Salva"}
-						</Button>
-					</div>
+					<ClientDetailActionsRow
+						isDirty={isDirty}
+						isSubmitting={isSubmitting}
+						onDeleteClick={() => setIsDeleteDialogOpen(true)}
+						onReset={() => setResetTrigger((value) => value + 1)}
+						onSaveClick={handleSaveClick}
+						placement="header"
+					/>
 				</div>
 			</div>
 
@@ -398,14 +467,35 @@ export default function ClientiDettaglioPage() {
 					</Drawer.Root>
 				))}
 
-			{/* Corpo: shell table-container-bg condivisa con le liste, form cliente all'interno con scroll. */}
+			{/* Conferma eliminazione cliente prima di chiamare DELETE /api/clients/{id}. */}
+			<ConfirmActionDialog
+				confirmLabel="Elimina cliente"
+				description="L'operazione non può essere annullata. Verrà eliminato definitivamente questo cliente e i dati associati ove consentito dal server."
+				isConfirming={isDeleting}
+				onConfirm={handleDeleteClient}
+				onOpenChange={setIsDeleteDialogOpen}
+				open={isDeleteDialogOpen}
+				title="Eliminare questo cliente?"
+			/>
+
+			{/* Corpo: form in scroll, poi riga azioni in coda (flusso documento, non fixed). */}
 			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-2.5 pt-3 pb-3 sm:px-5.5 sm:pt-6.25 sm:pb-6.25">
-				<UpdateClientForm
-					client={client}
-					onDirtyChange={setIsDirty}
-					onSubmittingChange={setIsSubmitting}
-					onSuccess={handleSuccess}
-					resetTrigger={resetTrigger}
+				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+					<UpdateClientForm
+						client={client}
+						onDirtyChange={setIsDirty}
+						onSubmittingChange={setIsSubmitting}
+						onSuccess={handleSuccess}
+						resetTrigger={resetTrigger}
+					/>
+				</div>
+				<ClientDetailActionsRow
+					isDirty={isDirty}
+					isSubmitting={isSubmitting}
+					onDeleteClick={() => setIsDeleteDialogOpen(true)}
+					onReset={() => setResetTrigger((value) => value + 1)}
+					onSaveClick={handleSaveClick}
+					placement="footer"
 				/>
 			</div>
 		</main>

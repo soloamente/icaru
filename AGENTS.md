@@ -125,8 +125,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 ## Learned User Preferences
 
-- In dataweb light theme, use `text-card-foreground` for text on card/table surfaces (not `text-foreground`)
-- Hover on card/panel surfaces in dataweb light: use `hover:text-card-foreground` (not `hover:text-foreground`)
+- In dataweb light, card/panel surfaces use `text-card-foreground` and `hover:text-card-foreground` (not `text-foreground` / `hover:text-foreground`)
 - Dataweb light: form inputs on cards/panels use `bg-input` (not `bg-background`) so fields stay readable and distinct from the card/dialog surface
 - Dialog close buttons: use `bg-table-header`, `text-card-foreground`, `hover:bg-table-hover` to match input fields
 - Stat card values on `bg-card` and empty state headings: use `text-card-foreground` for contrast in dataweb light; empty state subtitles use `text-card-foreground/80`
@@ -136,10 +135,12 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Table sections: title on row 1, filters plus search bar on row 2 with `justify-between` (like trattative page)
 - Editable row icons (pen, envelope): show on detail pages only, not in dialogs
 - Default light theme (non-dataweb): adjust neutral gray tokens in `globals.css` `:root` (keep `--table-header` darker than `--card` so `bg-table-header` rows and chips read inside `bg-card` panels; use `bg-table-header-readonly` / `--table-header-readonly` for read-only field rows so they read softer than editable `bg-table-header` chips); rich/dataweb uses `[data-color-scheme="rich"]` and `.dark`—change the matching block for that mode
-- Mobile left/right overlay sidebar: close the menu after navigating via sidebar links or the logo so the new page is not covered on narrow viewports
+- Mobile overlay sidebars: close after navigating via sidebar links or the logo. A right-docked mobile sidebar should dismiss from backdrop tap and a clear close control, like the left drawer. If vertical sidebar chrome overflows horizontally, allow horizontal scroll or reflow so items stay reachable
+- Dataweb light: date picker and calendar popovers stay on light surfaces; selected-day styling must keep foreground readable (avoid dark dialog shells or blue selection chips without contrasting text)
 
 ## Learned Workspace Facts
 
+- Global search / command palette: backdrop dimming should cover the full layout including the main content column, not only the sidebar
 - API: `api/clients/company` removed; clients and trattative use `/me` endpoints per role
 - Use fallback for `team.creator` when API may omit it (safeCreator pattern with `creator_id`)
 - framer-motion: do not use `motion/react`; use package-specific import paths
@@ -147,9 +148,8 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Tooltips inside scroll-fade-y or masked containers: use Tooltip with FloatingPortal to avoid clipping
 - Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks; keep a fixed left Y-axis rail so scale labels stay visible while the month row scrolls horizontally
 - Statistiche page layout: negotiations map → monthly charts → SPANCO donut; below `md` (768px) the monthly block is four stacked single-series charts in order: importo aperte, importo chiuse, numero aperte, numero chiuse; at `md+` use the two dual-series chart grids
-- Dashboard and Statistiche main page titles: do not use a global “hero” `main-page-title` class on the `h1`; use plain heading styling (inherits body scale) so titles stay modest and consistent across both pages
+- Dashboard and Statistiche: do not use a global “hero” `main-page-title` on the `h1`—use plain heading styling (inherits body scale). On mobile-heavy routes, root `main` often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
 - Negotiations map filter panel on statistiche: use `stat-card-bg` with `bg-stat-card` to match monthly stat cards (avoid relying on `bg-background` alone in dataweb light)
-- Root `main` on mobile-heavy routes often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
 - Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight
 - `update-negotiation-form.tsx`: `SECTION_CARD_CLASSES` stacks each section title above its body (`flex flex-col`). On `md+`, section content uses two-column grids as implemented (Dati trattativa, Allegati list vs upload, Stato e avanzamento e.g. Spanco + Importo with full-width rows for slider/Abbandonata). Field rows still use `flex-col md:flex-row` for label/value pills; read-only values may use `truncate` when ellipsis is preferred. The **Note** textarea uses `text-start md:text-start` so multi-line copy is not right-aligned via shared single-line `md:text-right` input styles.
 
