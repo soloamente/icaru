@@ -65,12 +65,9 @@ function ClientDetailActionsRow({
 				)}
 			>
 				<div className="min-w-0">
+					{/* Sempre `DELETE_TINT_FOOTER` in footer (anche a 1 col): `w-full` come su trattative; il tint header usa `DELETE_TINT_BUTTON` sotto. */}
 					<Button
-						className={
-							showSaveRow
-								? DELETE_TINT_FOOTER_CLASSNAME
-								: DELETE_TINT_BUTTON_CLASSNAME
-						}
+						className={DELETE_TINT_FOOTER_CLASSNAME}
 						disabled={isSubmitting}
 						onClick={onDeleteClick}
 						type="button"
