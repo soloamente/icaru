@@ -18,7 +18,10 @@ import UpdateNegotiationForm, {
 import { deleteNegotiation, getNegotiation } from "@/lib/api/client";
 import type { ApiNegotiation } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
-import { DELETE_TINT_BUTTON_CLASSNAME } from "@/lib/delete-action-button-class";
+import {
+	DELETE_TINT_BUTTON_CLASSNAME,
+	DELETE_TINT_FOOTER_CLASSNAME,
+} from "@/lib/delete-action-button-class";
 import { STATO_LABELS } from "@/lib/trattative-utils";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 

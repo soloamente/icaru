@@ -30,6 +30,7 @@ import type {
 	UpdateNegotiationBody,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import { MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME } from "@/lib/delete-action-button-class";
 import {
 	isNegotiationAbandoned,
 	isNegotiationCompleted,
