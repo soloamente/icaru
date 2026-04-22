@@ -627,6 +627,44 @@ html.dark[data-color-scheme="rich"] {
 	color: var(--card-foreground);
 }
 
+/* Dataweb light: import clients dialog footer — info + «Scarica modello» on bg-table-header: white fills (muted reads too gray on the chip row). */
+html:not(.dark)[data-color-scheme="rich"] .import-clients-footer-action {
+	background-color: oklch(1 0 0);
+}
+/* Hover must stay darker than bg-table-header (≈0.96); same L made chips disappear on the footer strip. */
+html:not(.dark)[data-color-scheme="rich"]
+.import-clients-footer-action:hover:not(:disabled) {
+	background-color: var(--table-hover);
+}
+/* Round info control: keep icon muted on white, darkens on hover (Tailwind text-* would lose to outline variant on the other button). */
+html:not(.dark)[data-color-scheme="rich"]
+button.import-clients-footer-action:not([data-slot="button"]) {
+	color: var(--muted-foreground);
+}
+html:not(.dark)[data-color-scheme="rich"]
+	button.import-clients-footer-action:not([data-slot="button"]):hover:not(
+		:disabled
+	) {
+	color: var(--card-foreground);
+}
+
+/* Default light (non-Dataweb): footer su bg-table-header — bg-muted (≈0.86) si confonde con header (≈0.82); table-buttons stacca le superfici (outline «Scarica modello» ha già il bordo). */
+html:not(.dark):not([data-color-scheme="rich"]) .import-clients-footer-action {
+	background-color: var(--table-buttons);
+	color: var(--card-foreground);
+}
+html:not(.dark):not([data-color-scheme="rich"])
+	.import-clients-footer-action:hover:not(:disabled) {
+	background-color: var(--card);
+	color: var(--card-foreground);
+}
+
+/* Cerchio info senza bordo outline: un anello leggero migliora la lettura sul footer table-header. */
+html:not(.dark):not([data-color-scheme="rich"])
+.import-clients-footer-action--info:not([data-slot="button"]) {
+	box-shadow: 0 0 0 1px var(--border);
+}
+
 /* Font style: default = Inter, rounded = SF Pro Rounded (via class on html from layout). */
 html[data-font="default"] {
 	font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;

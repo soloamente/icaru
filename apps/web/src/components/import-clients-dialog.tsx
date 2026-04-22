@@ -1,17 +1,13 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { Popover } from "@base-ui/react/popover";
 import { Select } from "@base-ui/react/select";
+import { Tooltip } from "@base-ui/react/tooltip";
 import { ChevronDown, Download, Info, Upload, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/animate-ui/primitives/animate/tooltip";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	downloadClientsImportTemplateExcel,
@@ -43,6 +39,16 @@ const DB_COLUMN_LABELS: Record<string, string> = {
 const IMPORT_TEMPLATE_INFO_TOOLTIP =
 	"Scarica il modello Excel: è un foglio vuoto in cui la prima riga ha già tutti i titoli corretti (ragione sociale, partita IVA, email, telefono, indirizzo…). Sotto aggiungi una riga per ogni cliente, salva il file e caricalo qui sopra.";
 
+/** Stesso pannello del tooltip desktop; su mobile usiamo Popover perché Base UI non mostra i tooltip al touch. */
+const IMPORT_TEMPLATE_INFO_PANEL_CLASS =
+	"max-w-[min(22rem,calc(100vw-2rem))] text-balance rounded-2xl bg-popover px-3.5 py-3 text-left text-popover-foreground text-sm leading-snug shadow-lg ring-1 ring-border";
+
+const IMPORT_TEMPLATE_INFO_FLOATING_Z_CLASS = "z-[100]";
+
+/** Pulsante info: condiviso tra Popover (mobile) e Tooltip.Trigger (desktop). Modificatore --info per bordo su tema default light (vedi globals.css). */
+const INFO_IMPORT_TRIGGER_CLASS =
+	"import-clients-footer-action import-clients-footer-action--info flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 const ACCEPTED_FILE_TYPES = ".xlsx,.xls,.csv";
 const ACCEPTED_MIME_TYPES = [
 	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -53,6 +59,73 @@ const ACCEPTED_MIME_TYPES = [
 const EXCEL_CSV_EXTENSION_REGEX = /\.(xlsx|xls|csv)$/i;
 
 type Step = "upload" | "mapping" | "result";
+
+/**
+ * Icona info accanto a «Scarica modello»: su desktop Tooltip (hover); su mobile Popover al tap
+ * perché Base UI non espone i tooltip al touch.
+ */
+function ImportTemplateInfoHint({ isMobile }: { isMobile: boolean }) {
+	if (isMobile) {
+		return (
+			<Popover.Root modal={false}>
+				<Popover.Trigger
+					aria-label="Informazioni sul modello da scaricare"
+					className={INFO_IMPORT_TRIGGER_CLASS}
+					type="button"
+				>
+					<Info aria-hidden className="size-4" />
+				</Popover.Trigger>
+				<Popover.Portal>
+					<Popover.Positioner
+						align="center"
+						className={IMPORT_TEMPLATE_INFO_FLOATING_Z_CLASS}
+						collisionAvoidance={{ side: "none" }}
+						side="top"
+						sideOffset={8}
+					>
+						<Popover.Popup
+							aria-live="polite"
+							className={IMPORT_TEMPLATE_INFO_PANEL_CLASS}
+						>
+							{IMPORT_TEMPLATE_INFO_TOOLTIP}
+						</Popover.Popup>
+					</Popover.Positioner>
+				</Popover.Portal>
+			</Popover.Root>
+		);
+	}
+
+	return (
+		<Tooltip.Provider closeDelay={120} delay={0}>
+			<Tooltip.Root>
+				<Tooltip.Trigger
+					aria-label="Informazioni sul modello da scaricare"
+					className={INFO_IMPORT_TRIGGER_CLASS}
+					delay={0}
+					type="button"
+				>
+					<Info aria-hidden className="size-4" />
+				</Tooltip.Trigger>
+				<Tooltip.Portal>
+					<Tooltip.Positioner
+						align="center"
+						className={IMPORT_TEMPLATE_INFO_FLOATING_Z_CLASS}
+						collisionAvoidance={{ side: "none" }}
+						side="top"
+						sideOffset={8}
+					>
+						<Tooltip.Popup
+							aria-live="polite"
+							className={IMPORT_TEMPLATE_INFO_PANEL_CLASS}
+						>
+							{IMPORT_TEMPLATE_INFO_TOOLTIP}
+						</Tooltip.Popup>
+					</Tooltip.Positioner>
+				</Tooltip.Portal>
+			</Tooltip.Root>
+		</Tooltip.Provider>
+	);
+}
 
 interface ImportClientsDialogProps {
 	open: boolean;
@@ -615,30 +688,13 @@ export function ImportClientsDialog({
 											Non hai un file da importare o non sai quali colonne
 											servono?
 										</p>
-										<div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-											<TooltipProvider openDelay={250}>
-												<Tooltip align="end" side="top" sideOffset={10}>
-													<TooltipTrigger asChild>
-														<button
-															aria-label="Informazioni sul modello da scaricare"
-															className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-															type="button"
-														>
-															<Info aria-hidden className="size-4" />
-														</button>
-													</TooltipTrigger>
-													<TooltipContent
-														aria-live="polite"
-														className="max-w-[min(22rem,calc(100vw-2rem))] text-balance rounded-2xl bg-popover px-3.5 py-3 text-left text-popover-foreground text-sm leading-snug shadow-lg ring-1 ring-border"
-													>
-														{IMPORT_TEMPLATE_INFO_TOOLTIP}
-													</TooltipContent>
-												</Tooltip>
-											</TooltipProvider>
+										{/* Mobile: info e «Scarica modello» agli estremi (between); sm+: gruppo a destra. */}
+										<div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+											<ImportTemplateInfoHint isMobile={isMobile} />
 											<Button
 												aria-busy={isDownloadingTemplate}
 												aria-label="Scarica modello Excel vuoto con le colonne per l’import clienti"
-												className="h-10 shrink-0 gap-2 rounded-xl border-border bg-muted px-4 text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
+												className="import-clients-footer-action h-10 shrink-0 gap-2 rounded-xl border-border bg-muted px-4 text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
 												disabled={!token || isDownloadingTemplate}
 												onClick={downloadClientsImportTemplate}
 												type="button"

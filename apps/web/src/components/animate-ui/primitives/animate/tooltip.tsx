@@ -37,6 +37,8 @@ type TooltipData = {
 	align: Align;
 	alignOffset: number;
 	id: string;
+	/** When true, skip flip middleware so placement stays on the requested side (e.g. dialog footers). */
+	disableFlip?: boolean;
 };
 
 type GlobalTooltipContextType = {
@@ -63,6 +65,7 @@ type TooltipContextType = {
 	align: Align;
 	alignOffset: number;
 	id: string;
+	disableFlip?: boolean;
 };
 
 const [LocalTooltipProvider, useTooltip] = getStrictContext<TooltipContextType>(
@@ -85,6 +88,9 @@ function initialFromSide(side: Side): Partial<Record<"x" | "y", number>> {
 	return { x: -15 };
 }
 
+/** Enter/exit scale starts here so motion feels subtle (not a pop from a point). */
+const TOOLTIP_SCALE_FROM = 0.9;
+
 type TooltipProviderProps = {
 	children: React.ReactNode;
 	id?: string;
@@ -93,12 +99,19 @@ type TooltipProviderProps = {
 	transition?: Transition;
 };
 
+/** Default motion: short tween so opacity/scale feel immediate (spring was noticeably slow on fade). */
+const DEFAULT_TOOLTIP_TRANSITION: Transition = {
+	type: "tween",
+	duration: 0.1,
+	ease: [0.22, 1, 0.36, 1],
+};
+
 function TooltipProvider({
 	children,
 	id,
 	openDelay = 700,
-	closeDelay = 300,
-	transition = { type: "spring", stiffness: 300, damping: 35 },
+	closeDelay = 120,
+	transition = DEFAULT_TOOLTIP_TRANSITION,
 }: TooltipProviderProps) {
 	const globalId = React.useId();
 	const [currentTooltip, setCurrentTooltip] =
@@ -249,6 +262,8 @@ function TooltipOverlay() {
 	const side = rendered.data?.side ?? "top";
 	const align = rendered.data?.align ?? "center";
 
+	const disableFlip = rendered.data?.disableFlip === true;
+
 	const { refs, x, y, strategy, context, update } = useFloating({
 		placement: align === "center" ? side : `${side}-${align}`,
 		whileElementsMounted: autoUpdate,
@@ -257,7 +272,7 @@ function TooltipOverlay() {
 				mainAxis: rendered.data?.sideOffset ?? 0,
 				crossAxis: rendered.data?.alignOffset ?? 0,
 			}),
-			flip(),
+			...(disableFlip ? [] : [flip()]),
 			shift({ padding: 8 }),
 			floatingArrow({ element: arrowRef }),
 		],
@@ -314,7 +329,7 @@ function TooltipOverlay() {
 											? { opacity: 1, scale: 1, x: 0, y: 0 }
 											: {
 													opacity: 0,
-													scale: 0,
+													scale: TOOLTIP_SCALE_FROM,
 													...initialFromSide(rendered.data.side),
 												}
 									}
@@ -324,12 +339,12 @@ function TooltipOverlay() {
 									data-state={rendered.open ? "open" : "closed"}
 									exit={{
 										opacity: 0,
-										scale: 0,
+										scale: TOOLTIP_SCALE_FROM,
 										...initialFromSide(rendered.data.side),
 									}}
 									initial={{
 										opacity: 0,
-										scale: 0,
+										scale: TOOLTIP_SCALE_FROM,
 										...initialFromSide(rendered.data.side),
 									}}
 									layoutId={`tooltip-content-${globalId}`}
@@ -359,6 +374,11 @@ type TooltipProps = {
 	sideOffset?: number;
 	align?: Align;
 	alignOffset?: number;
+	/**
+	 * Keeps the tooltip on `side` without flipping (e.g. `top` above a footer control inside a modal,
+	 * where flip would often choose `bottom` and feel misaligned).
+	 */
+	disableFlip?: boolean;
 };
 
 function Tooltip({
@@ -367,6 +387,7 @@ function Tooltip({
 	sideOffset = 0,
 	align = "center",
 	alignOffset = 0,
+	disableFlip = false,
 }: TooltipProps) {
 	const id = React.useId();
 	const [props, setProps] = React.useState<HTMLMotionProps<"div">>({});
@@ -384,6 +405,7 @@ function Tooltip({
 				align,
 				alignOffset,
 				id,
+				disableFlip,
 			}}
 		>
 			{children}
@@ -449,6 +471,7 @@ function TooltipTrigger({
 		align,
 		alignOffset,
 		id,
+		disableFlip,
 	} = useTooltip();
 	const {
 		showTooltip,
@@ -476,6 +499,7 @@ function TooltipTrigger({
 			align,
 			alignOffset,
 			id,
+			disableFlip,
 		});
 	}, [
 		showTooltip,
@@ -487,6 +511,7 @@ function TooltipTrigger({
 		align,
 		alignOffset,
 		id,
+		disableFlip,
 	]);
 
 	const handlePointerDown = React.useCallback(
