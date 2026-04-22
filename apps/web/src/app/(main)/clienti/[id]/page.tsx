@@ -40,7 +40,8 @@ function ClientDetailActionsRow({
 	const className =
 		placement === "header"
 			? "hidden shrink-0 items-center justify-end gap-2.5 md:flex"
-			: "mt-1 flex shrink-0 flex-wrap items-center justify-between gap-2 gap-y-2 pt-2 md:hidden";
+			: // Una sola riga su mobile: niente flex-wrap (prima: Elimina su una riga, coppia sotto)
+				"mt-1 flex w-full min-w-0 shrink-0 flex-nowrap items-center justify-between gap-1.5 overflow-x-auto pt-2 [scrollbar-width:thin] sm:gap-2 md:hidden";
 
 	const actions = (
 		<>
@@ -54,7 +55,7 @@ function ClientDetailActionsRow({
 				Elimina
 			</Button>
 			{isDirty || isSubmitting ? (
-				<div className="flex shrink-0 items-center justify-end gap-2.5">
+				<div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2.5">
 					{isSubmitting ? (
 						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
 							Annulla

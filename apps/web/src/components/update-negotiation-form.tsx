@@ -1464,13 +1464,14 @@ export default function UpdateNegotiationForm({
 				(footerStartSlot ? (
 					<div
 						className={cn(
-							"flex shrink-0 flex-wrap items-center justify-between gap-2 gap-y-2 pt-2",
+							// Una riga anche su viewport stretto (Elimina + Annulla + Salva)
+							"flex w-full min-w-0 shrink-0 flex-nowrap items-center justify-between gap-1.5 overflow-x-auto pt-2 [scrollbar-width:thin] sm:gap-2",
 							footerActionRowClassName
 						)}
 					>
 						{footerStartSlot}
 						{showFooterSaveActions ? (
-							<div className="flex shrink-0 items-center justify-end gap-2.5">
+							<div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2.5">
 								{annullaControl}
 								<Button
 									className="h-10 min-w-26 rounded-xl text-sm"
