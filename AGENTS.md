@@ -151,7 +151,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Negotiations map filter panel on statistiche: use `stat-card-bg` with `bg-stat-card` to match monthly stat cards (avoid relying on `bg-background` alone in dataweb light)
 - Root `main` on mobile-heavy routes often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
 - Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight
-- `update-negotiation-form.tsx`: label and value stack on mobile (`flex-col md:flex-row`); read-only row values use `truncate` when ellipsis is preferred over wrapping
+- `update-negotiation-form.tsx`: `SECTION_CARD_CLASSES` stacks each section title above its body (`flex flex-col`). On `md+`, section content uses two-column grids as implemented (Dati trattativa, Allegati list vs upload, Stato e avanzamento e.g. Spanco + Importo with full-width rows for slider/Abbandonata). Field rows still use `flex-col md:flex-row` for label/value pills; read-only values may use `truncate` when ellipsis is preferred. The **Note** textarea uses `text-start md:text-start` so multi-line copy is not right-aligned via shared single-line `md:text-right` input styles.
 
 ---
 

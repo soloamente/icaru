@@ -1178,6 +1178,28 @@ export async function importConfirm(
 	}
 }
 
+/**
+ * GET /import/template — Excel vuoto (.xlsx) con intestazioni colonne per import clienti.
+ * Risposta: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet (es. template_clienti.xlsx).
+ */
+export async function downloadClientsImportTemplateExcel(
+	accessToken: string
+): Promise<{ ok: true } | { error: string }> {
+	const result = await fetchAuthorizedBlob(
+		accessToken,
+		`${BASE_URL}/import/template`
+	);
+	if ("error" in result) {
+		return { error: result.error };
+	}
+	// Se manca Content-Disposition, l’ultimo segmento URL è "template" senza estensione.
+	const filename = result.filename.toLowerCase().endsWith(".xlsx")
+		? result.filename
+		: "template_clienti.xlsx";
+	triggerBlobDownload(result.blob, filename);
+	return { ok: true };
+}
+
 // --- Global Search API ---
 // POST /api/search — Smart search for clients and referents (min 2 chars). Solo dati personali.
 

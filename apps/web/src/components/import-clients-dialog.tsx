@@ -2,11 +2,22 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Select } from "@base-ui/react/select";
-import { ChevronDown, Upload, X } from "lucide-react";
+import { ChevronDown, Download, Info, Upload, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/animate-ui/primitives/animate/tooltip";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { importCheck, importConfirm } from "@/lib/api/client";
+import {
+	downloadClientsImportTemplateExcel,
+	importCheck,
+	importConfirm,
+} from "@/lib/api/client";
 import type { ImportCheckResponse } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
@@ -27,6 +38,10 @@ const DB_COLUMN_LABELS: Record<string, string> = {
 	provincia: "Provincia",
 	regione: "Regione",
 };
+
+/** Testo lungo nel tooltip sull’icona info accanto a «Scarica modello». */
+const IMPORT_TEMPLATE_INFO_TOOLTIP =
+	"Scarica il modello Excel: è un foglio vuoto in cui la prima riga ha già tutti i titoli corretti (ragione sociale, partita IVA, email, telefono, indirizzo…). Sotto aggiungi una riga per ogni cliente, salva il file e caricalo qui sopra.";
 
 const ACCEPTED_FILE_TYPES = ".xlsx,.xls,.csv";
 const ACCEPTED_MIME_TYPES = [
@@ -76,6 +91,7 @@ export function ImportClientsDialog({
 	const [importedCount, setImportedCount] = useState<number>(0);
 	const [importErrors, setImportErrors] = useState<string[]>([]);
 	const [isDragOver, setIsDragOver] = useState(false);
+	const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 
 	const resetState = useCallback(() => {
@@ -90,7 +106,26 @@ export function ImportClientsDialog({
 		setImportErrors([]);
 		setIsAnalyzing(false);
 		setIsConfirming(false);
+		setIsDownloadingTemplate(false);
 	}, []);
+
+	/**
+	 * GET /import/template — scarica .xlsx dal backend (template_clienti.xlsx).
+	 * Nome handler allineato al bottone «Scarica modello» (evita ReferenceError se il JSX usa questo id).
+	 */
+	const downloadClientsImportTemplate = useCallback(async () => {
+		if (!token) {
+			return;
+		}
+		setIsDownloadingTemplate(true);
+		const result = await downloadClientsImportTemplateExcel(token);
+		setIsDownloadingTemplate(false);
+		if ("error" in result) {
+			toast.error(result.error);
+			return;
+		}
+		toast.success("Download modello avviato");
+	}, [token]);
 
 	const handleOpenChange = useCallback(
 		(open: boolean) => {
@@ -531,8 +566,8 @@ export function ImportClientsDialog({
 						className={cn(
 							"flex max-h-[90vh] flex-col overflow-hidden bg-card shadow-[0_18px_45px_rgba(15,23,42,0.55)] outline-none data-closed:animate-out data-open:animate-in",
 							isMobile
-								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-[10px] max-w-none rounded-[36px]"
-								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-lg rounded-3xl px-6 py-5"
+								? "data-closed:fade-out-0 data-closed:slide-out-to-bottom-4 data-open:fade-in-0 data-open:slide-in-from-bottom-4 fixed inset-x-[10px] bottom-5 max-w-none rounded-[36px]"
+								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 w-full max-w-lg rounded-3xl"
 						)}
 					>
 						<Dialog.Title className="sr-only" id="import-clients-dialog-title">
@@ -542,26 +577,84 @@ export function ImportClientsDialog({
 							Carica un file e associa le colonne ai campi del database, poi
 							conferma l’importazione.
 						</p>
-						<div
-							className={
-								isMobile
-									? "min-h-0 flex-1 overflow-y-auto p-6"
-									: "overflow-y-auto"
-							}
-						>
-							<div className="flex items-center justify-between gap-3">
-								{/* text-card-foreground so title is readable in dataweb light (card is light there). */}
-								<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
-									{dialogTitleByStep}
-								</h2>
-								<Dialog.Close
-									aria-label="Chiudi"
-									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
-								>
-									<X aria-hidden className="size-4" />
-								</Dialog.Close>
+						{/* Body scrolls; gap separa il contenuto dal footer; footer ha padding dal bordo inferiore del popup. */}
+						<div className="flex min-h-0 flex-1 flex-col gap-3">
+							<div
+								className={cn(
+									"min-h-0 flex-1 overflow-y-auto",
+									isMobile ? "p-6 pb-2" : "px-6 pt-5"
+								)}
+							>
+								<div className="flex items-center justify-between gap-3">
+									{/* text-card-foreground so title is readable in dataweb light (card is light there). */}
+									<h2 className="font-bold text-2xl text-card-foreground tracking-tight">
+										{dialogTitleByStep}
+									</h2>
+									<Dialog.Close
+										aria-label="Chiudi"
+										className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-table-header text-card-foreground transition-transform hover:bg-table-hover focus:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+									>
+										<X aria-hidden className="size-4" />
+									</Dialog.Close>
+								</div>
+								{content}
 							</div>
-							{content}
+							{step !== "result" ? (
+								<div
+									className={cn(
+										"shrink-0 border-border border-t bg-table-header px-6",
+										// Stesso padding sopra/sotto; su mobile il basso non scende sotto la safe area.
+										isMobile
+											? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+											: "py-4"
+									)}
+								>
+									{/* Domanda visibile; dettaglio nel tooltip dell’icona info (portal, non tagliato dal dialogo). */}
+									<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+										<p className="min-w-0 flex-1 font-medium text-card-foreground text-sm">
+											Non hai un file da importare o non sai quali colonne
+											servono?
+										</p>
+										<div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+											<TooltipProvider openDelay={250}>
+												<Tooltip align="end" side="top" sideOffset={10}>
+													<TooltipTrigger asChild>
+														<button
+															aria-label="Informazioni sul modello da scaricare"
+															className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															type="button"
+														>
+															<Info aria-hidden className="size-4" />
+														</button>
+													</TooltipTrigger>
+													<TooltipContent
+														aria-live="polite"
+														className="max-w-[min(22rem,calc(100vw-2rem))] text-balance rounded-2xl bg-popover px-3.5 py-3 text-left text-popover-foreground text-sm leading-snug shadow-lg ring-1 ring-border"
+													>
+														{IMPORT_TEMPLATE_INFO_TOOLTIP}
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+											<Button
+												aria-busy={isDownloadingTemplate}
+												aria-label="Scarica modello Excel vuoto con le colonne per l’import clienti"
+												className="h-10 shrink-0 gap-2 rounded-xl border-border bg-muted px-4 text-card-foreground text-sm hover:bg-muted/80 hover:text-card-foreground aria-expanded:bg-muted aria-expanded:text-card-foreground"
+												disabled={!token || isDownloadingTemplate}
+												onClick={downloadClientsImportTemplate}
+												type="button"
+												variant="outline"
+											>
+												{isDownloadingTemplate ? (
+													<Spinner className="size-4" />
+												) : (
+													<Download aria-hidden className="size-4" />
+												)}
+												Scarica modello
+											</Button>
+										</div>
+									</div>
+								</div>
+							) : null}
 						</div>
 					</Dialog.Popup>
 				</div>

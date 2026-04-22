@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
 	deleteNegotiationFile,
 	getFileDownload,
+	updateClient,
 	updateNegotiation,
 	uploadNegotiationFiles,
 } from "@/lib/api/client";
@@ -202,9 +203,9 @@ const DIALOG_FIELD_CONTAINER_CLASSES =
 	// Desktop: label left, control right.
 	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none md:flex-row md:items-center md:justify-between";
 
-/** Shared section card wrapper: full-width card with title + content (same layout for Dati trattativa, Allegati, Stato e avanzamento). */
+/** Shared section card wrapper: title on first row, content below (never title beside body on wide viewports). */
 const SECTION_CARD_CLASSES =
-	"flex min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
+	"flex flex-col min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
 
 /** Text styling for field labels inside pills. */
 const DIALOG_FIELD_LABEL_TEXT_CLASSES =
@@ -235,29 +236,34 @@ export type TrattativeStato = "aperte" | "concluse" | "abbandonate";
 /** Form id for external submit button (e.g. in page header). Use with form="..." on a submit button. */
 export const UPDATE_NEGOTIATION_FORM_ID = "update-negotiation-form";
 
-/** Dati trattativa: Ragione sociale read-only; Referente and Note editable. Same card container as Allegati and Stato e avanzamento. */
+/** Telefono del cliente associato alla trattativa (confronto dirty / payload PUT clients). */
+function initialClientTelefono(negotiation: ApiNegotiation): string {
+	const t = negotiation.client?.telefono;
+	return typeof t === "string" ? t : "";
+}
+
+/** Telefono cliente in modifica: stesso valore mostrato nel campo (persistenza via PUT /clients/{id} al salvataggio). */
 function DatiTrattativaSection({
 	negotiation,
 	referente,
 	note,
+	telefono,
 	onReferenteChange,
 	onNoteChange,
+	onTelefonoChange,
 	sectionClassName,
 }: {
 	negotiation: ApiNegotiation;
 	referente: string;
 	note: string;
+	telefono: string;
 	onReferenteChange: (value: string) => void;
 	onNoteChange: (value: string) => void;
-	/** When provided (e.g. from parent with isMobile), overrides SECTION_CARD_CLASSES for the section wrapper. */
+	onTelefonoChange: (value: string) => void;
+	/** When provided, overrides SECTION_CARD_CLASSES for the section wrapper. */
 	sectionClassName?: string;
 }) {
-	// Derive read-only helper fields from the negotiation so they stay in sync with backend data.
-	const telefonoClient =
-		typeof negotiation.client?.telefono === "string"
-			? negotiation.client.telefono.trim()
-			: "";
-	const telefonoDisplay = telefonoClient.length > 0 ? telefonoClient : "—";
+	// Campi read-only e date derivate dalla trattativa / API.
 	// Preferiamo il campo esplicito `data_apertura` esposto dall'API; se mancante, facciamo fallback a `created_at`.
 	const dataAperturaRaw =
 		negotiation.data_apertura ?? negotiation.created_at ?? undefined;
@@ -273,7 +279,8 @@ function DatiTrattativaSection({
 					Dati trattativa
 				</h2>
 			</div>
-			<div className="flex w-full min-w-0 flex-col gap-2">
+			{/* Two columns on md+: ragione sociale (read-only) | telefono (editable); Referente + Note full width below. */}
+			<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 				{/* Ragione sociale: read-only (client is fixed for this negotiation).
 					We use a slightly dimmer background and a not-allowed cursor so it is visually obvious that this field cannot be edited. */}
 				<div
@@ -286,25 +293,50 @@ function DatiTrattativaSection({
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 						Ragione sociale
 					</span>
-					<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
+					<span className="min-w-0 flex-1 truncate text-start font-medium text-base md:text-start">
 						{negotiation.client?.ragione_sociale ??
 							`Cliente #${negotiation.client_id}`}
 					</span>
 				</div>
-				{/* Telefono: read-only, mostra il telefono del cliente associato alla trattativa quando disponibile.
-					Come per Ragione sociale, applichiamo bg più tenue + cursor not-allowed per sottolineare che non è modificabile. */}
-				<div
-					aria-disabled="true"
-					className={cn(
-						DIALOG_FIELD_CONTAINER_CLASSES,
-						"cursor-not-allowed bg-table-header/30"
-					)}
+				{/* Telefono: modificabile qui; il salvataggio aggiorna il cliente collegato (PUT /clients/{id}). */}
+				<label
+					className={DIALOG_FIELD_CONTAINER_CLASSES}
+					htmlFor="update-telefono"
 				>
-					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Telefono</span>
-					<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
-						{telefonoDisplay}
+					<span
+						className={cn(
+							DIALOG_FIELD_LABEL_TEXT_CLASSES,
+							"items-center gap-2"
+						)}
+					>
+						<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+						Telefono
 					</span>
-				</div>
+					<input
+						autoComplete="tel"
+						className={cn(
+							DIALOG_FIELD_INPUT_BASE_CLASSES,
+							"text-start md:text-start"
+						)}
+						id="update-telefono"
+						inputMode="tel"
+						name="telefono"
+						onChange={(e) => onTelefonoChange(e.target.value)}
+						onPointerDown={(event) => {
+							const input = event.currentTarget;
+							if (document.activeElement === input) {
+								return;
+							}
+							event.preventDefault();
+							input.focus();
+							const end = input.value.length;
+							input.setSelectionRange(end, end);
+						}}
+						spellCheck={false}
+						type="tel"
+						value={telefono}
+					/>
+				</label>
 				{/* Data apertura: read-only, derivata dal campo created_at della trattativa.
 					Stessa affordance visiva dei campi di sola lettura sopra (bg attenuato + cursore di divieto). */}
 				<div
@@ -315,7 +347,7 @@ function DatiTrattativaSection({
 					)}
 				>
 					<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>Data apertura</span>
-					<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
+					<span className="min-w-0 flex-1 truncate text-start font-medium text-base md:text-start">
 						{dataAperturaDisplay}
 					</span>
 				</div>
@@ -334,7 +366,7 @@ function DatiTrattativaSection({
 						<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 							Data abbandono
 						</span>
-						<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
+						<span className="min-w-0 flex-1 truncate text-start font-medium text-base md:text-start">
 							{formatNegotiationDate(
 								negotiation.data_abbandono ?? negotiation.updated_at
 							)}
@@ -353,7 +385,7 @@ function DatiTrattativaSection({
 							<span className={DIALOG_FIELD_LABEL_TEXT_CLASSES}>
 								Data chiusura
 							</span>
-							<span className="min-w-0 flex-1 truncate text-left font-medium text-base md:text-right">
+							<span className="min-w-0 flex-1 truncate text-start font-medium text-base md:text-start">
 								{formatNegotiationDate(
 									negotiation.data_chiusura ?? negotiation.updated_at
 								)}
@@ -363,7 +395,7 @@ function DatiTrattativaSection({
 				{/* Referente: editable text input, posizionato dopo i campi di contesto (telefono e data apertura)
 					così l'utente vede subito i riferimenti principali della trattativa nell'ordine richiesto dal feedback. */}
 				<label
-					className={DIALOG_FIELD_CONTAINER_CLASSES}
+					className={cn(DIALOG_FIELD_CONTAINER_CLASSES, "md:col-span-2")}
 					htmlFor="update-referente"
 				>
 					<span
@@ -376,7 +408,11 @@ function DatiTrattativaSection({
 						Referente
 					</span>
 					<input
-						className={DIALOG_FIELD_INPUT_BASE_CLASSES}
+						className={cn(
+							DIALOG_FIELD_INPUT_BASE_CLASSES,
+							// Allineamento a inizio riga come gli altri campi della sezione (override md:text-right della base).
+							"text-start md:text-start"
+						)}
 						id="update-referente"
 						name="referente"
 						onChange={(e) => onReferenteChange(e.target.value)}
@@ -396,12 +432,18 @@ function DatiTrattativaSection({
 						value={referente}
 					/>
 				</label>
-				{/* Note: editable textarea; always shown so user can add note if empty. */}
-				<div className={cn(DIALOG_FIELD_CONTAINER_CLASSES, "items-stretch")}>
+				{/* Note: editable textarea; always shown so user can add note if empty.
+					md:items-start così l'etichetta resta in alto accanto al textarea (non centrata in altezza). */}
+				<div
+					className={cn(
+						DIALOG_FIELD_CONTAINER_CLASSES,
+						"items-stretch md:col-span-2 md:items-start"
+					)}
+				>
 					<label
 						className={cn(
 							DIALOG_FIELD_LABEL_TEXT_CLASSES,
-							"items-center gap-2"
+							"mt-1 items-center gap-2"
 						)}
 						htmlFor="update-note"
 					>
@@ -411,7 +453,8 @@ function DatiTrattativaSection({
 					<textarea
 						className={cn(
 							DIALOG_FIELD_INPUT_BASE_CLASSES,
-							"min-h-20 resize-y text-end"
+							// Stesso allineamento inizio riga degli altri input della sezione.
+							"min-h-20 resize-y text-start md:text-start"
 						)}
 						id="update-note"
 						name="note"
@@ -442,7 +485,7 @@ function AllegatiSection({
 	/** Called when the user wants to remove a file from the negotiation. */
 	onDelete: (file: ApiNegotiationFile) => void;
 	onFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-	/** When provided (e.g. from parent with isMobile), overrides SECTION_CARD_CLASSES for the section wrapper. */
+	/** When provided, overrides SECTION_CARD_CLASSES for the section wrapper. */
 	sectionClassName?: string;
 }) {
 	return (
@@ -455,65 +498,68 @@ function AllegatiSection({
 					Allegati
 				</h2>
 			</div>
-			<div className="flex w-full min-w-0 flex-col gap-2">
-				{files.length > 0 ? (
-					<ul className="flex flex-col gap-2 rounded-2xl bg-table-header px-3.75 py-4.25">
-						{files.map((file) => {
-							// Use shared helper so filename logic stays consistent between the
-							// list and the delete confirmation dialog.
-							const displayName = getFileDisplayName(file);
+			{/* List + empty state in first column; upload action in second on md+. */}
+			<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2 md:items-start">
+				<div className="min-w-0">
+					{files.length > 0 ? (
+						<ul className="flex flex-col gap-2 rounded-2xl bg-table-header px-3.75 py-4.25">
+							{files.map((file) => {
+								// Use shared helper so filename logic stays consistent between the
+								// list and the delete confirmation dialog.
+								const displayName = getFileDisplayName(file);
 
-							return (
-								<li
-									className="flex items-center justify-between gap-2"
-									key={file.id}
-								>
-									<span
-										className="min-w-0 flex-1 truncate font-medium text-base"
-										title={displayName}
+								return (
+									<li
+										className="flex items-center justify-between gap-2"
+										key={file.id}
 									>
-										{displayName}
-									</span>
-									<div className="flex items-center gap-1.5">
-										{/* Download keeps the existing behavior so users can save a local copy, now with a small icon for visual consistency with the remove action. */}
-										<Button
-											aria-label={`Scarica ${displayName}`}
-											className="h-8 min-w-8 gap-1.5 rounded-lg px-2 text-sm md:min-w-0"
-											onClick={() => onDownload(file)}
-											type="button"
-											variant="secondary"
+										<span
+											className="min-w-0 flex-1 truncate font-medium text-base"
+											title={displayName}
 										>
-											<IconDownload4
-												aria-hidden
-												className="size-3.5 shrink-0"
-											/>
-											<span className="hidden md:inline">Scarica</span>
-										</Button>
-										{/* Remove button triggers DELETE /files/{id} via the parent handler. */}
-										<Button
-											aria-label={`Rimuovi ${displayName} dalla trattativa`}
-											className="h-8 min-w-8 gap-1.5 rounded-lg px-2 text-sm md:min-w-0"
-											onClick={() => onDelete(file)}
-											type="button"
-											variant="destructive"
-										>
-											<IconTrashFill18
-												aria-hidden
-												className="size-3.5 shrink-0"
-											/>
-											<span className="hidden md:inline">Rimuovi</span>
-										</Button>
-									</div>
-								</li>
-							);
-						})}
-					</ul>
-				) : (
-					<p className="rounded-2xl bg-table-header px-3.75 py-4.25 text-muted-foreground text-sm">
-						Nessun allegato.
-					</p>
-				)}
-				<div className="flex items-center gap-2">
+											{displayName}
+										</span>
+										<div className="flex items-center gap-1.5">
+											{/* Download keeps the existing behavior so users can save a local copy, now with a small icon for visual consistency with the remove action. */}
+											<Button
+												aria-label={`Scarica ${displayName}`}
+												className="h-8 min-w-8 gap-1.5 rounded-lg px-2 text-sm md:min-w-0"
+												onClick={() => onDownload(file)}
+												type="button"
+												variant="secondary"
+											>
+												<IconDownload4
+													aria-hidden
+													className="size-3.5 shrink-0"
+												/>
+												<span className="hidden md:inline">Scarica</span>
+											</Button>
+											{/* Remove button triggers DELETE /files/{id} via the parent handler. */}
+											<Button
+												aria-label={`Rimuovi ${displayName} dalla trattativa`}
+												className="h-8 min-w-8 gap-1.5 rounded-lg px-2 text-sm md:min-w-0"
+												onClick={() => onDelete(file)}
+												type="button"
+												variant="destructive"
+											>
+												<IconTrashFill18
+													aria-hidden
+													className="size-3.5 shrink-0"
+												/>
+												<span className="hidden md:inline">Rimuovi</span>
+											</Button>
+										</div>
+									</li>
+								);
+							})}
+						</ul>
+					) : (
+						<p className="rounded-2xl bg-table-header px-3.75 py-4.25 text-muted-foreground text-sm">
+							Nessun allegato.
+						</p>
+					)}
+				</div>
+				<div className="flex flex-col gap-2 md:items-end">
 					<input
 						accept="*/*"
 						aria-label="Aggiungi allegati"
@@ -645,9 +691,14 @@ function StatoEAvanzamentoSection({
 					Stato e avanzamento
 				</h2>
 			</div>
-			<div className="flex w-full min-w-0 flex-col gap-2">
+			{/* md+: Spanco | Importo on row 1; percent slider and rest span full width below. */}
+			<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 				<label
-					className={DIALOG_FIELD_CONTAINER_CLASSES}
+					className={cn(
+						DIALOG_FIELD_CONTAINER_CLASSES,
+						// Padding verticale del campo (non del select): più basso della pill standard per allinearsi all’Importo.
+						"py-3"
+					)}
 					htmlFor="update-spanco"
 				>
 					<span
@@ -726,7 +777,60 @@ function StatoEAvanzamentoSection({
 						</Select.Portal>
 					</Select.Root>
 				</label>
-				<label className="w-full" htmlFor="update-percentuale">
+				<div className="flex min-w-0 flex-col gap-1">
+					<label
+						className={cn(
+							DIALOG_FIELD_CONTAINER_CLASSES,
+							importoError &&
+								"ring-1 ring-destructive ring-offset-2 ring-offset-background"
+						)}
+						htmlFor="update-importo"
+					>
+						<span
+							className={cn(
+								DIALOG_FIELD_LABEL_TEXT_CLASSES,
+								"items-center gap-2"
+							)}
+						>
+							<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
+							Importo (€)
+						</span>
+						<input
+							aria-describedby={
+								importoError ? "update-importo-error" : undefined
+							}
+							aria-invalid={!!importoError}
+							className={DIALOG_FIELD_INPUT_BASE_CLASSES}
+							id="update-importo"
+							min={0}
+							onBlur={() => {
+								const err = validateImporto(form.importo ?? 0);
+								setImportoError(err);
+							}}
+							onChange={(e) => {
+								setImportoError(null);
+								const parsed = Number.parseInt(e.target.value, 10);
+								onFormChange((prev) => ({
+									...prev,
+									importo: Number.isNaN(parsed) ? 0 : parsed,
+								}));
+							}}
+							step={100}
+							type="number"
+							value={form.importo ?? ""}
+						/>
+					</label>
+					{importoError && (
+						<p
+							className="text-destructive text-sm"
+							id="update-importo-error"
+							role="alert"
+						>
+							{importoError}
+						</p>
+					)}
+				</div>
+				<label className="w-full md:col-span-2" htmlFor="update-percentuale">
 					<div
 						aria-disabled={isSpancoConcluded}
 						className={cn(
@@ -826,7 +930,7 @@ function StatoEAvanzamentoSection({
 				</label>
 				{/* Spiega all'utente perché con Spanco O la percentuale è 100% e non è modificabile. */}
 				{isSpancoConcluded && (
-					<div className="flex items-start gap-2 text-muted-foreground text-sm">
+					<div className="flex items-start gap-2 text-muted-foreground text-sm md:col-span-2">
 						<IconCircleInfoSparkle
 							aria-hidden
 							className="mt-0.5 shrink-0 text-blue-600"
@@ -838,66 +942,15 @@ function StatoEAvanzamentoSection({
 						</p>
 					</div>
 				)}
-				<div className="flex flex-col gap-1">
-					<label
-						className={cn(
-							DIALOG_FIELD_CONTAINER_CLASSES,
-							importoError &&
-								"ring-1 ring-destructive ring-offset-2 ring-offset-background"
-						)}
-						htmlFor="update-importo"
-					>
-						<span
-							className={cn(
-								DIALOG_FIELD_LABEL_TEXT_CLASSES,
-								"items-center gap-2"
-							)}
-						>
-							<IconPenWritingFill18 aria-hidden className="size-4 shrink-0" />
-							Importo (€)
-						</span>
-						<input
-							aria-describedby={
-								importoError ? "update-importo-error" : undefined
-							}
-							aria-invalid={!!importoError}
-							className={DIALOG_FIELD_INPUT_BASE_CLASSES}
-							id="update-importo"
-							min={0}
-							onBlur={() => {
-								const err = validateImporto(form.importo ?? 0);
-								setImportoError(err);
-							}}
-							onChange={(e) => {
-								setImportoError(null);
-								const parsed = Number.parseInt(e.target.value, 10);
-								onFormChange((prev) => ({
-									...prev,
-									importo: Number.isNaN(parsed) ? 0 : parsed,
-								}));
-							}}
-							step={100}
-							type="number"
-							value={form.importo ?? ""}
-						/>
-					</label>
-					{importoError && (
-						<p
-							className="text-destructive text-sm"
-							id="update-importo-error"
-							role="alert"
-						>
-							{importoError}
-						</p>
-					)}
+				<div className="md:col-span-2">
+					<AbbandonataCheckboxRow
+						checked={form.abbandonata ?? false}
+						onCheckedChange={(abbandonata) =>
+							onFormChange((prev) => ({ ...prev, abbandonata }))
+						}
+						stato={stato}
+					/>
 				</div>
-				<AbbandonataCheckboxRow
-					checked={form.abbandonata ?? false}
-					onCheckedChange={(abbandonata) =>
-						onFormChange((prev) => ({ ...prev, abbandonata }))
-					}
-					stato={stato}
-				/>
 			</div>
 		</section>
 	);
@@ -932,19 +985,23 @@ function validateImporto(value: number | undefined | null): string | null {
  *  Normalizes empty string and null/undefined so manually reverting a field to its initial value clears dirty state. */
 function isUpdateFormDirty(
 	form: UpdateNegotiationBody,
-	negotiation: ApiNegotiation
+	negotiation: ApiNegotiation,
+	clientTelefono: string
 ): boolean {
 	const refForm = (form.referente ?? "").trim();
 	const refInitial = (negotiation.referente ?? "").trim();
 	const noteForm = (form.note ?? "").trim();
 	const noteInitial = (negotiation.note ?? "").trim();
+	const telForm = clientTelefono.trim();
+	const telInitial = initialClientTelefono(negotiation).trim();
 	return (
 		form.spanco !== negotiation.spanco ||
 		form.percentuale !== negotiation.percentuale ||
 		(form.importo ?? 0) !== (negotiation.importo ?? 0) ||
 		form.abbandonata !== negotiation.abbandonata ||
 		refForm !== refInitial ||
-		noteForm !== noteInitial
+		noteForm !== noteInitial ||
+		telForm !== telInitial
 	);
 }
 
@@ -993,16 +1050,20 @@ export default function UpdateNegotiationForm({
 	const [form, setForm] = useState<UpdateNegotiationBody>(() =>
 		negotiationToFormBody(negotiation)
 	);
+	const [clientTelefono, setClientTelefono] = useState(() =>
+		initialClientTelefono(negotiation)
+	);
 
 	// Sync form when negotiation changes (e.g. after fetch) or when parent requests reset (Annulla = discard unsaved changes).
 	// biome-ignore lint/correctness/useExhaustiveDependencies: resetTrigger is intentional — parent increments it to signal "discard changes"
 	useEffect(() => {
 		setForm(negotiationToFormBody(negotiation));
+		setClientTelefono(initialClientTelefono(negotiation));
 	}, [negotiation, resetTrigger]);
 
 	// Notify parent when form has unsaved changes (for header actions: show only when dirty).
 	// When the user reverts all fields to the initial values, isDirty becomes false and the actions hide.
-	const isDirty = isUpdateFormDirty(form, negotiation);
+	const isDirty = isUpdateFormDirty(form, negotiation, clientTelefono);
 	useEffect(() => {
 		onDirtyChange?.(isDirty);
 	}, [isDirty, onDirtyChange]);
@@ -1022,12 +1083,56 @@ export default function UpdateNegotiationForm({
 		setError(null);
 		onSubmittingChange?.(true);
 		const result = await updateNegotiation(token, negotiation.id, form);
-		setIsSubmitting(false);
-		onSubmittingChange?.(false);
 		if ("error" in result) {
+			setIsSubmitting(false);
+			onSubmittingChange?.(false);
 			setError(result.error);
 			return;
 		}
+
+		const telTrim = clientTelefono.trim();
+		const telInitial = initialClientTelefono(negotiation).trim();
+		const telefonoChanged = telTrim !== telInitial;
+
+		if (telefonoChanged) {
+			const clientResult = await updateClient(token, negotiation.client_id, {
+				telefono: telTrim.length > 0 ? telTrim : null,
+			});
+			if ("error" in clientResult) {
+				setIsSubmitting(false);
+				onSubmittingChange?.(false);
+				setError(clientResult.error);
+				toast.error(clientResult.error);
+				// Trattativa già salvata: comunichiamo lo stato aggiornato alla pagina.
+				onSuccess({
+					...result.data,
+					client: {
+						...result.data.client,
+						id: negotiation.client_id,
+						telefono: negotiation.client?.telefono ?? null,
+					},
+				});
+				return;
+			}
+			setIsSubmitting(false);
+			onSubmittingChange?.(false);
+			toast.success("Trattativa aggiornata");
+			onSuccess({
+				...result.data,
+				client: {
+					...result.data.client,
+					id: clientResult.data.id,
+					ragione_sociale:
+						clientResult.data.ragione_sociale ??
+						result.data.client?.ragione_sociale,
+					telefono: clientResult.data.telefono ?? null,
+				},
+			});
+			return;
+		}
+
+		setIsSubmitting(false);
+		onSubmittingChange?.(false);
 		toast.success("Trattativa aggiornata");
 		onSuccess(result.data);
 	};
@@ -1119,8 +1224,7 @@ export default function UpdateNegotiationForm({
 	const backHref = `/trattative/${stato}`;
 	const files = negotiation.files ?? [];
 	const isMobile = useIsMobile();
-	// On mobile, section cards use flex-col so title and content stack vertically.
-	const sectionCardClasses = cn(SECTION_CARD_CLASSES, isMobile && "flex-col");
+	const sectionCardClasses = SECTION_CARD_CLASSES;
 
 	/* Form wrapper fills the table-container-bg so content uses all available space (like list/dashboard pages).
 	   Usiamo un gap più compatto (gap-2.5) tra le card di sezione così che tutte le pagine di dettaglio
@@ -1141,8 +1245,10 @@ export default function UpdateNegotiationForm({
 					onReferenteChange={(value) =>
 						setForm((prev) => ({ ...prev, referente: value }))
 					}
+					onTelefonoChange={setClientTelefono}
 					referente={form.referente ?? negotiation.referente}
 					sectionClassName={sectionCardClasses}
+					telefono={clientTelefono}
 				/>
 				<AllegatiSection
 					fileInputRef={fileInputRef}

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { IconPenWritingFill18 } from "@/components/icons";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { updateClient } from "@/lib/api/client";
 import type { ApiClient, UpdateClientBody } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -16,9 +15,9 @@ import { cn } from "@/lib/utils";
  */
 export const UPDATE_CLIENT_FORM_ID = "update-client-form";
 
-/** Wrapper card per le sezioni (Dati cliente, Sede), allineato allo stile dei form trattative. */
+/** Wrapper sezione: titolo sulla prima riga, corpo sotto (come `UpdateNegotiationForm`). */
 const SECTION_CARD_CLASSES =
-	"flex min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
+	"flex flex-col min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
 
 /** Contenitore pill per singolo campo (label + input) coerente con `UpdateNegotiationForm`. Su mobile label sopra e input sotto; da md in su label a sinistra e input a destra. */
 const FIELD_CONTAINER_CLASSES =
@@ -28,9 +27,9 @@ const FIELD_CONTAINER_CLASSES =
 const FIELD_LABEL_TEXT_CLASSES =
 	"w-fit flex-0 whitespace-nowrap text-base flex font-medium items-start text-stats-title leading-none";
 
-/** Stile base per gli input flat: a sinistra su mobile (quando sotto la label), a destra da md in su; focus ring accessibile. */
+/** Stile base per gli input flat: allineamento a sinistra anche da md (come Referente/Telefono in `UpdateNegotiationForm`). */
 const FIELD_INPUT_BASE_CLASSES =
-	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-left text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-right md:text-base";
+	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-start text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
 
 /** Corpo form normalizzato a partire dall'oggetto `ApiClient` della risposta API. */
 function clientToFormBody(client: ApiClient): UpdateClientBody {
@@ -139,7 +138,6 @@ export function UpdateClientForm({
 	resetTrigger,
 }: UpdateClientFormProps) {
 	const { token } = useAuth();
-	const isMobile = useIsMobile();
 	const [form, setForm] = useState<UpdateClientBody>(() =>
 		clientToFormBody(client)
 	);
@@ -213,8 +211,6 @@ export function UpdateClientForm({
 		onSuccess(result.data);
 	};
 
-	const sectionCardClasses = cn(SECTION_CARD_CLASSES, isMobile && "flex-col");
-
 	return (
 		<div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
 			<form
@@ -224,7 +220,7 @@ export function UpdateClientForm({
 			>
 				<section
 					aria-labelledby="clienti-dati-anagrafici-heading"
-					className={sectionCardClasses}
+					className={SECTION_CARD_CLASSES}
 				>
 					<div className="flex w-full min-w-0">
 						<h2
@@ -234,7 +230,8 @@ export function UpdateClientForm({
 							Dati cliente
 						</h2>
 					</div>
-					<div className="flex w-full min-w-0 flex-col gap-2">
+					{/* Stessa griglia dei dettagli trattativa: 1 colonna su mobile, 2 da md in su. */}
+					<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 						<label
 							className={cn(
 								FIELD_CONTAINER_CLASSES,
@@ -270,15 +267,15 @@ export function UpdateClientForm({
 								value={form.ragione_sociale ?? ""}
 							/>
 						</label>
-						{ragioneSocialeError && (
+						{ragioneSocialeError ? (
 							<p
-								className="text-destructive text-sm"
+								className="text-destructive text-sm md:col-span-2"
 								id="update-client-ragione-sociale-error"
 								role="alert"
 							>
 								{ragioneSocialeError}
 							</p>
-						)}
+						) : null}
 
 						<label
 							className={FIELD_CONTAINER_CLASSES}
@@ -359,7 +356,7 @@ export function UpdateClientForm({
 						</label>
 
 						<label
-							className={FIELD_CONTAINER_CLASSES}
+							className={cn(FIELD_CONTAINER_CLASSES, "md:col-span-2")}
 							htmlFor="update-client-tipologia"
 						>
 							<span
@@ -387,16 +384,16 @@ export function UpdateClientForm({
 
 				<section
 					aria-labelledby="clienti-sede-heading"
-					className={sectionCardClasses}
+					className={SECTION_CARD_CLASSES}
 				>
 					<div className="flex w-full min-w-0">
 						<h2 className="font-medium text-2xl" id="clienti-sede-heading">
 							Sede
 						</h2>
 					</div>
-					<div className="flex w-full min-w-0 flex-col gap-2">
+					<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 						<label
-							className={FIELD_CONTAINER_CLASSES}
+							className={cn(FIELD_CONTAINER_CLASSES, "md:col-span-2")}
 							htmlFor="update-client-indirizzo"
 						>
 							<span
