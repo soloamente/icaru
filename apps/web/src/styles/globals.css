@@ -165,7 +165,8 @@ html.dark[data-color-scheme="rich"] {
 	--card: oklch(0.88 0 0);
 	--table-container-background: oklch(0.93 0 0);
 	--card-foreground: oklch(0.145 0 0);
-	--table-buttons: oklch(0.93 0 0);
+	/* Chip filtri / search su table-container: stesso gradino di --card così stacca da --table-container-background (prima erano uguali a 0.93). */
+	--table-buttons: var(--card);
 	--popover: oklch(0.93 0 0);
 	--popover-foreground: oklch(0.145 0 0);
 	--primary: oklch(0.205 0 0);
@@ -266,7 +267,8 @@ html.dark[data-color-scheme="rich"] {
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.2264 0 0);
 	--table-container-background: oklch(0.2645 0 0);
-	--table-buttons: oklch(0.2645 0 0);
+	/* Pill filtri più scure del contenitore tabella (prima coincidevano con 0.2645). */
+	--table-buttons: var(--card);
 	--card-foreground: oklch(0.985 0 0);
 	--button-secondary: oklch(0.66 0 0);
 	--button-inactive: oklch(0.2478 0 0);
@@ -655,7 +657,8 @@ html:not(.dark):not([data-color-scheme="rich"]) .import-clients-footer-action {
 }
 html:not(.dark):not([data-color-scheme="rich"])
 	.import-clients-footer-action:hover:not(:disabled) {
-	background-color: var(--card);
+	/* Con --table-buttons = --card, l’hover passa a table-hover così resta un feedback visivo. */
+	background-color: var(--table-hover);
 	color: var(--card-foreground);
 }
 

@@ -49,28 +49,34 @@ import { Skeleton } from "./ui/skeleton";
 /** Form id for the team update form, so the header Save button can trigger submit. */
 export const UPDATE_TEAM_FORM_ID = "update-team-form";
 
-/** Pill field container — same style as UpdateClientForm / UpdateNegotiationForm. */
+/**
+ * Pill per campo editabile: come `UpdateClientForm` / `UpdateNegotiationForm` —
+ * su mobile label sopra e valore sotto; da `md` label a sinistra e input a destra.
+ */
 const FIELD_CONTAINER_CLASSES =
-	"flex items-center justify-between gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none";
+	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header px-3.75 py-4.25 leading-none md:flex-row md:items-center md:justify-between";
 
 /**
- * Read-only field row: softer fill (`--table-header-readonly`) so it reads clearly
- * against full `bg-table-header` editable rows, including default light theme.
+ * Riga read-only: stesso stack mobile / riga desktop delle pill editabili, con fill
+ * più soft (`--table-header-readonly`) come sulle altre pagine dettaglio.
  */
 const FIELD_CONTAINER_READ_ONLY_CLASSES =
-	"flex items-center justify-between gap-2 rounded-2xl bg-table-header-readonly px-3.75 py-4.25 leading-none ring-1 ring-border/30";
+	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header-readonly px-3.75 py-4.25 leading-none ring-1 ring-border/30 md:flex-row md:items-center md:justify-between";
 
 /** Field label text — consistent with other update forms. */
 const FIELD_LABEL_TEXT_CLASSES =
 	"w-fit flex-0 whitespace-nowrap text-base flex font-medium items-start text-stats-title leading-none";
 
-/** Flat input base — aligned right, transparent, consistent with other forms. */
+/** Input flat allineato a sinistra come nei form cliente / trattativa (non text-right). */
 const FIELD_INPUT_BASE_CLASSES =
-	"flex-1 w-full leading-none cursor-text border-none bg-transparent! px-0! py-0! text-right text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
+	"flex-1 w-full min-w-0 leading-none cursor-text border-none bg-transparent! px-0! py-0! text-start text-base font-medium shadow-none focus-visible:outline-none focus-visible:ring-0 outline-none rounded md:text-base";
 
-/** Section card — wraps a group of fields, same as client/negotiation forms. */
+/**
+ * Card sezione: titolo sulla prima riga, griglia campi sotto (mai titolo affiancato al corpo su desktop).
+ * Stesso pattern di `SECTION_CARD_CLASSES` in `update-client-form` / `update-negotiation-form`.
+ */
 const SECTION_CARD_CLASSES =
-	"flex min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
+	"flex flex-col min-w-0 w-full gap-3 rounded-2xl bg-card px-7.5 py-10";
 
 interface TeamOrgChartProps {
 	teamId: number;
@@ -135,9 +141,6 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 	const router = useRouter();
 	const isMobile = useIsMobile();
 	const isDirector = role === "director";
-
-	// On mobile, section cards stack vertically (flex-col); matches UpdateClientForm / UpdateNegotiationForm.
-	const sectionCardClasses = cn(SECTION_CARD_CLASSES, isMobile && "flex-col");
 
 	const [team, setTeam] = useState<ApiTeam | null>(null);
 	const [stats, setStats] = useState<ApiTeamStats | null>(null);
@@ -337,27 +340,27 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 							</div>
 						)}
 
-						{/* Form section skeleton — Dati team: Nome, Descrizione, membri */}
-						<section
-							aria-hidden
-							className={cn(SECTION_CARD_CLASSES, isMobile && "flex-col")}
-						>
+						{/* Form section skeleton — Dati team: riga md Nome|Membri, poi Descrizione a tutta larghezza. */}
+						<section aria-hidden className={SECTION_CARD_CLASSES}>
 							<div className="flex w-full min-w-0">
 								<Skeleton className="h-8 w-32" />
 							</div>
-							<div className="flex w-full min-w-0 flex-col gap-2">
+							<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 								{/* Two field rows: label left, value right */}
 								<div aria-hidden className={FIELD_CONTAINER_CLASSES}>
 									<Skeleton className="h-4 w-16" />
 									<Skeleton className="h-4 w-32" />
 								</div>
-								<div aria-hidden className={FIELD_CONTAINER_CLASSES}>
-									<Skeleton className="h-4 w-20" />
-									<Skeleton className="h-4 w-40" />
-								</div>
 								<div aria-hidden className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
 									<Skeleton className="h-4 w-14" />
 									<Skeleton className="h-4 w-8" />
+								</div>
+								<div
+									aria-hidden
+									className={`${FIELD_CONTAINER_CLASSES} md:col-span-2`}
+								>
+									<Skeleton className="h-4 w-20" />
+									<Skeleton className="h-4 w-40" />
 								</div>
 							</div>
 						</section>
@@ -365,7 +368,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 						{/* Org chart skeleton — creator node + connector + member nodes */}
 						<section
 							aria-hidden
-							className={cn(SECTION_CARD_CLASSES, "flex-col items-center")}
+							className={cn(SECTION_CARD_CLASSES, "items-center")}
 						>
 							<Skeleton className="h-32 w-60 rounded-2xl" />
 							<div className="h-8 w-px bg-muted-foreground/20" />
@@ -560,7 +563,7 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 						</div>
 					)}
 
-					{/* ─── EDITABLE FORM: Team Name + Description ─── */}
+					{/* ─── EDITABLE FORM: Nome|Membri (md), Descrizione sotto a tutta larghezza ─── */}
 					{isDirector && (
 						<form
 							className="flex w-full min-w-0 flex-col gap-2.5"
@@ -569,16 +572,21 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 						>
 							<section
 								aria-labelledby="team-info-heading"
-								className={sectionCardClasses}
+								className={SECTION_CARD_CLASSES}
 							>
 								<div className="flex w-full min-w-0">
-									<h2 className="font-medium text-xl" id="team-info-heading">
+									<h2 className="font-medium text-2xl" id="team-info-heading">
 										Dati team
 									</h2>
 								</div>
-								<div className="flex w-full min-w-0 flex-col gap-2">
+								{/* Stessa griglia dei dettagli cliente / trattativa: 1 colonna su mobile, 2 da md. */}
+								<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 									<label
-										className={`${FIELD_CONTAINER_CLASSES}${nomeError ? "ring-1 ring-destructive ring-offset-2 ring-offset-background" : ""}`}
+										className={cn(
+											FIELD_CONTAINER_CLASSES,
+											nomeError &&
+												"ring-1 ring-destructive ring-offset-2 ring-offset-background"
+										)}
 										htmlFor="update-team-nome"
 									>
 										<span
@@ -612,18 +620,26 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 											value={form.nome}
 										/>
 									</label>
-									{nomeError && (
+									{nomeError ? (
 										<p
-											className="text-destructive text-sm"
+											className="text-destructive text-sm md:col-span-2"
 											id="update-team-nome-error"
 											role="alert"
 										>
 											{nomeError}
 										</p>
-									)}
+									) : null}
+
+									{/* Da md: stessa riga di Nome (colonna 2); su mobile sotto Nome. */}
+									<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
+										<span className={FIELD_LABEL_TEXT_CLASSES}>Membri</span>
+										<span className="min-w-0 flex-1 text-start font-medium text-base text-card-foreground tabular-nums md:text-start">
+											{resolveEffectiveMembersCount(team, stats) ?? "—"}
+										</span>
+									</div>
 
 									<label
-										className={FIELD_CONTAINER_CLASSES}
+										className={cn(FIELD_CONTAINER_CLASSES, "md:col-span-2")}
 										htmlFor="update-team-description"
 									>
 										<span
@@ -653,14 +669,6 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 											value={form.description}
 										/>
 									</label>
-
-									{/* Read-only KPI field: count comes from team or stats, not editable here. */}
-									<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
-										<span className={FIELD_LABEL_TEXT_CLASSES}>membri</span>
-										<span className="flex-1 text-right font-medium text-base text-card-foreground tabular-nums">
-											{resolveEffectiveMembersCount(team, stats) ?? "—"}
-										</span>
-									</div>
 								</div>
 							</section>
 						</form>
@@ -668,27 +676,32 @@ export function TeamOrgChart({ teamId }: TeamOrgChartProps) {
 
 					{/* Read-only team info for non-directors — same layout as editable section. */}
 					{!isDirector && (
-						<section className={sectionCardClasses}>
+						<section className={SECTION_CARD_CLASSES}>
 							<div className="flex w-full min-w-0">
-								<h2 className="font-medium text-xl">Dati team</h2>
+								<h2 className="font-medium text-2xl">Dati team</h2>
 							</div>
-							<div className="flex w-full min-w-0 flex-col gap-2">
+							<div className="grid w-full min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
 								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
 									<span className={FIELD_LABEL_TEXT_CLASSES}>Nome</span>
-									<span className="flex-1 text-right font-medium text-base">
+									<span className="min-w-0 flex-1 truncate text-start font-medium text-base md:text-start">
 										{team.nome}
 									</span>
 								</div>
 								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
-									<span className={FIELD_LABEL_TEXT_CLASSES}>Descrizione</span>
-									<span className="flex-1 text-right font-medium text-base text-muted-foreground">
-										{team.description?.trim() || "Nessuna descrizione"}
+									<span className={FIELD_LABEL_TEXT_CLASSES}>Membri</span>
+									<span className="min-w-0 flex-1 text-start font-medium text-base text-card-foreground tabular-nums md:text-start">
+										{resolveEffectiveMembersCount(team, null) ?? "—"}
 									</span>
 								</div>
-								<div className={FIELD_CONTAINER_READ_ONLY_CLASSES}>
-									<span className={FIELD_LABEL_TEXT_CLASSES}>membri</span>
-									<span className="flex-1 text-right font-medium text-base text-card-foreground tabular-nums">
-										{resolveEffectiveMembersCount(team, null) ?? "—"}
+								<div
+									className={cn(
+										FIELD_CONTAINER_READ_ONLY_CLASSES,
+										"md:col-span-2"
+									)}
+								>
+									<span className={FIELD_LABEL_TEXT_CLASSES}>Descrizione</span>
+									<span className="min-w-0 flex-1 truncate text-start font-medium text-base text-muted-foreground md:text-start">
+										{team.description?.trim() || "Nessuna descrizione"}
 									</span>
 								</div>
 							</div>
@@ -925,7 +938,7 @@ function OrgChartSection({
 	return (
 		<>
 			{/* Org chart card — same container as "Dati team" */}
-			<section className={`${SECTION_CARD_CLASSES} flex-col items-center`}>
+			<section className={cn(SECTION_CARD_CLASSES, "items-center")}>
 				{/* Tree group: no gap so connector lines actually touch creator ↔ stem ↔ row */}
 				<div className="relative flex flex-col items-center">
 					<CreatorNode

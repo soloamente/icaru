@@ -722,7 +722,7 @@ export default function TeamMemberSupervisionPage() {
 									value={spancoFilter === "all" ? null : spancoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-card px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-card sm:shrink-0"
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons sm:shrink-0"
 										id="member-neg-spanco-filter"
 									>
 										<Select.Value
@@ -792,7 +792,7 @@ export default function TeamMemberSupervisionPage() {
 									value={statoFilter === "all" ? null : statoFilter}
 								>
 									<Select.Trigger
-										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-card px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-card"
+										className="flex w-fit shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border-0 bg-table-buttons px-3.75 py-1.75 font-normal text-sm outline-none transition-colors focus-visible:outline-none data-popup-open:bg-table-buttons"
 										id="member-neg-stato-filter"
 									>
 										<Select.Value
@@ -870,7 +870,8 @@ export default function TeamMemberSupervisionPage() {
 							</div>
 							{/* Search bar: absolutely positioned on top of the filter row so it opens above filters (not pushed right) */}
 							<div className="absolute top-0 right-0 z-20 flex items-center sm:top-1/2 sm:-translate-y-1/2">
-								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-card px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--table-container-background)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80">
+								{/* Stessa superficie dei filtri data (bg-table-buttons) come in trattative-table. */}
+								<label className="flex min-h-[44px] min-w-0 flex-1 items-center justify-between rounded-full bg-table-buttons px-4 py-2.5 text-sm shadow-[-18px_0px_14px_var(--color-card)] transition-[width] duration-300 ease-out sm:min-h-[40px] sm:w-60 sm:flex-initial sm:px-3.75 sm:py-1.75 sm:focus-within:w-80">
 									<input
 										className="w-full truncate bg-transparent placeholder:text-search-placeholder focus-visible:outline-none"
 										onChange={(event) => {

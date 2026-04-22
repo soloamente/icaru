@@ -230,7 +230,7 @@ export default function ClientiDettaglioPage() {
 	}
 	if (error || !client) {
 		return (
-			<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-5 pt-6 font-medium sm:px-9">
+			<main className="m-1 flex flex-1 flex-col gap-2 overflow-hidden rounded-3xl bg-card px-3 pt-4 font-medium sm:m-2.5 sm:gap-2.5 sm:px-9 sm:pt-6">
 				<div className="relative flex w-full flex-col gap-4.5">
 					<div className="flex items-center justify-start gap-2.5">
 						<Link
@@ -246,7 +246,8 @@ export default function ClientiDettaglioPage() {
 						</Link>
 					</div>
 				</div>
-				<div className="table-container-bg flex min-h-0 flex-1 flex-col overflow-auto rounded-t-3xl px-5.5 pt-6.25">
+				{/* Padding interno ridotto su mobile (allineato alle pagine trattativa). */}
+				<div className="table-container-bg flex min-h-0 flex-1 flex-col overflow-auto rounded-t-3xl px-2.5 pt-3 sm:px-5.5 sm:pt-6.25">
 					<p className="text-destructive text-sm" role="alert">
 						{error ?? "Cliente non trovato"}
 					</p>
@@ -256,7 +257,7 @@ export default function ClientiDettaglioPage() {
 	}
 
 	return (
-		<main className="m-2.5 flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card px-5 pt-6 font-medium sm:px-9">
+		<main className="m-1 flex flex-1 flex-col gap-2 overflow-hidden rounded-3xl bg-card px-3 pt-4 font-medium sm:m-2.5 sm:gap-2.5 sm:px-9 sm:pt-6">
 			{/* Header: pulsante back + titolo a sinistra; azioni Annulla/Salva a destra (stesso pattern pagine trattative). */}
 			<div className="relative flex w-full flex-col gap-4.5">
 				<div className="flex items-center justify-between gap-2.5">
@@ -398,7 +399,7 @@ export default function ClientiDettaglioPage() {
 				))}
 
 			{/* Corpo: shell table-container-bg condivisa con le liste, form cliente all'interno con scroll. */}
-			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-5.5 pt-6.25 pb-6.25">
+			<div className="table-container-bg flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-t-3xl px-2.5 pt-3 pb-3 sm:px-5.5 sm:pt-6.25 sm:pb-6.25">
 				<UpdateClientForm
 					client={client}
 					onDirtyChange={setIsDirty}
