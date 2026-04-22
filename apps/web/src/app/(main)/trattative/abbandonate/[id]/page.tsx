@@ -21,6 +21,9 @@ import { useAuth } from "@/lib/auth/auth-context";
 import {
 	DELETE_TINT_BUTTON_CLASSNAME,
 	DELETE_TINT_FOOTER_CLASSNAME,
+	DETAIL_HEADER_ANNULLA_DISABLED_CLASSNAME,
+	DETAIL_HEADER_ANNULLA_OUTLINE_CLASSNAME,
+	DETAIL_HEADER_SALVA_BUTTON_CLASSNAME,
 } from "@/lib/delete-action-button-class";
 import {
 	getNegotiationStatoSegment,
@@ -292,12 +295,12 @@ export default function TrattativeAbbandonateEditPage() {
 							}
 						>
 							{isSubmitting ? (
-								<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+								<span className={DETAIL_HEADER_ANNULLA_DISABLED_CLASSNAME}>
 									Annulla
 								</span>
 							) : (
 								<button
-									className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className={DETAIL_HEADER_ANNULLA_OUTLINE_CLASSNAME}
 									onClick={() => setResetTrigger((c) => c + 1)}
 									type="button"
 								>
@@ -305,7 +308,7 @@ export default function TrattativeAbbandonateEditPage() {
 								</button>
 							)}
 							<Button
-								className="h-10 min-w-26 rounded-xl text-sm"
+								className={DETAIL_HEADER_SALVA_BUTTON_CLASSNAME}
 								disabled={isSubmitting}
 								form={UPDATE_NEGOTIATION_FORM_ID}
 								type="submit"

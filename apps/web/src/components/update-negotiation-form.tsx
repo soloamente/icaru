@@ -30,7 +30,11 @@ import type {
 	UpdateNegotiationBody,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
-import { MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME } from "@/lib/delete-action-button-class";
+import {
+	DETAIL_HEADER_ANNULLA_DISABLED_CLASSNAME,
+	DETAIL_HEADER_ANNULLA_OUTLINE_CLASSNAME,
+	MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
+} from "@/lib/delete-action-button-class";
 import {
 	isNegotiationAbandoned,
 	isNegotiationCompleted,
@@ -1254,37 +1258,46 @@ export default function UpdateNegotiationForm({
 				MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
 				"max-sm:rounded-lg sm:rounded-xl"
 			)
-		: "inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-	const annullaControl = isSubmitting ? (
-		<span
-			className={cn(
-				"inline-flex cursor-not-allowed items-center justify-center border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50",
-				compactFooterWithSlot
-					? cn(
-							MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
-							"max-sm:rounded-lg sm:rounded-xl"
-						)
-					: "h-10 min-w-26 rounded-xl"
-			)}
-		>
-			Annulla
-		</span>
-	) : onAnnullaDiscard ? (
-		<button
-			className={ANNULLA_OUTLINE}
-			onClick={onAnnullaDiscard}
-			type="button"
-		>
-			Annulla
-		</button>
-	) : (
-		<Link
-			className={ANNULLA_OUTLINE}
-			href={backHref as Parameters<typeof Link>[0]["href"]}
-		>
-			Annulla
-		</Link>
-	);
+		: DETAIL_HEADER_ANNULLA_OUTLINE_CLASSNAME;
+	// Evitiamo ternari annidati (regola Biome): tre rami distinti (submit / discard / back link).
+	const annullaControl = (() => {
+		if (isSubmitting) {
+			return (
+				<span
+					className={cn(
+						compactFooterWithSlot
+							? cn(
+									"inline-flex cursor-not-allowed items-center justify-center border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50",
+									MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
+									"max-sm:rounded-lg sm:rounded-xl"
+								)
+							: DETAIL_HEADER_ANNULLA_DISABLED_CLASSNAME
+					)}
+				>
+					Annulla
+				</span>
+			);
+		}
+		if (onAnnullaDiscard) {
+			return (
+				<button
+					className={ANNULLA_OUTLINE}
+					onClick={onAnnullaDiscard}
+					type="button"
+				>
+					Annulla
+				</button>
+			);
+		}
+		return (
+			<Link
+				className={ANNULLA_OUTLINE}
+				href={backHref as Parameters<typeof Link>[0]["href"]}
+			>
+				Annulla
+			</Link>
+		);
+	})();
 
 	/* Form wrapper fills the table-container-bg so content uses all available space (like list/dashboard pages).
 	   Usiamo un gap più compatto (gap-2.5) tra le card di sezione così che tutte le pagine di dettaglio

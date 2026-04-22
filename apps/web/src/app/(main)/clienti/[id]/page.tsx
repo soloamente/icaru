@@ -21,6 +21,9 @@ import { useAuth } from "@/lib/auth/auth-context";
 import {
 	DELETE_TINT_BUTTON_CLASSNAME,
 	DELETE_TINT_FOOTER_CLASSNAME,
+	DETAIL_HEADER_ANNULLA_DISABLED_CLASSNAME,
+	DETAIL_HEADER_ANNULLA_OUTLINE_CLASSNAME,
+	DETAIL_HEADER_SALVA_BUTTON_CLASSNAME,
 	MOBILE_FOOTER_SECONDARY_ACTION_CLASSNAME,
 } from "@/lib/delete-action-button-class";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
@@ -51,19 +54,17 @@ function ClientDetailActionsRow({
 }) {
 	const showSaveRow = isDirty || isSubmitting;
 
-	// Mobile sotto al form: griglia 3 colonne (larghezze flessibili, niente scroll orizzontale)
+	// Mobile sotto al form: stessa griglia di `UpdateNegotiationForm` (3 col o 1 col se solo Elimina).
 	if (placement === "footer") {
 		return (
 			<section
 				aria-label="Azioni cliente"
 				className={cn(
-					"mt-1 w-full min-w-0 pt-2 md:hidden",
-					showSaveRow
-						? "grid grid-cols-3 items-stretch gap-1.5 sm:gap-2"
-						: "flex"
+					"mt-1 grid w-full min-w-0 shrink-0 items-stretch gap-1.5 pt-2 sm:gap-2 md:hidden",
+					showSaveRow ? "grid-cols-3" : "grid-cols-1"
 				)}
 			>
-				<div className={showSaveRow ? "min-w-0" : undefined}>
+				<div className="min-w-0">
 					<Button
 						className={
 							showSaveRow
@@ -134,12 +135,12 @@ function ClientDetailActionsRow({
 			{showSaveRow ? (
 				<div className="flex shrink-0 items-center justify-end gap-2.5">
 					{isSubmitting ? (
-						<span className="inline-flex h-10 min-w-26 cursor-not-allowed items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm opacity-50">
+						<span className={DETAIL_HEADER_ANNULLA_DISABLED_CLASSNAME}>
 							Annulla
 						</span>
 					) : (
 						<button
-							className="inline-flex h-10 min-w-26 items-center justify-center rounded-xl border border-border bg-secondary font-medium text-secondary-foreground text-sm transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							className={DETAIL_HEADER_ANNULLA_OUTLINE_CLASSNAME}
 							onClick={onReset}
 							type="button"
 						>
@@ -147,7 +148,7 @@ function ClientDetailActionsRow({
 						</button>
 					)}
 					<Button
-						className="h-10 min-w-26 rounded-xl text-sm"
+						className={DETAIL_HEADER_SALVA_BUTTON_CLASSNAME}
 						disabled={isSubmitting}
 						onClick={onSaveClick}
 						type="button"
