@@ -33,8 +33,14 @@ export default function LoginForm() {
 				return;
 			}
 
-			const { access_token, user } = result.data;
+			const { access_token, user, must_change_password } = result.data;
 			setAuth(access_token, user);
+
+			// Force password change on first login
+			if (must_change_password) {
+				router.push("/change-password");
+				return;
+			}
 
 			// Redirect after login; role-based content is handled on the home/dashboard page
 			const redirectTo =

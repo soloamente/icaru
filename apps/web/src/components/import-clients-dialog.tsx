@@ -132,6 +132,8 @@ interface ImportClientsDialogProps {
 	onOpenChange: (open: boolean) => void;
 	/** Called after a successful import so the parent can refetch the clients list. */
 	onSuccess?: () => void;
+	/** Admin-only: import clients on behalf of this user instead of the authenticated user. */
+	targetUserId?: number;
 }
 
 /**
@@ -145,6 +147,7 @@ export function ImportClientsDialog({
 	open,
 	onOpenChange,
 	onSuccess,
+	targetUserId,
 }: ImportClientsDialogProps) {
 	const isMobile = useIsMobile();
 	const { token } = useAuth();
@@ -303,6 +306,7 @@ export function ImportClientsDialog({
 			file_token: fileToken,
 			file_extension: fileExtension,
 			mapping,
+			...(targetUserId ? { target_user_id: targetUserId } : {}),
 		});
 		setIsConfirming(false);
 		if ("error" in result) {
@@ -312,7 +316,7 @@ export function ImportClientsDialog({
 		setImportedCount(result.data.imported_count);
 		setImportErrors(result.data.errors ?? []);
 		setStep("result");
-	}, [token, analysis, unmatchedMapping, fileToken, fileExtension]);
+	}, [token, analysis, unmatchedMapping, fileToken, fileExtension, targetUserId]);
 
 	const handleCloseAfterResult = useCallback(() => {
 		onSuccess?.();

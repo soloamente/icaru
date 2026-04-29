@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\ncontent = open('c:/Users/amaru/Documents/DATAWEB/ICARU/FRONTEND/apps/web/src/components/clients-table.tsx', 'r', encoding='utf-8').read()\\nold = '\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t...",
+  "error": "Exit code 49\nPython non � stato trovato; eseguire senza argomenti da installare dal Microsoft Store o disabilitare questo collegamento da Impostazioni > App > Impostazioni app avanzate > alias di esecuzione dell'app.",
+  "timestamp": "2026-04-29T11:33:41.048Z",
+  "retry_count": 1
+}

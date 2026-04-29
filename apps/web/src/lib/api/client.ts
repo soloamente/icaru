@@ -9,13 +9,17 @@ import type {
 	ApiAvailableMember,
 	ApiClient,
 	ApiClientWithoutNegotiation,
+	ApiCompany,
 	ApiNegotiation,
+	ApiRole,
 	ApiTeam,
 	ApiTeamMinimal,
 	ApiTeamStats,
+	ApiUserAdmin,
 	CreateClientBody,
 	CreateNegotiationBody,
 	CreateTeamBody,
+	CreateUserBody,
 	ImportCheckResponse,
 	ImportConfirmResponse,
 	LoginResponse,
@@ -29,6 +33,7 @@ import type {
 	UpdateClientBody,
 	UpdateNegotiationBody,
 	UpdateTeamBody,
+	UpdateUserBody,
 } from "./types";
 
 const BASE_URL =
@@ -1222,6 +1227,7 @@ export async function importConfirm(
 		file_token: string;
 		file_extension: string;
 		mapping: Record<string, string>;
+		target_user_id?: number;
 	}
 ): Promise<{ data: ImportConfirmResponse } | { error: string }> {
 	try {
@@ -1899,6 +1905,228 @@ export async function downloadTeamNegotiationsExportMap(
 	}
 	triggerBlobDownload(result.blob, result.filename);
 	return { ok: true };
+}
+
+// --- Admin API ---
+// Endpoints protetti da middleware role:Admin
+
+/**
+ * GET /users — Lista tutti gli utenti con company e role (admin only).
+ */
+export async function listUsers(
+	accessToken: string
+): Promise<{ data: ApiUserAdmin[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/users`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiUserAdmin[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento degli utenti";
+			return { error: msg };
+		}
+		return { data: json as ApiUserAdmin[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * POST /users — Crea un nuovo utente (admin only).
+ * Il backend genera una password temporanea e la invia via email.
+ */
+export async function createUser(
+	accessToken: string,
+	body: CreateUserBody
+): Promise<{ data: ApiUserAdmin } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/users`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as
+			| { message: string; user: ApiUserAdmin }
+			| { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nella creazione dell'utente";
+			return { error: msg };
+		}
+		return { data: (json as { user: ApiUserAdmin }).user };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * PUT /users/{id} — Aggiorna un utente (admin only).
+ * Supporta sospeso, ruolo, azienda e dati anagrafici.
+ */
+export async function updateUser(
+	accessToken: string,
+	id: number,
+	body: UpdateUserBody
+): Promise<{ data: ApiUserAdmin } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/users/${id}`, {
+			method: "PUT",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiUserAdmin | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nell'aggiornamento dell'utente";
+			return { error: msg };
+		}
+		return { data: json as ApiUserAdmin };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /roles — Lista tutti i ruoli disponibili (admin only).
+ */
+export async function createCompany(
+	accessToken: string,
+	body: { ragione_sociale: string }
+): Promise<{ data: ApiCompany } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/companies`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiCompany | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nella creazione dell'azienda";
+			return { error: msg };
+		}
+		return { data: json as ApiCompany };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+export async function updateCompany(
+	accessToken: string,
+	id: number,
+	body: Partial<{ ragione_sociale: string; attiva: boolean }>
+): Promise<{ data: ApiCompany } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/companies/${id}`, {
+			method: "PATCH",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as ApiCompany | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nell'aggiornamento dell'azienda";
+			return { error: msg };
+		}
+		return { data: json as ApiCompany };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+export async function listRoles(
+	accessToken: string
+): Promise<{ data: ApiRole[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/roles`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiRole[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento dei ruoli";
+			return { error: msg };
+		}
+		return { data: json as ApiRole[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * GET /companies — Lista tutte le aziende (admin only).
+ */
+export async function listCompanies(
+	accessToken: string
+): Promise<{ data: ApiCompany[] } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/companies`, {
+			method: "GET",
+			headers: getAuthHeaders(accessToken),
+		});
+		const json = (await res.json()) as ApiCompany[] | { message?: string };
+		if (!res.ok) {
+			const msg =
+				typeof (json as { message?: string }).message === "string"
+					? (json as { message: string }).message
+					: "Errore nel caricamento delle aziende";
+			return { error: msg };
+		}
+		return { data: json as ApiCompany[] };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
+}
+
+/**
+ * POST /change-password — Cambia la password dell'utente autenticato.
+ * Setta primo_accesso = 0 dopo il cambio.
+ */
+export async function changePassword(
+	accessToken: string,
+	body: {
+		current_password: string;
+		new_password: string;
+		new_password_confirmation: string;
+	}
+): Promise<{ data: { message: string } } | { error: string }> {
+	try {
+		const res = await fetch(`${BASE_URL}/change-password`, {
+			method: "POST",
+			headers: getAuthHeaders(accessToken),
+			body: JSON.stringify(body),
+		});
+		const json = (await res.json()) as { message?: string };
+		if (!res.ok) {
+			return { error: json.message ?? `HTTP ${res.status}` };
+		}
+		return { data: { message: json.message ?? "Password aggiornata." } };
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Errore di rete";
+		return { error: message };
+	}
 }
 
 export { BASE_URL };

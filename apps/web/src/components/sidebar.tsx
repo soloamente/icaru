@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -53,7 +53,10 @@ type AppRoute =
 	| "/trattative/abbandonate"
 	| "/clienti"
 	| "/team"
-	| "/statistiche";
+	| "/statistiche"
+	| "/admin/dashboard"
+	| "/admin/utenti"
+	| "/admin/aziende";
 
 interface NavigationItem {
 	icon: IconComponent;
@@ -120,11 +123,17 @@ export default function Sidebar({
 	}, []);
 
 	// Flat navigation items (single links)
+	const canSeeAdmin = auth?.role === "admin";
+
+	// Admin vede la propria dashboard; tutti gli altri la dashboard con mappa.
+	const dashboardHref: AppRoute =
+		mounted && canSeeAdmin ? "/admin/dashboard" : "/dashboard";
+
 	const flatNavItems: NavigationItem[] = [
 		{
 			icon: DashboardIcon,
 			label: "Dashboard",
-			href: "/dashboard",
+			href: dashboardHref,
 		},
 		{
 			icon: IconPeople as IconComponent,
@@ -454,6 +463,49 @@ export default function Sidebar({
 								Statistiche
 							</Link>
 						)}
+						{/* Admin: solo ruolo Admin */}
+						{mounted && canSeeAdmin && (
+							<Link
+								className={cn(
+									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
+									isRichColors
+										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
+										: "text-muted-foreground hover:bg-muted hover:text-foreground",
+									pathname === "/admin/utenti" &&
+										(isRichColors
+											? "bg-sidebar-accent text-sidebar-primary"
+											: "bg-muted text-foreground")
+								)}
+								href="/admin/utenti"
+								onClick={(event) =>
+									handleAppNavClick(event, "/admin/utenti")
+								}
+							>
+								<Users size={20} />
+								Utenti
+							</Link>
+						)}
+						{mounted && canSeeAdmin && (
+							<Link
+								className={cn(
+									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
+									isRichColors
+										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
+										: "text-muted-foreground hover:bg-muted hover:text-foreground",
+									pathname === "/admin/aziende" &&
+										(isRichColors
+											? "bg-sidebar-accent text-sidebar-primary"
+											: "bg-muted text-foreground")
+								)}
+								href="/admin/aziende"
+								onClick={(event) =>
+									handleAppNavClick(event, "/admin/aziende")
+								}
+							>
+								<Building2 size={20} />
+								Aziende
+							</Link>
+						)}
 					</nav>
 
 					{/* Footer actions in same row.
@@ -699,6 +751,42 @@ export default function Sidebar({
 								<IconChartBarTrendUp size={24} />
 								Statistiche
 							</Link>
+						)}
+						{/* Admin: sezione visibile solo al ruolo Admin */}
+						{mounted && canSeeAdmin && (
+							<>
+								<span className="px-3 pt-2 text-sidebar-secondary text-xs font-semibold uppercase tracking-wider">
+									Amministrazione
+								</span>
+								<Link
+									className={cn(
+										"flex items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary leading-none hover:bg-sidebar-accent hover:text-sidebar-primary",
+										pathname === "/admin/utenti" &&
+											"bg-sidebar-accent text-sidebar-primary"
+									)}
+									href="/admin/utenti"
+									onClick={(event) =>
+										handleAppNavClick(event, "/admin/utenti")
+									}
+								>
+									<Users size={24} />
+									Utenti
+								</Link>
+								<Link
+									className={cn(
+										"flex items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary leading-none hover:bg-sidebar-accent hover:text-sidebar-primary",
+										pathname === "/admin/aziende" &&
+											"bg-sidebar-accent text-sidebar-primary"
+									)}
+									href="/admin/aziende"
+									onClick={(event) =>
+										handleAppNavClick(event, "/admin/aziende")
+									}
+								>
+									<Building2 size={24} />
+									Aziende
+								</Link>
+							</>
 						)}
 					</nav>
 				</div>

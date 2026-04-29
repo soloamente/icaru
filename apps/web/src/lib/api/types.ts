@@ -7,12 +7,14 @@
 export type RoleName = "Admin" | "Direttore Vendite" | "Venditore";
 
 export interface ApiRole {
+	id?: number;
 	nome: RoleName;
 }
 
 export interface ApiCompany {
 	id: number;
 	ragione_sociale: string;
+	attiva?: boolean | number;
 	[key: string]: unknown;
 }
 
@@ -23,6 +25,8 @@ export interface ApiUser {
 	/** Numeric role id from API: 1 = Admin, 2 = Direttore Vendite, 3 = Venditore */
 	role_id?: number;
 	company?: ApiCompany | null;
+	/** True when user must change password on first login. */
+	primo_accesso?: boolean | number;
 	[key: string]: unknown;
 }
 
@@ -490,6 +494,43 @@ export interface UpdateTeamBody {
 	creator_participates?: boolean;
 	/** Full member list — REPLACES existing members. Omit to leave members unchanged. */
 	members?: number[];
+}
+
+// --- Admin API ---
+
+/** Full user object returned by GET /users (admin only). */
+export interface ApiUserAdmin {
+	id: number;
+	nome: string;
+	cognome: string;
+	email: string;
+	role_id: number;
+	role: ApiRole;
+	company_id: number;
+	company: ApiCompany;
+	sospeso: boolean;
+	primo_accesso: boolean;
+	last_login?: string | null;
+	created_at?: string;
+}
+
+/** Request body for POST /users (admin only). */
+export interface CreateUserBody {
+	nome: string;
+	cognome: string;
+	email: string;
+	company_id: number;
+	role_id: number;
+}
+
+/** Request body for PUT /users/{id} (admin only). */
+export interface UpdateUserBody {
+	nome?: string;
+	cognome?: string;
+	email?: string;
+	sospeso?: boolean;
+	role_id?: number;
+	company_id?: number;
 }
 
 /** Request body for POST /api/teams/{id}/members (add members without removing existing). */

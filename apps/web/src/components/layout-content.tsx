@@ -285,6 +285,7 @@ export default function LayoutContent({
 		"/clienti",
 		"/team",
 		"/statistiche",
+		"/admin",
 	];
 
 	// Check if current pathname matches any hide patterns

@@ -123,6 +123,13 @@ export default function DashboardPage() {
 		}
 	}, [auth?.isLoaded, auth?.user, router]);
 
+	// Admin non ha accesso alla dashboard con mappa: reindirizza alla dashboard admin.
+	useEffect(() => {
+		if (auth?.isLoaded && auth?.role === "admin") {
+			router.replace("/admin/dashboard");
+		}
+	}, [auth?.isLoaded, auth?.role, router]);
+
 	useEffect(() => {
 		setMounted(true);
 	}, []);

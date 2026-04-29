@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { ChevronDown, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -138,6 +139,8 @@ export default function ClientsTable() {
 	const [statsOpen, setStatsOpen] = useState(false);
 	// Ref for the search input so the clear icon can return focus to the field after clearing.
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
+	// Ref for the virtualizer scroll container.
+	const scrollRef = useRef<HTMLDivElement | null>(null);
 	/** true when viewport is sm (640px) or wider; used to only animate search width on desktop */
 	const [isSmViewport, setIsSmViewport] = useState(false);
 	const isMobile = useIsMobile();
@@ -285,6 +288,13 @@ export default function ClientsTable() {
 		clientsWithoutNegotiationsIds.has(c.id)
 	).length;
 	const clientsWithCount = visibleClients.length - clientsWithoutCount;
+
+	const virtualizer = useVirtualizer({
+		count: visibleClients.length,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => 73,
+		overscan: 8,
+	});
 
 	/** Search pill width: only animate on sm+; on mobile undefined so flex-1 controls width */
 	let searchAnimateWidth: string | undefined;
@@ -532,7 +542,7 @@ export default function ClientsTable() {
 				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
 					{/* Base UI Tooltip.Provider: shared delay + portal popups so pills are not clipped by scroll-fade-y. */}
 					<Tooltip.Provider closeDelay={100} delay={0}>
-						<div className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
+						<div ref={scrollRef} className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
 							{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 							<div className="flex min-w-max flex-col">
 								{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
@@ -602,39 +612,46 @@ export default function ClientsTable() {
 											}
 										/>
 									)}
-									{!(loading || error) &&
-										visibleClients.length > 0 &&
-										visibleClients.map((c) => {
-											// A client is considered "senza trattative" when its id appears in the
-											// dedicated helper list. Everyone else is grouped under "ha almeno una
-											// trattativa" so we can show a simple, binary status pill.
-											const hasNoNegotiations =
-												clientsWithoutNegotiationsIds.size > 0 &&
-												clientsWithoutNegotiationsIds.has(c.id);
-
-											return (
-												// biome-ignore lint/a11y/useSemanticElements: row contains inner buttons (Aggiungi/Ha trattativa); native <button> would be invalid HTML (nested interactive).
-												<div
-													/* Riga tabellare con hover visivo; l'intera riga è cliccabile
-										   per aprire la pagina di dettaglio cliente. Non usiamo un
-										   `<button>` per la riga perché conterrebbe altri pulsanti
-										   (Aggiungi / Ha trattativa), nesting invalido in HTML che
-										   fa sì che il click sulla pill animi anche la riga. Qui
-										   usiamo div + role="button" + stopPropagation sui pulsanti
-										   della colonna "Trattativa" così solo la riga reagisce al
-										   click sulle celle, non sulle pill. */
-													className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium last:border-b-0 hover:bg-table-hover"
-													key={c.id}
-													onClick={() => handleOpenClientDetail(c.id)}
-													onKeyDown={(event) => {
-														if (event.key === "Enter" || event.key === " ") {
-															event.preventDefault();
-															handleOpenClientDetail(c.id);
-														}
-													}}
-													role="button"
-													tabIndex={0}
-												>
+									{!(loading || error) && visibleClients.length > 0 && (
+										<div
+											style={{
+												height: virtualizer.getTotalSize(),
+												position: "relative",
+												width: "100%",
+											}}
+										>
+											{virtualizer.getVirtualItems().map((virtualItem) => {
+												const c = visibleClients[virtualItem.index];
+												if (!c) return null;
+												const hasNoNegotiations =
+													clientsWithoutNegotiationsIds.size > 0 &&
+													clientsWithoutNegotiationsIds.has(c.id);
+												return (
+													<div
+														data-index={virtualItem.index}
+														key={virtualItem.key}
+														ref={virtualizer.measureElement}
+														style={{
+															position: "absolute",
+															top: 0,
+															left: 0,
+															width: "100%",
+															transform: `translateY(${virtualItem.start}px)`,
+														}}
+													>
+														{/* biome-ignore lint/a11y/useSemanticElements: row contains inner buttons; native button nesting is invalid HTML */}
+														<div
+															className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium hover:bg-table-hover"
+															onClick={() => handleOpenClientDetail(c.id)}
+															onKeyDown={(event) => {
+																if (event.key === "Enter" || event.key === " ") {
+																	event.preventDefault();
+																	handleOpenClientDetail(c.id);
+																}
+															}}
+															role="button"
+															tabIndex={0}
+														>
 													<div className="clients-table-grid grid items-center gap-4 text-base">
 														<div className="truncate">
 															<span className="w-full truncate text-left">
@@ -814,8 +831,11 @@ export default function ClientsTable() {
 														</div>
 													</div>
 												</div>
+											</div>
 											);
 										})}
+									</div>
+									)}
 								</div>
 							</div>
 						</div>
