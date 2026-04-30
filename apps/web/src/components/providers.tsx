@@ -6,6 +6,7 @@ import { Retune } from "retune";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { PreferencesProvider } from "@/lib/preferences/preferences-context";
 import { queryClient } from "@/utils/trpc";
+import { OnbordaTourProvider } from "./onborda-tour-provider";
 import { ThemeProvider } from "./theme-provider";
 import { Toaster } from "./ui/sonner";
 
@@ -20,7 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			<PreferencesProvider>
 				<QueryClientProvider client={queryClient}>
 					<AuthProvider>
-						{children}
+						<OnbordaTourProvider>{children}</OnbordaTourProvider>
 						{process.env.NODE_ENV === "development" && (
 							<Agentation
 								endpoint="http://localhost:4747"

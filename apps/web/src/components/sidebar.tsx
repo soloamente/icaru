@@ -1,6 +1,13 @@
 "use client";
 
-import { Building2, ChevronDown, ChevronRight, Users, X } from "lucide-react";
+import {
+	Building2,
+	ChevronDown,
+	ChevronRight,
+	HelpCircle,
+	Users,
+	X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -31,6 +38,7 @@ import { requestUnsavedNavigation } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
 import FileXmark from "./file-xmark";
 import FolderOpen from "./folder-open";
+import { HowItWorksDialog } from "./how-it-works-dialog";
 import { IconFileCheckFill18 } from "./icons/icon-file-check-fill-18";
 import { IconFilePlusFill18 } from "./icons/icon-file-plus-fill-18";
 import { SignatureIcon } from "./icons/signature-icon";
@@ -75,6 +83,8 @@ interface FooterItem {
 	icon: IconComponent;
 	label: string;
 	onClick?: () => void;
+	/** Optional target id used by the onboarding tour to highlight footer actions. */
+	tourId?: string;
 	/** Optional: human‑readable keyboard shortcut to show in a tooltip (es. "⌘K" / "Ctrl+K"). */
 	shortcutHint?: string;
 }
@@ -195,6 +205,7 @@ export default function Sidebar({
 
 	// Preferences dialog: open from footer "Preferenze" button
 	const [preferencesOpen, setPreferencesOpen] = useState(false);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	/** Open the global search command palette (cmdk) from the sidebar footer. */
 	const handleQuickSearchClick = () => {
@@ -208,12 +219,26 @@ export default function Sidebar({
 		}
 	};
 
+	/** Open topic-based onboarding help from the sidebar footer. */
+	const handleHowItWorksClick = () => {
+		if (sidebarOpen?.isMobile) {
+			return;
+		}
+
+		setHowItWorksOpen(true);
+		// On mobile, close the sidebar so the topic dialog is clearly visible.
+		if (sidebarOpen?.isMobile && sidebarOpen.isOpen) {
+			sidebarOpen.setOpen(false);
+		}
+	};
+
 	const navFooter: FooterItem[] = [
 		{
 			icon: IconMagnifierSparkleFill18 as IconComponent,
 			label: "Ricerca rapida",
 			onClick: handleQuickSearchClick,
 			shortcutHint: isMac ? "⌘K" : "Ctrl+K",
+			tourId: "tour-sidebar-quick-search",
 		},
 		{
 			icon: GearIcon as IconComponent,
@@ -225,6 +250,13 @@ export default function Sidebar({
 					sidebarOpen.setOpen(false);
 				}
 			},
+			tourId: "tour-sidebar-preferences",
+		},
+		{
+			icon: HelpCircle as IconComponent,
+			label: "Come funziona?",
+			onClick: handleHowItWorksClick,
+			tourId: "tour-sidebar-how-it-works",
 		},
 	];
 
@@ -251,6 +283,10 @@ export default function Sidebar({
 
 	const sidebarOpen = useSidebarOpen();
 	const isHorizontal = variant === "top" || variant === "bottom";
+	const visibleNavFooter = navFooter.filter(
+		(item) =>
+			!(sidebarOpen?.isMobile && item.tourId === "tour-sidebar-how-it-works")
+	);
 
 	/** Chiude la sidebar overlay su mobile dopo una scelta di destinazione (link, logo, ecc.). */
 	function closeMobileSidebarIfOpen() {
@@ -366,6 +402,7 @@ export default function Sidebar({
 					<nav
 						aria-label="Navigazione principale"
 						className="flex flex-1 items-center gap-1"
+						id="tour-sidebar-navigation"
 					>
 						{flatNavItems
 							.filter((item) => {
@@ -512,7 +549,7 @@ export default function Sidebar({
 					    Per "Ricerca rapida" usiamo un tooltip custom (stesso pattern della pill "Ha trattativa")
 					    così possiamo mostrare anche la scorciatoia (⌘K / Ctrl+K) senza affollare la riga. */}
 					<div className="flex items-center gap-1">
-						{navFooter.map((item) => (
+						{visibleNavFooter.map((item) => (
 							<div className="group relative inline-flex" key={item.label}>
 								<button
 									aria-label={item.label}
@@ -522,6 +559,7 @@ export default function Sidebar({
 											? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
 											: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
 									)}
+									id={item.tourId}
 									onClick={item.onClick}
 									type="button"
 								>
@@ -639,6 +677,7 @@ export default function Sidebar({
 					<nav
 						aria-label="Navigazione principale"
 						className="scroll-fade-y flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden overscroll-y-contain"
+						id="tour-sidebar-navigation"
 					>
 						{/* Flat nav items: Dashboard per tutti; Clienti e Team solo per Direttore Vendite / Venditore (Admin riceve 403). */}
 						{flatNavItems
@@ -755,7 +794,7 @@ export default function Sidebar({
 						{/* Admin: sezione visibile solo al ruolo Admin */}
 						{mounted && canSeeAdmin && (
 							<>
-								<span className="px-3 pt-2 text-sidebar-secondary text-xs font-semibold uppercase tracking-wider">
+								<span className="px-3 pt-2 font-semibold text-sidebar-secondary text-xs uppercase tracking-wider">
 									Amministrazione
 								</span>
 								<Link
@@ -791,14 +830,15 @@ export default function Sidebar({
 					</nav>
 				</div>
 
-				{/* Footer: Ricerca rapida, Preferenze.
+				{/* Footer: Ricerca rapida, Preferenze, Come funziona?.
 				    Per Ricerca rapida mostriamo una pill di tooltip custom con anche la scorciatoia,
 				    seguendo lo stesso pattern usato per la pill "Ha trattativa" in ClientsTable. */}
 				<div className="flex shrink-0 flex-col gap-2.5 pb-2">
-					{navFooter.map((item) => (
+					{visibleNavFooter.map((item) => (
 						<div className="group relative flex w-full" key={item.label}>
 							<button
 								className="flex w-full cursor-pointer items-center gap-3.5 rounded-lg px-3 py-2 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
+								id={item.tourId}
 								onClick={item.onClick}
 								type="button"
 							>
@@ -820,6 +860,13 @@ export default function Sidebar({
 			<PreferencesDialog
 				onOpenChange={setPreferencesOpen}
 				open={preferencesOpen}
+			/>
+			<HowItWorksDialog
+				canSeeCommercialTopics={canSeeClienti || canSeeTrattative}
+				canSeeStats={canSeeStatistiche}
+				canSeeTeam={canSeeTeam}
+				onOpenChange={setHowItWorksOpen}
+				open={howItWorksOpen}
 			/>
 		</aside>
 	);

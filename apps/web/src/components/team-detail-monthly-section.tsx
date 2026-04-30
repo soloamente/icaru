@@ -514,6 +514,7 @@ export function TeamDetailMonthlySection({
 					aria-busy={exportBusy === "pdf"}
 					className={EXPORT_ACTION_PILL_BUTTON_CLASS}
 					disabled={exportBusy !== null}
+					id="tour-team-detail-export-pdf"
 					onClick={async () => {
 						await runExport("pdf");
 					}}
@@ -530,6 +531,7 @@ export function TeamDetailMonthlySection({
 					aria-busy={exportBusy === "excel"}
 					className={EXPORT_ACTION_PILL_BUTTON_CLASS}
 					disabled={exportBusy !== null}
+					id="tour-team-detail-export-excel"
 					onClick={async () => {
 						await runExport("excel");
 					}}
@@ -545,6 +547,7 @@ export function TeamDetailMonthlySection({
 				<button
 					className={EXPORT_ACTION_PILL_BUTTON_CLASS}
 					disabled={exportBusy !== null}
+					id="tour-team-detail-export-map"
 					onClick={() => setMapExportDialogOpen(true)}
 					type="button"
 				>

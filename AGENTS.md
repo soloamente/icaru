@@ -135,23 +135,23 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Table sections: title on row 1, filters plus search bar on row 2 with `justify-between` (like trattative page)
 - Editable row icons (pen, envelope): show on detail pages only, not in dialogs
 - Default light theme (non-dataweb): adjust neutral gray tokens in `globals.css` `:root` (keep `--table-header` darker than `--card` so `bg-table-header` rows and chips read inside `bg-card` panels; use `bg-table-header-readonly` / `--table-header-readonly` for read-only field rows so they read softer than editable `bg-table-header` chips); rich/dataweb uses `[data-color-scheme="rich"]` and `.dark`—change the matching block for that mode
-- Mobile overlay sidebars: close after navigating via sidebar links or the logo. A right-docked mobile sidebar should dismiss from backdrop tap and a clear close control, like the left drawer. If vertical sidebar chrome overflows horizontally, allow horizontal scroll or reflow so items stay reachable
+- Mobile overlay sidebars: close after navigating via sidebar links or the logo. A right-docked mobile sidebar should dismiss from backdrop tap and a clear close control, like the left drawer. If vertical sidebar chrome overflows horizontally, allow horizontal scroll or reflow so items stay reachable. Onborda guide is disabled on mobile; non-tour mobile help dialogs should use the existing bottom-drawer pattern.
 - Dataweb light: date picker and calendar popovers stay on light surfaces; selected-day styling must keep foreground readable (avoid dark dialog shells or blue selection chips without contrasting text)
 
 ## Learned Workspace Facts
 
 - Global search / command palette: backdrop dimming should cover the full layout including the main content column, not only the sidebar
-- API: `api/clients/company` removed; clients and trattative use `/me` endpoints per role
+- API: `api/clients/company` removed; clients and trattative use `/me` endpoints per role. Client import template download uses authenticated `GET /api/import/template`, returning `template_clienti.xlsx` as an XLSX blob.
 - Use fallback for `team.creator` when API may omit it (safeCreator pattern with `creator_id`)
 - framer-motion: do not use `motion/react`; use package-specific import paths
 - Dataweb dark theme: define `--popover`, `--muted`, `--accent`, `--accent-foreground` for dropdowns and avatar fallbacks to match theme
-- Tooltips inside scroll-fade-y or masked containers: use Tooltip with FloatingPortal to avoid clipping
+- Onborda: highlights/cards use portals and live target geometry so responsive layouts do not shift targets off screen; desktop trattative steps target `#tour-trattative-filter-search-row` for filters/search and `#tour-trattative-add-desktop` for Add; `@neoconfetti/react` fullscreen confetti needs a fixed top-center anchor because its origin is its own node.
 - Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks; keep a fixed left Y-axis rail so scale labels stay visible while the month row scrolls horizontally
 - Statistiche page layout: negotiations map → monthly charts → SPANCO donut; below `md` (768px) the monthly block is four stacked single-series charts in order: importo aperte, importo chiuse, numero aperte, numero chiuse; at `md+` use the two dual-series chart grids
 - Dashboard and Statistiche: do not use a global “hero” `main-page-title` on the `h1`—use plain heading styling (inherits body scale). On mobile-heavy routes, root `main` often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
 - Negotiations map filter panel on statistiche: use `stat-card-bg` with `bg-stat-card` to match monthly stat cards (avoid relying on `bg-background` alone in dataweb light)
 - Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight
-- `update-negotiation-form.tsx`: `SECTION_CARD_CLASSES` stacks each section title above its body (`flex flex-col`). On `md+`, section content uses two-column grids as implemented (Dati trattativa, Allegati list vs upload, Stato e avanzamento e.g. Spanco + Importo with full-width rows for slider/Abbandonata). Field rows still use `flex-col md:flex-row` for label/value pills; read-only values may use `truncate` when ellipsis is preferred. The **Note** textarea uses `text-start md:text-start` so multi-line copy is not right-aligned via shared single-line `md:text-right` input styles.
+- `update-negotiation-form.tsx`: `SECTION_CARD_CLASSES` stacks each section title above its body (`flex flex-col`). On `md+`, section content uses two-column grids as implemented (Dati trattativa, Allegati list vs upload, Stato e avanzamento e.g. Spanco + Importo with full-width rows for slider/Abbandonata). Field rows still use `flex-col md:flex-row` for label/value pills; editable/read-only values in Dati trattativa use `text-start md:text-start`, and the **Note** label aligns to the top of the textarea. `update-client-form.tsx` mirrors this layout pattern for client details, with editable inputs left-aligned.
 
 ---
 

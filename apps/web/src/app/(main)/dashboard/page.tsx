@@ -286,10 +286,14 @@ export default function DashboardPage() {
 		<main
 			className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-9 pt-6 pb-10 font-medium"
 			data-dashboard
+			id="tour-dashboard-shell"
 		>
 			{/* Header: titolo leggermente piu grande con scala rem (rispetta le preferenze font-size globali). */}
 			<div className="relative flex w-full flex-col gap-4.5">
-				<div className="flex items-center justify-between gap-2.5">
+				<div
+					className="flex items-center justify-between gap-2.5"
+					id="tour-dashboard-header"
+				>
 					<h1 className="flex items-center justify-center gap-3.5 text-card-foreground text-xl">
 						<DashboardIcon aria-hidden="true" size={24} />
 						<span>Dashboard</span>
@@ -339,6 +343,7 @@ export default function DashboardPage() {
 			<section
 				aria-labelledby="practices-overview"
 				className="flex flex-col gap-3"
+				id="tour-dashboard-stats"
 			>
 				<h2 className="sr-only" id="practices-overview">
 					Statistiche trattative
@@ -348,7 +353,10 @@ export default function DashboardPage() {
 						{negotiationsError}
 					</p>
 				)}
-				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+				<div
+					className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+					id="tour-dashboard-stats-grid"
+				>
 					{!hasHydrated || showStatsCardSkeletons
 						? STATS_CARD_IDS.map((id) => (
 								<div

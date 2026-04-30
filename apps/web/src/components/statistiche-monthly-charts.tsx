@@ -652,7 +652,7 @@ export function StatisticheMonthlyCharts({
 							TRATTATIVE_HEADER_FILTER_BG,
 							TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
 						)}
-						id="statistiche-year-select"
+						id="tour-statistiche-year-select"
 					>
 						<span className="font-medium text-muted-foreground text-sm">
 							Anno
@@ -703,6 +703,7 @@ export function StatisticheMonthlyCharts({
 						aria-busy={isPdfExporting}
 						className={EXPORT_ACTION_PILL_BUTTON_CLASS}
 						disabled={!accessToken || isPdfExporting}
+						id="tour-statistiche-export-pdf"
 						onClick={handleExportPersonalPdf}
 						type="button"
 					>

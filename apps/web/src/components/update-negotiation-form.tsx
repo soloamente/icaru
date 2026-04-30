@@ -279,6 +279,7 @@ function DatiTrattativaSection({
 		<section
 			aria-labelledby="dati-trattativa-heading"
 			className={sectionClassName ?? SECTION_CARD_CLASSES}
+			id="tour-trattative-detail-data"
 		>
 			<div className="flex w-full min-w-0">
 				<h2 className="font-medium text-2xl" id="dati-trattativa-heading">
@@ -498,6 +499,7 @@ function AllegatiSection({
 		<section
 			aria-labelledby="allegati-heading"
 			className={sectionClassName ?? SECTION_CARD_CLASSES}
+			id="tour-trattative-detail-files"
 		>
 			<div className="flex w-full min-w-0">
 				<h2 className="font-medium text-2xl" id="allegati-heading">
@@ -691,6 +693,7 @@ function StatoEAvanzamentoSection({
 		<section
 			aria-labelledby="stato-avanzamento-heading"
 			className={sectionClassName}
+			id="tour-trattative-detail-status"
 		>
 			<div className="flex w-full min-w-0">
 				<h2 className="font-medium text-2xl" id="stato-avanzamento-heading">

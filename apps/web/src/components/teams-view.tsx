@@ -8,6 +8,10 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { listMyTeams, listTeams } from "@/lib/api/client";
 import type { ApiTeam, ApiTeamMinimal } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+	TOUR_FIRST_TEAM_SESSION_KEY,
+	TOUR_TEAMS_UPDATED_EVENT,
+} from "@/lib/onborda/tour-storage";
 import { TRATTATIVE_HEADER_FILTER_BG } from "@/lib/trattative-header-filter-classes";
 import { cn } from "@/lib/utils";
 import { AnimatedEmptyState } from "./animated-empty-state";
@@ -65,6 +69,30 @@ export function TeamsView() {
 	useEffect(() => {
 		fetchTeams();
 	}, [fetchTeams]);
+
+	// Aggiorna sessionStorage usato dal tour per `nextRoute` verso `/team/:id` (primo team in elenco direttore).
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		try {
+			if (isDirector && !loading) {
+				if (teams.length > 0) {
+					sessionStorage.setItem(
+						TOUR_FIRST_TEAM_SESSION_KEY,
+						String(teams[0].id)
+					);
+				} else {
+					sessionStorage.removeItem(TOUR_FIRST_TEAM_SESSION_KEY);
+				}
+			} else {
+				sessionStorage.removeItem(TOUR_FIRST_TEAM_SESSION_KEY);
+			}
+			window.dispatchEvent(new Event(TOUR_TEAMS_UPDATED_EVENT));
+		} catch {
+			// Storage disabilitato o non disponibile: il tour omette gli step sul dettaglio team.
+		}
+	}, [isDirector, loading, teams]);
 
 	const handleOpenTeamDetail = useCallback(
 		(teamId: number) => {
@@ -160,6 +188,7 @@ export function TeamsView() {
 					"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
 					isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 				)}
+				id="tour-team-shell"
 			>
 				{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, row layout */}
 				<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
@@ -253,6 +282,7 @@ export function TeamsView() {
 				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
+			id="tour-team-shell"
 		>
 			{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, actions right */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
@@ -267,6 +297,7 @@ export function TeamsView() {
 							"flex cursor-pointer items-center justify-center gap-2.5 rounded-full px-3.75 py-1.75 text-sm",
 							TRATTATIVE_HEADER_FILTER_BG
 						)}
+						id="tour-team-crea"
 						onClick={() => {
 							// biome-ignore lint/suspicious/noExplicitAny: dynamic route path
 							router.push("/team/crea" as any);
@@ -358,7 +389,7 @@ export function TeamsView() {
 					)}
 					{!(loading || error) && teams.length > 0 && (
 						<div className="flex flex-wrap gap-4">
-							{teams.map((team) => {
+							{teams.map((team, teamIndex) => {
 								// Use effective count when available, else users_count o lunghezza dell'array users.
 								const memberCount =
 									team.effective_members_count ??
@@ -382,6 +413,7 @@ export function TeamsView() {
 									// biome-ignore lint/a11y/useSemanticElements: card contiene pulsanti annidati per le azioni
 									<div
 										className="group flex min-h-fit min-w-0 max-w-md flex-[1_1_100%] cursor-pointer flex-col justify-between gap-8 rounded-4xl bg-table-header p-5 transition-colors duration-200 hover:bg-table-hover md:flex-[1_1_calc(50%-0.5rem)] xl:flex-[1_1_calc(33.333%-0.67rem)]"
+										id={teamIndex === 0 ? "tour-team-first-card" : undefined}
 										key={team.id}
 										onClick={() => handleOpenTeamDetail(team.id)}
 										onKeyDown={(event) => {

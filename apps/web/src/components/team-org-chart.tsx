@@ -957,7 +957,10 @@ function OrgChartSection({
 	return (
 		<>
 			{/* Org chart card — same container as "Dati team" */}
-			<section className={cn(SECTION_CARD_CLASSES, "items-center")}>
+			<section
+				className={cn(SECTION_CARD_CLASSES, "items-center")}
+				id="tour-team-org-chart"
+			>
 				{/* Tree group: no gap so connector lines actually touch creator ↔ stem ↔ row */}
 				<div className="relative flex flex-col items-center">
 					<CreatorNode

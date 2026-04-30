@@ -113,6 +113,7 @@ export default function StatistichePage() {
 		<main
 			className="m-2.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-3xl bg-card px-5 pt-6 pb-10 font-medium sm:px-9"
 			data-statistiche
+			id="tour-statistiche-shell"
 		>
 			{/* Header: titolo + Esporta Mappa sulla stessa riga da sm+ (come Team / Crea team).
 			    Titolo leggermente piu grande con scala rem (rispetta le preferenze font-size globali). */}
@@ -127,6 +128,7 @@ export default function StatistichePage() {
 						aria-busy={isMapExporting}
 						className={EXPORT_ACTION_PILL_BUTTON_CLASS}
 						disabled={!auth.token || isMapExporting}
+						id="tour-statistiche-export-map"
 						onClick={handleExportStatisticheMap}
 						type="button"
 					>
@@ -144,6 +146,7 @@ export default function StatistichePage() {
 			<section
 				aria-label="Mappa trattative con filtri"
 				className="flex w-full flex-col gap-4"
+				id="tour-statistiche-map"
 			>
 				<div className="relative min-h-0 min-w-0 sm:h-[440px] md:h-[520px]">
 					<NegotiationsMapWithFilters
@@ -156,6 +159,7 @@ export default function StatistichePage() {
 			<section
 				aria-label="Grafici mensili trattative"
 				className="flex w-full flex-col gap-4 pt-6 sm:pt-8"
+				id="tour-statistiche-monthly"
 			>
 				<StatisticheMonthlyCharts
 					accessToken={auth.token ?? null}
@@ -167,6 +171,7 @@ export default function StatistichePage() {
 			<section
 				aria-label="Distribuzione delle trattative per stato SPANCO"
 				className="flex w-full flex-col gap-4"
+				id="tour-statistiche-spanco"
 			>
 				<SpancoDonutChart
 					error={spancoError}

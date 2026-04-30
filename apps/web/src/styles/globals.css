@@ -4,6 +4,7 @@
 @import "./table.css";
 @import "./checkbox.css";
 @import "./cmdk.css";
+@source "../../../node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}";
 
 /* Rich colors (DARK MODE / Dataweb): variante scura specifica per Dataweb.
    Selettore più specifico (html.dark[...]) in coda al file così i valori dark vincono

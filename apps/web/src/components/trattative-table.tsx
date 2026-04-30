@@ -1758,9 +1758,13 @@ export default function TrattativeTable({
 				"flex h-fit flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
+			id="tour-trattative-shell"
 		>
 			{/* Header: come Statistiche — titolo + azioni sulla stessa riga da sm+; sotto, filtri quando attivi. */}
-			<div className="relative flex w-full flex-col gap-4 sm:gap-4.5">
+			<div
+				className="relative flex w-full flex-col gap-4 sm:gap-4.5"
+				id="tour-trattative-controls"
+			>
 				{/* Riga titolo: stesso pattern di statistiche/page (flex-col → sm:flex-row justify-between). */}
 				<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
 					<h1 className="flex items-center justify-center gap-3.5 sm:justify-start">
@@ -1787,6 +1791,7 @@ export default function TrattativeTable({
 										"pointer-events-none opacity-50"
 								)}
 								disabled={isExportingExcel || !token}
+								id="tour-trattative-export-excel"
 								onClick={handleExportNegotiationsExcel}
 								type="button"
 							>
@@ -1808,6 +1813,7 @@ export default function TrattativeTable({
 								TRATTATIVE_HEADER_FILTER_BG,
 								hasHeaderFilters && "hidden sm:flex"
 							)}
+							id="tour-trattative-add-desktop"
 							onClick={() => setIsCreateDialogOpen(true)}
 							type="button"
 						>
@@ -1818,7 +1824,10 @@ export default function TrattativeTable({
 				</div>
 				{/* Header - filters: mobile = two rows (filters one line, then search+Aggiungi); desktop = one row (filters + search) */}
 				{hasHeaderFilters && (
-					<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+					<div
+						className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2"
+						id="tour-trattative-filter-search-row"
+					>
 						{/* Filters: single line on mobile (scroll), wrap on desktop. scroll-fade-x hints more filters on left/right when horizontally scrollable. */}
 						<div className="scroll-fade-x flex w-full flex-nowrap items-center justify-start gap-1.25 overflow-x-auto sm:flex-wrap sm:overflow-visible">
 							{/* Filtro data apertura: sempre visibile su tutte le viste */}
@@ -2060,6 +2069,7 @@ export default function TrattativeTable({
 										"flex min-h-[48px] min-w-[48px] shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:hidden",
 										TRATTATIVE_HEADER_FILTER_BG
 									)}
+									id="tour-trattative-add-mobile"
 									onClick={() => setIsCreateDialogOpen(true)}
 									type="button"
 								>
@@ -2232,7 +2242,10 @@ export default function TrattativeTable({
 				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
 				    Applichiamo l'effetto scroll-fade-y solo sul blocco delle righe (e sugli stati vuoto/loading),
 				    non sull'header, così che il fade non copra i titoli di colonna. */}
-				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+				<div
+					className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl"
+					id="tour-trattative-table"
+				>
 					<div className="flex h-full min-h-0 flex-1 flex-col overflow-auto">
 						{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling.
 						    When showing empty/loading/error, use w-full (no min-w-max) so the empty state centers horizontally within the viewport on mobile. */}

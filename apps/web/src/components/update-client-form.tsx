@@ -221,6 +221,7 @@ export function UpdateClientForm({
 				<section
 					aria-labelledby="clienti-dati-anagrafici-heading"
 					className={SECTION_CARD_CLASSES}
+					id="tour-clienti-detail-data"
 				>
 					<div className="flex w-full min-w-0">
 						<h2
@@ -385,6 +386,7 @@ export function UpdateClientForm({
 				<section
 					aria-labelledby="clienti-sede-heading"
 					className={SECTION_CARD_CLASSES}
+					id="tour-clienti-detail-address"
 				>
 					<div className="flex w-full min-w-0">
 						<h2 className="font-medium text-2xl" id="clienti-sede-heading">

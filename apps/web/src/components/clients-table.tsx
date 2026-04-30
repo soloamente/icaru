@@ -310,6 +310,7 @@ export default function ClientsTable() {
 				"flex h-dvh flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 px-4" : "m-3 px-9"
 			)}
+			id="tour-clienti-shell"
 		>
 			{/* Header: on mobile stack title on top, then search and buttons; on sm+ title left, search + buttons right */}
 			<div className="relative flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4.5">
@@ -327,6 +328,7 @@ export default function ClientsTable() {
 							TRATTATIVE_HEADER_FILTER_BG
 						)}
 						htmlFor="clients-search"
+						id="tour-clienti-search"
 						initial={false}
 						transition={{
 							duration: 0.5,
@@ -411,6 +413,7 @@ export default function ClientsTable() {
 							"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
 							TRATTATIVE_HEADER_FILTER_BG
 						)}
+						id="tour-clienti-add-client"
 						onClick={() => setIsAddClientDialogOpen(true)}
 						type="button"
 					>
@@ -424,6 +427,7 @@ export default function ClientsTable() {
 							"flex min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center gap-2.5 rounded-full p-3 text-base sm:min-h-0 sm:min-w-0 sm:p-2.5 sm:px-3.75 sm:py-1.75 sm:text-sm",
 							TRATTATIVE_HEADER_FILTER_BG
 						)}
+						id="tour-clienti-import"
 						onClick={() => setIsImportDialogOpen(true)}
 						type="button"
 					>
@@ -539,7 +543,10 @@ export default function ClientsTable() {
 				{/* Table: single scroll container so header and body scroll horizontally together on mobile.
 				    Applichiamo lo scroll-fade solo sul blocco delle righe/empty state, non sull'header,
 				    così il fade non copre i titoli di colonna. */}
-				<div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+				<div
+					className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl"
+					id="tour-clienti-table"
+				>
 					{/* Base UI Tooltip.Provider: shared delay + portal popups so pills are not clipped by scroll-fade-y. */}
 					<Tooltip.Provider closeDelay={100} delay={0}>
 						<div ref={scrollRef} className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
@@ -554,7 +561,9 @@ export default function ClientsTable() {
 										<div>Telefono</div>
 										<div>Tipologia</div>
 										<div>Sede</div>
-										<div>Trattativa</div>
+										<div id="tour-clienti-negotiation-column">
+											Trattativa
+										</div>
 									</div>
 								</div>
 								{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
@@ -622,7 +631,12 @@ export default function ClientsTable() {
 										>
 											{virtualizer.getVirtualItems().map((virtualItem) => {
 												const c = visibleClients[virtualItem.index];
-												if (!c) return null;
+												if (!c) {
+													return null;
+												}
+												// A client is considered "senza trattative" when its id appears in the
+												// dedicated helper list. Everyone else is grouped under "ha almeno una
+												// trattativa" so we can show a simple, binary status pill.
 												const hasNoNegotiations =
 													clientsWithoutNegotiationsIds.size > 0 &&
 													clientsWithoutNegotiationsIds.has(c.id);
@@ -719,7 +733,7 @@ export default function ClientsTable() {
 																	<Tooltip.Portal>
 																		<Tooltip.Positioner
 																			align="center"
-																			className="z-[100]"
+																			className="z-100"
 																			side="bottom"
 																			sideOffset={20}
 																		>
@@ -752,7 +766,14 @@ export default function ClientsTable() {
 																</Tooltip.Root>
 															)}
 														</div>
-														<div className="flex items-center justify-start">
+														<div
+															className="flex items-center justify-start"
+															id={
+																virtualItem.index === 0
+																	? "tour-clienti-row-negotiation-action"
+																	: undefined
+															}
+														>
 															{hasNoNegotiations ? (
 																<button
 																	// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
@@ -814,7 +835,7 @@ export default function ClientsTable() {
 																	<Tooltip.Portal>
 																		<Tooltip.Positioner
 																			align="center"
-																			className="z-[100]"
+																			className="z-100"
 																			side="top"
 																			sideOffset={6}
 																		>
