@@ -3,13 +3,23 @@
 import { Plus, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { createUser, listCompanies, listRoles, listUsers } from "@/lib/api/client";
-import type { ApiCompany, ApiRole, ApiUserAdmin, CreateUserBody } from "@/lib/api/types";
-import { useAuthOptional } from "@/lib/auth/auth-context";
+import { ImportClientsDialog } from "@/components/import-clients-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { ImportClientsDialog } from "@/components/import-clients-dialog";
+import {
+	createUser,
+	listCompanies,
+	listRoles,
+	listUsers,
+} from "@/lib/api/client";
+import type {
+	ApiCompany,
+	ApiRole,
+	ApiUserAdmin,
+	CreateUserBody,
+} from "@/lib/api/types";
+import { useAuthOptional } from "@/lib/auth/auth-context";
 import { TRATTATIVE_HEADER_FILTER_BG } from "@/lib/trattative-header-filter-classes";
 import { cn } from "@/lib/utils";
 
@@ -56,18 +66,20 @@ export default function AdminUsersTable() {
 	useEffect(() => {
 		if (!token) return;
 		setLoading(true);
-		Promise.all([listUsers(token), listCompanies(token), listRoles(token)]).then(
-			([usersRes, companiesRes, rolesRes]) => {
-				if ("data" in usersRes) setUsers(usersRes.data);
-				if ("data" in companiesRes) setCompanies(companiesRes.data);
-				if ("data" in rolesRes) {
-					setRoles(rolesRes.data);
-				} else {
-					toast.error("Impossibile caricare i ruoli: " + rolesRes.error);
-				}
-				setLoading(false);
+		Promise.all([
+			listUsers(token),
+			listCompanies(token),
+			listRoles(token),
+		]).then(([usersRes, companiesRes, rolesRes]) => {
+			if ("data" in usersRes) setUsers(usersRes.data);
+			if ("data" in companiesRes) setCompanies(companiesRes.data);
+			if ("data" in rolesRes) {
+				setRoles(rolesRes.data);
+			} else {
+				toast.error("Impossibile caricare i ruoli: " + rolesRes.error);
 			}
-		);
+			setLoading(false);
+		});
 	}, [token]);
 
 	function openModal() {
@@ -84,11 +96,11 @@ export default function AdminUsersTable() {
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		if (!token) return;
-		if (!form.nome.trim() || !form.cognome.trim() || !form.email.trim()) {
+		if (!(form.nome.trim() && form.cognome.trim() && form.email.trim())) {
 			setFormError("Nome, cognome ed email sono obbligatori.");
 			return;
 		}
-		if (!form.company_id || !form.role_id) {
+		if (!(form.company_id && form.role_id)) {
 			setFormError("Seleziona azienda e ruolo.");
 			return;
 		}
@@ -100,7 +112,9 @@ export default function AdminUsersTable() {
 			setFormError(res.error);
 			return;
 		}
-		toast.success("Utente creato. Le credenziali sono state inviate via email.");
+		toast.success(
+			"Utente creato. Le credenziali sono state inviate via email."
+		);
 		closeModal();
 		await fetchUsers();
 	}
@@ -138,7 +152,7 @@ export default function AdminUsersTable() {
 					<div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto px-5.5 pt-4">
 						<div
 							className={cn(
-								"table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25 text-xs font-semibold uppercase tracking-wider text-muted-foreground",
+								"table-header-bg sticky top-0 z-10 shrink-0 rounded-xl px-3 py-2.25 font-semibold text-muted-foreground text-xs uppercase tracking-wider",
 								USERS_TABLE_GRID
 							)}
 						>
@@ -158,7 +172,7 @@ export default function AdminUsersTable() {
 							users.map((u) => (
 								<div
 									className={cn(
-										"border-b border-border/50 px-3 py-3.5 text-sm transition-colors last:border-0 hover:bg-table-hover",
+										"border-border/50 border-b px-3 py-3.5 text-sm transition-colors last:border-0 hover:bg-table-hover",
 										USERS_TABLE_GRID
 									)}
 									key={u.id}
@@ -176,7 +190,7 @@ export default function AdminUsersTable() {
 									<span className="px-2">
 										<span
 											className={cn(
-												"inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+												"inline-flex rounded-full px-2.5 py-0.5 font-medium text-xs",
 												u.sospeso
 													? "bg-status-suspended-background text-status-suspended-accent"
 													: "bg-status-completed-background text-status-completed-accent"
@@ -316,7 +330,7 @@ export default function AdminUsersTable() {
 									Ruolo
 								</label>
 								{roles.length === 0 ? (
-									<span className="flex-1 text-right text-xs text-muted-foreground">
+									<span className="flex-1 text-right text-muted-foreground text-xs">
 										Nessun ruolo disponibile
 									</span>
 								) : (

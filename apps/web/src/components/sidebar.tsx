@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	Building2,
-	ChevronDown,
-	ChevronRight,
-	HelpCircle,
-	Users,
-	X,
-} from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +9,7 @@ import { type ComponentType, type SVGProps, useEffect, useState } from "react";
 import {
 	DashboardIcon,
 	GearIcon,
+	HelpIcon,
 	IconChartBarTrendUp,
 	IconMagnifierSparkleFill18,
 	IconPeople,
@@ -253,7 +247,7 @@ export default function Sidebar({
 			tourId: "tour-sidebar-preferences",
 		},
 		{
-			icon: HelpCircle as IconComponent,
+			icon: HelpIcon as IconComponent,
 			label: "Come funziona?",
 			onClick: handleHowItWorksClick,
 			tourId: "tour-sidebar-how-it-works",
@@ -514,9 +508,7 @@ export default function Sidebar({
 											: "bg-muted text-foreground")
 								)}
 								href="/admin/utenti"
-								onClick={(event) =>
-									handleAppNavClick(event, "/admin/utenti")
-								}
+								onClick={(event) => handleAppNavClick(event, "/admin/utenti")}
 							>
 								<Users size={20} />
 								Utenti
@@ -535,9 +527,7 @@ export default function Sidebar({
 											: "bg-muted text-foreground")
 								)}
 								href="/admin/aziende"
-								onClick={(event) =>
-									handleAppNavClick(event, "/admin/aziende")
-								}
+								onClick={(event) => handleAppNavClick(event, "/admin/aziende")}
 							>
 								<Building2 size={20} />
 								Aziende
@@ -804,9 +794,7 @@ export default function Sidebar({
 											"bg-sidebar-accent text-sidebar-primary"
 									)}
 									href="/admin/utenti"
-									onClick={(event) =>
-										handleAppNavClick(event, "/admin/utenti")
-									}
+									onClick={(event) => handleAppNavClick(event, "/admin/utenti")}
 								>
 									<Users size={24} />
 									Utenti

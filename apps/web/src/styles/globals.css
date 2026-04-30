@@ -568,8 +568,12 @@ html:not(.dark)[data-color-scheme="rich"] .stat-card-text {
 }
 
 /* Dataweb light: table-hover slightly darker than table-header so row hover is visible on table-header surfaces.
-   Input fields: slightly darker than card so they stand out in dialogs/panels, but light enough for dark text. */
+   Input fields: slightly darker than card so they stand out in dialogs/panels, but light enough for dark text.
+   Card + popover: pure white on the blue canvas (generic [rich] card was slightly tinted; --popover was unset → gray from :root). */
 html:not(.dark)[data-color-scheme="rich"] {
+	--card: oklch(1 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: var(--card-foreground);
 	--input: oklch(0.94 0.02 250);
 	--table-hover: oklch(0.92 0.03 250);
 }

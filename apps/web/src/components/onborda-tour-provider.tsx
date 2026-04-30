@@ -304,24 +304,41 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 				return;
 			}
 
-			if (document.querySelector(config.selector)) {
-				startFrameRef.current = null;
-				const tourName = pendingStart.tourName;
-				setPendingStart(null);
-				startOnborda(tourName);
+			const target = document.querySelector(config.selector);
+			// Direttore + tour topic Team: lo shell c'è già con skeleton; aspetta `data-tour-director-teams-ready`
+			// così sessionStorage e gli step filtrati sono aggiornati prima di `startOnborda`.
+			const deferForDirectorTeamHydration =
+				pendingStart.tourName === TEAM_TOUR_NAME &&
+				auth?.role === "director" &&
+				target != null &&
+				target.getAttribute("data-tour-director-teams-ready") !== "ready";
+
+			if (target == null) {
+				frameCount += 1;
+				if (frameCount >= MAX_TOUR_START_FRAMES) {
+					startFrameRef.current = null;
+					setPendingStart(null);
+					return;
+				}
+				startFrameRef.current = window.requestAnimationFrame(
+					waitForDashboardTarget
+				);
 				return;
 			}
 
-			frameCount += 1;
-			if (frameCount >= MAX_TOUR_START_FRAMES) {
-				startFrameRef.current = null;
-				setPendingStart(null);
+			// Shell già in DOM ma lista team ancora in fetch: non usare il budget di ~120 frame,
+			// altrimenti navigando da un'altra pagina il timeout annulla l'avvio prima che `ready` arrivi.
+			if (deferForDirectorTeamHydration) {
+				startFrameRef.current = window.requestAnimationFrame(
+					waitForDashboardTarget
+				);
 				return;
 			}
 
-			startFrameRef.current = window.requestAnimationFrame(
-				waitForDashboardTarget
-			);
+			startFrameRef.current = null;
+			const tourName = pendingStart.tourName;
+			setPendingStart(null);
+			startOnborda(tourName);
 		};
 
 		startFrameRef.current = window.requestAnimationFrame(
@@ -336,6 +353,7 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 			}
 		};
 	}, [
+		auth?.role,
 		cancelPendingStart,
 		closeOnborda,
 		isMobile,

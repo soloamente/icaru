@@ -8,6 +8,12 @@ export const MAIN_TOUR_VERSION = "2026-04-29" as const;
 /** sessionStorage: id numerico del primo team (lista direttore) per aprire il dettaglio nel tour */
 export const TOUR_FIRST_TEAM_SESSION_KEY = "icaru-tour:first-team-id" as const;
 
+/**
+ * sessionStorage: sul dettaglio team ci sono membri nell’organigramma → step tour su «Dettagli venditore».
+ */
+export const TOUR_TEAM_HAS_MEMBERS_SESSION_KEY =
+	"icaru-tour:team-detail-has-members" as const;
+
 /** Evento window: la lista team nel client ha aggiornato la chiave sessione sopra */
 export const TOUR_TEAMS_UPDATED_EVENT = "icaru-tour-teams-updated" as const;
 

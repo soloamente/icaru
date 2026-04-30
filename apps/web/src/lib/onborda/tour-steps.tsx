@@ -6,6 +6,7 @@ import {
 	STATS_TOUR_NAME,
 	TEAM_TOUR_NAME,
 	TOUR_FIRST_TEAM_SESSION_KEY,
+	TOUR_TEAM_HAS_MEMBERS_SESSION_KEY,
 	type TourName,
 } from "./tour-storage";
 
@@ -30,7 +31,7 @@ export interface IcaruTourStep {
 	nextRoute?: string;
 	prevRoute?: string;
 	roles?: AppRole[];
-	/** Step visibile solo se la sessione contiene già un id team (tour direttore con elenco caricato). */
+	/** Step visibile solo se `requiresSessionKey` è presente in sessionStorage (es. id team, membri in organigramma). */
 	requiresSessionKey?: string;
 	/** Step visibile solo se NON c’è id team in sessione (es. passaggio alle statistiche senza aprire dettagli). */
 	omitIfSessionKey?: string;
@@ -230,6 +231,36 @@ const commercialSteps: IcaruTourStep[] = [
 		selector: "#tour-team-org-chart",
 		side: "bottom",
 		prevRoute: "/team",
+		roles: ["director"],
+		requiresSessionKey: TOUR_FIRST_TEAM_SESSION_KEY,
+	}),
+	baseStep({
+		title: "Dettagli venditore (scheda membro)",
+		content:
+			"Se nell’organigramma ci sono membri, su ogni scheda puoi cliccare Dettagli venditore per aprire la supervisione: andamento personale, fasi SPANCO, mappa e trattative di quel venditore.",
+		selector: "#tour-team-member-detail-seller",
+		side: "top",
+		prevRouteSession: "firstTeamDetail",
+		roles: ["director"],
+		requiresSessionKey: TOUR_TEAM_HAS_MEMBERS_SESSION_KEY,
+	}),
+	baseStep({
+		title: "Venditore (andamento mensile team)",
+		content:
+			"Qui limiti i dati a un venditore del team o lasci Tutti per vedere l’intero team. I grafici si aggiornano di conseguenza; anche export PDF, Excel e mappa rispettano la scelta del venditore.",
+		selector: "#tour-team-detail-monthly-seller-filter",
+		side: "bottom",
+		prevRouteSession: "firstTeamDetail",
+		roles: ["director"],
+		requiresSessionKey: TOUR_FIRST_TEAM_SESSION_KEY,
+	}),
+	baseStep({
+		title: "Anno o storico (andamento mensile team)",
+		content:
+			"Scegli un anno oppure lo storico per allineare grafici e asse temporale. L’export PDF dell’andamento mensile usa l’anno (o lo storico) che imposti qui.",
+		selector: "#tour-team-detail-monthly-year-filter",
+		side: "bottom",
+		prevRouteSession: "firstTeamDetail",
 		roles: ["director"],
 		requiresSessionKey: TOUR_FIRST_TEAM_SESSION_KEY,
 	}),
@@ -454,6 +485,36 @@ const teamTopicSteps: IcaruTourStep[] = [
 		requiresSessionKey: TOUR_FIRST_TEAM_SESSION_KEY,
 	}),
 	baseStep({
+		title: "Dettagli venditore (scheda membro)",
+		content:
+			"Se nell’organigramma ci sono membri, su ogni scheda puoi cliccare Dettagli venditore per aprire la supervisione: andamento personale, fasi SPANCO, mappa e trattative di quel venditore.",
+		selector: "#tour-team-member-detail-seller",
+		side: "top",
+		prevRouteSession: "firstTeamDetail",
+		roles: ["director"],
+		requiresSessionKey: TOUR_TEAM_HAS_MEMBERS_SESSION_KEY,
+	}),
+	baseStep({
+		title: "Venditore (andamento mensile team)",
+		content:
+			"Qui limiti i dati a un venditore del team o lasci Tutti per vedere l’intero team. I grafici si aggiornano di conseguenza; anche export PDF, Excel e mappa rispettano la scelta del venditore.",
+		selector: "#tour-team-detail-monthly-seller-filter",
+		side: "bottom",
+		prevRouteSession: "firstTeamDetail",
+		roles: ["director"],
+		requiresSessionKey: TOUR_FIRST_TEAM_SESSION_KEY,
+	}),
+	baseStep({
+		title: "Anno o storico (andamento mensile team)",
+		content:
+			"Scegli un anno oppure lo storico per allineare grafici e asse temporale. L’export PDF dell’andamento mensile usa l’anno (o lo storico) che imposti qui.",
+		selector: "#tour-team-detail-monthly-year-filter",
+		side: "bottom",
+		prevRouteSession: "firstTeamDetail",
+		roles: ["director"],
+		requiresSessionKey: TOUR_FIRST_TEAM_SESSION_KEY,
+	}),
+	baseStep({
 		title: "Esporta PDF (team)",
 		content:
 			"Scarica il PDF delle statistiche mensili del team per l’anno selezionato.",
@@ -573,16 +634,35 @@ const readFirstTeamIdForTour = (): string | null => {
 const readHasFirstTeamInSession = (): boolean =>
 	readFirstTeamIdForTour() !== null;
 
+const readHasOrgMembersInSession = (): boolean => {
+	if (typeof window === "undefined") {
+		return false;
+	}
+	try {
+		return sessionStorage.getItem(TOUR_TEAM_HAS_MEMBERS_SESSION_KEY) === "1";
+	} catch {
+		return false;
+	}
+};
+
 /**
  * Senza team in elenco (nessuna chiave in sessionStorage) tutti gli step che richiedono
  * `requiresSessionKey` vengono omessi: niente spotlight su `#tour-team-first-card` né
  * `nextRoute` verso `/team/:id`. Lo step con `omitIfSessionKey` resta per portare il tour
  * principale verso `/statistiche` o per chiudere il topic senza URL inventati.
+ * Chiave `TOUR_TEAM_HAS_MEMBERS_SESSION_KEY`: solo se il dettaglio team ha membri nell’organigramma.
  */
 const filterSessionPresence = (steps: IcaruTourStep[]): IcaruTourStep[] => {
 	const hasFirstTeam = readHasFirstTeamInSession();
+	const hasOrgMembers = readHasOrgMembersInSession();
 	return steps.filter((s) => {
 		if (s.requiresSessionKey === TOUR_FIRST_TEAM_SESSION_KEY && !hasFirstTeam) {
+			return false;
+		}
+		if (
+			s.requiresSessionKey === TOUR_TEAM_HAS_MEMBERS_SESSION_KEY &&
+			!hasOrgMembers
+		) {
 			return false;
 		}
 		if (s.omitIfSessionKey === TOUR_FIRST_TEAM_SESSION_KEY && hasFirstTeam) {

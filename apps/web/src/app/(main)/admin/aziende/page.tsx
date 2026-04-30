@@ -25,7 +25,7 @@ export default function AdminAziendePage() {
 		}
 	}, [auth?.isLoaded, auth?.user, auth?.role, router]);
 
-	if (!mounted || !auth?.isLoaded) return <Loader />;
+	if (!(mounted && auth?.isLoaded)) return <Loader />;
 	if (!auth?.user || auth?.role !== "admin") return null;
 
 	return <AdminCompaniesTable />;

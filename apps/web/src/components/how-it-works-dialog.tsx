@@ -49,35 +49,40 @@ export function HowItWorksDialog({
 		{
 			tourName: MAIN_TOUR_NAME,
 			title: "Panoramica completa",
-			description: "Un giro generale tra dashboard, clienti, trattative, team e statistiche.",
+			description:
+				"Un giro generale tra dashboard, clienti, trattative, team e statistiche.",
 			icon: LayoutDashboard,
 			available: true,
 		},
 		{
 			tourName: CLIENTS_TOUR_NAME,
 			title: "Clienti",
-			description: "Come cercare, aggiungere, modificare clienti e creare trattative collegate.",
+			description:
+				"Come cercare, aggiungere, modificare clienti e creare trattative collegate.",
 			icon: Users,
 			available: canSeeCommercialTopics,
 		},
 		{
 			tourName: NEGOTIATIONS_TOUR_NAME,
 			title: "Trattative",
-			description: "Come usare filtri, creare una trattativa e modificarne stato, importo e allegati.",
+			description:
+				"Come usare filtri, creare una trattativa e modificarne stato, importo e allegati.",
 			icon: Signature,
 			available: canSeeCommercialTopics,
 		},
 		{
 			tourName: TEAM_TOUR_NAME,
 			title: "Team",
-			description: "Come leggere e usare la sezione team in base ai tuoi permessi.",
+			description:
+				"Come leggere e usare la sezione team in base ai tuoi permessi.",
 			icon: Users,
 			available: canSeeTeam,
 		},
 		{
 			tourName: STATS_TOUR_NAME,
 			title: "Statistiche",
-			description: "Come interpretare mappa, grafici mensili e distribuzione SPANCO.",
+			description:
+				"Come interpretare mappa, grafici mensili e distribuzione SPANCO.",
 			icon: BarChart3,
 			available: canSeeStats,
 		},
@@ -119,7 +124,7 @@ export function HowItWorksDialog({
 								: "data-closed:fade-out-0 data-closed:zoom-out-95 data-open:fade-in-0 data-open:zoom-in-95 max-h-[85vh] max-w-2xl rounded-3xl"
 						)}
 					>
-						<div className="flex shrink-0 flex-col gap-3 border-border border-b px-6 pt-4 pb-4">
+						<div className="flex shrink-0 flex-col gap-3 px-6 pt-4 pb-0">
 							{isMobile ? (
 								<div
 									aria-hidden

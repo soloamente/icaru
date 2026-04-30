@@ -26,6 +26,10 @@ import type {
 	NegotiationsStatistics,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+	TOUR_TEAM_HAS_MEMBERS_SESSION_KEY,
+	TOUR_TEAMS_UPDATED_EVENT,
+} from "@/lib/onborda/tour-storage";
 import { GREEN_STATUS_PILL_LIGHT_CLASSES } from "@/lib/pill-surface-classes";
 import { registerUnsavedNavigationListener } from "@/lib/unsaved-navigation";
 import { cn } from "@/lib/utils";
@@ -58,10 +62,10 @@ const FIELD_CONTAINER_CLASSES =
 
 /**
  * Riga read-only: stesso stack mobile / riga desktop delle pill editabili, con fill
- * più soft (`--table-header-readonly`) come sulle altre pagine dettaglio.
+ * più soft (`--table-header-readonly`) come sulle altre pagine dettaglio (senza ring).
  */
 const FIELD_CONTAINER_READ_ONLY_CLASSES =
-	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header-readonly px-3.75 py-4.25 leading-none ring-1 ring-border/30 md:flex-row md:items-center md:justify-between";
+	"flex flex-col items-stretch gap-2 rounded-2xl bg-table-header-readonly px-3.75 py-4.25 leading-none md:flex-row md:items-center md:justify-between";
 
 /** Field label text — consistent with other update forms. */
 const FIELD_LABEL_TEXT_CLASSES =
@@ -783,6 +787,12 @@ function OrgChartSection({
 }: OrgChartSectionProps) {
 	const router = useRouter();
 	const { token, user } = useAuth();
+	/** Conteggio membri: `users` può essere [] mentre `users_count` è valorizzato (API). */
+	const memberRowsCount = Math.max(
+		team.users?.length ?? 0,
+		team.users_count ?? 0
+	);
+
 	const [isAddOpen, setIsAddOpen] = useState(false);
 	const [addingMemberId, setAddingMemberId] = useState<number | null>(null);
 	const [removingUserId, setRemovingUserId] = useState<number | null>(null);
@@ -799,6 +809,52 @@ function OrgChartSection({
 		null
 	);
 	const addDropdownRef = useRef<HTMLDivElement>(null);
+
+	// Tour Onborda: step «Dettagli venditore» — aggiorna sessionStorage e forza il ricalcolo degli step.
+	// Doppio requestAnimationFrame: dopo il commit così esiste `#tour-team-member-detail-seller` sul primo membro.
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		let cancelled = false;
+		let raf1 = 0;
+		let raf2 = 0;
+
+		const applyTourFlag = (): void => {
+			if (cancelled) {
+				return;
+			}
+			const hasTourTarget =
+				document.getElementById("tour-team-member-detail-seller") !== null;
+			const showMemberStep = hasTourTarget || memberRowsCount > 0;
+			try {
+				if (showMemberStep) {
+					sessionStorage.setItem(TOUR_TEAM_HAS_MEMBERS_SESSION_KEY, "1");
+				} else {
+					sessionStorage.removeItem(TOUR_TEAM_HAS_MEMBERS_SESSION_KEY);
+				}
+				window.dispatchEvent(new Event(TOUR_TEAMS_UPDATED_EVENT));
+			} catch {
+				// session non disponibile
+			}
+		};
+
+		raf1 = window.requestAnimationFrame(() => {
+			raf2 = window.requestAnimationFrame(applyTourFlag);
+		});
+
+		return () => {
+			cancelled = true;
+			window.cancelAnimationFrame(raf1);
+			window.cancelAnimationFrame(raf2);
+			try {
+				sessionStorage.removeItem(TOUR_TEAM_HAS_MEMBERS_SESSION_KEY);
+				window.dispatchEvent(new Event(TOUR_TEAMS_UPDATED_EVENT));
+			} catch {
+				// ignore
+			}
+		};
+	}, [memberRowsCount]);
 
 	// Close add-member dropdown on click outside
 	useEffect(() => {
@@ -1003,10 +1059,15 @@ function OrgChartSection({
 									<div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-muted-foreground/20" />
 								)}
 
-								{members.map((member) => (
+								{members.map((member, memberIndex) => (
 									<div className="flex flex-col items-center" key={member.id}>
 										<div className="h-5 w-px bg-muted-foreground/20" />
 										<MemberNode
+											detailButtonTourId={
+												memberIndex === 0
+													? "tour-team-member-detail-seller"
+													: undefined
+											}
 											isDirector={isDirector}
 											isRemoving={removingUserId === member.id}
 											member={member}
@@ -1147,6 +1208,8 @@ interface MemberNodeProps {
 	isDirector: boolean;
 	isRemoving: boolean;
 	onRemove: () => void;
+	/** Opzionale: id DOM per Onborda (solo prima scheda → `#tour-team-member-detail-seller`). */
+	detailButtonTourId?: string;
 	/** Open the supervision page for this member (stats + SPANCO + mappa + trattative). */
 	onOpenDetails: () => void;
 }
@@ -1158,6 +1221,7 @@ function MemberNode({
 	isRemoving,
 	onRemove,
 	onOpenDetails,
+	detailButtonTourId,
 }: MemberNodeProps) {
 	const fullName = `${member.nome} ${member.cognome}`;
 
@@ -1184,6 +1248,7 @@ function MemberNode({
 			<button
 				aria-label={`Visualizza i dettagli delle trattative di ${fullName}`}
 				className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 pr-1.5 font-medium text-foreground text-xs transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+				id={detailButtonTourId}
 				onClick={onOpenDetails}
 				type="button"
 			>

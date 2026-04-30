@@ -394,6 +394,7 @@ export function TeamDetailMonthlySection({
 							TRATTATIVE_HEADER_FILTER_BG,
 							TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
 						)}
+						id="tour-team-detail-monthly-seller-filter"
 					>
 						<span className="font-medium text-muted-foreground text-sm">
 							Venditore
@@ -465,6 +466,7 @@ export function TeamDetailMonthlySection({
 							TRATTATIVE_HEADER_FILTER_BG,
 							TRATTATIVE_HEADER_FILTER_BG_POPUP_OPEN
 						)}
+						id="tour-team-detail-monthly-year-filter"
 					>
 						<span className="font-medium text-muted-foreground text-sm">
 							Anno

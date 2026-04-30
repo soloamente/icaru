@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Users, UserCheck, UserX } from "lucide-react";
+import { Building2, UserCheck, Users, UserX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Loader from "@/components/loader";
@@ -27,14 +27,21 @@ function StatCard({
 	return (
 		<div className="flex flex-col gap-3 rounded-2xl bg-table-header px-3.75 py-4.25">
 			<div className="flex items-center justify-between">
-				<span className="text-xs font-semibold uppercase tracking-wider text-stats-title">
+				<span className="font-semibold text-stats-title text-xs uppercase tracking-wider">
 					{label}
 				</span>
-				<div className={cn("flex size-8 items-center justify-center rounded-xl", iconBg)}>
+				<div
+					className={cn(
+						"flex size-8 items-center justify-center rounded-xl",
+						iconBg
+					)}
+				>
 					<Icon className={cn("size-4", iconColor)} />
 				</div>
 			</div>
-			<span className={cn("font-bold text-3xl tabular-nums", valueClass)}>{value}</span>
+			<span className={cn("font-bold text-3xl tabular-nums", valueClass)}>
+				{value}
+			</span>
 		</div>
 	);
 }
@@ -72,7 +79,7 @@ export default function AdminDashboardPage() {
 		);
 	}, [auth?.token, auth?.role]);
 
-	if (!mounted || !auth?.isLoaded) return <Loader />;
+	if (!(mounted && auth?.isLoaded)) return <Loader />;
 	if (!auth?.user || auth?.role !== "admin") return null;
 
 	const activeUsers = users.filter((u) => !u.sospeso).length;
@@ -137,15 +144,15 @@ export default function AdminDashboardPage() {
 
 							{/* Role breakdown */}
 							<div className="rounded-2xl bg-table-header px-3.75 py-4.25">
-								<h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-stats-title">
+								<h2 className="mb-4 font-semibold text-stats-title text-xs uppercase tracking-wider">
 									Utenti per ruolo
 								</h2>
 								<div className="flex flex-col gap-3.5">
 									{Object.entries(byRole).map(([role, count]) => (
-										<div key={role} className="flex flex-col gap-1.5">
+										<div className="flex flex-col gap-1.5" key={role}>
 											<div className="flex items-center justify-between">
-												<span className="text-sm font-medium">{role}</span>
-												<span className="tabular-nums text-sm font-semibold">
+												<span className="font-medium text-sm">{role}</span>
+												<span className="font-semibold text-sm tabular-nums">
 													{count}
 												</span>
 											</div>

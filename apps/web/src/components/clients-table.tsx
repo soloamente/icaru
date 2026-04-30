@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { Tooltip } from "@base-ui/react/tooltip";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimateNumber } from "motion-plus/react";
@@ -549,7 +549,10 @@ export default function ClientsTable() {
 				>
 					{/* Base UI Tooltip.Provider: shared delay + portal popups so pills are not clipped by scroll-fade-y. */}
 					<Tooltip.Provider closeDelay={100} delay={0}>
-						<div ref={scrollRef} className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll">
+						<div
+							className="flex h-full min-h-0 flex-1 flex-col overflow-y-scroll"
+							ref={scrollRef}
+						>
 							{/* Wrapper defines full table width so header and rows share same column widths; header background spans full width when scrolling. */}
 							<div className="flex min-w-max flex-col">
 								{/* Header: sticky for vertical scroll, scrolls with horizontal; bg spans wrapper width. */}
@@ -561,9 +564,7 @@ export default function ClientsTable() {
 										<div>Telefono</div>
 										<div>Tipologia</div>
 										<div>Sede</div>
-										<div id="tour-clienti-negotiation-column">
-											Trattativa
-										</div>
+										<div id="tour-clienti-negotiation-column">Trattativa</div>
 									</div>
 								</div>
 								{/* Scroll-fade applicato solo al blocco dei contenuti (vuoto / error / righe). */}
@@ -658,7 +659,10 @@ export default function ClientsTable() {
 															className="w-full cursor-pointer border-checkbox-border/70 border-b bg-transparent px-3 py-5 font-medium hover:bg-table-hover"
 															onClick={() => handleOpenClientDetail(c.id)}
 															onKeyDown={(event) => {
-																if (event.key === "Enter" || event.key === " ") {
+																if (
+																	event.key === "Enter" ||
+																	event.key === " "
+																) {
 																	event.preventDefault();
 																	handleOpenClientDetail(c.id);
 																}
@@ -666,196 +670,202 @@ export default function ClientsTable() {
 															role="button"
 															tabIndex={0}
 														>
-													<div className="clients-table-grid grid items-center gap-4 text-base">
-														<div className="truncate">
-															<span className="w-full truncate text-left">
-																{getClientDisplay(c)}
-															</span>
-														</div>
-														<div className="truncate">
-															{c.email ? (
-																c.email
-															) : (
-																<span className="text-stats-title">—</span>
-															)}
-														</div>
-														<div className="truncate tabular-nums">
-															{c.p_iva ? (
-																c.p_iva
-															) : (
-																<span className="text-stats-title">—</span>
-															)}
-														</div>
-														<div className="truncate tabular-nums">
-															{c.telefono ? (
-																c.telefono
-															) : (
-																<span className="text-stats-title">—</span>
-															)}
-														</div>
-														<div className="truncate">
-															{c.tipologia ? (
-																c.tipologia
-															) : (
-																<span className="text-stats-title">—</span>
-															)}
-														</div>
-														<div
-															className="flex min-w-0 items-center gap-2"
-															title={formatAddress(c.address) || undefined}
-														>
-															<span className="min-w-0 truncate">
-																{formatAddress(c.address) || (
-																	<span className="text-stats-title">—</span>
-																)}
-															</span>
-															{/* Geocoding failed: show warning pill so user knows client won't appear on map.
-															    Tooltip uses portal (TooltipProvider) so it is not clipped by scroll-fade-y mask
-															    when hovering the last rows in the list. */}
-															{c.address?.geocoding_failed && (
-																<Tooltip.Root>
-																	<Tooltip.Trigger
-																		delay={0}
-																		render={(props) => (
-																			<span
-																				{...props}
-																				aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
-																				className={cn(
-																					"inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text",
-																					props.className
-																				)}
-																				role="img"
-																			>
-																				<IconEarthAlertFill18 size="18px" />
+															<div className="clients-table-grid grid items-center gap-4 text-base">
+																<div className="truncate">
+																	<span className="w-full truncate text-left">
+																		{getClientDisplay(c)}
+																	</span>
+																</div>
+																<div className="truncate">
+																	{c.email ? (
+																		c.email
+																	) : (
+																		<span className="text-stats-title">—</span>
+																	)}
+																</div>
+																<div className="truncate tabular-nums">
+																	{c.p_iva ? (
+																		c.p_iva
+																	) : (
+																		<span className="text-stats-title">—</span>
+																	)}
+																</div>
+																<div className="truncate tabular-nums">
+																	{c.telefono ? (
+																		c.telefono
+																	) : (
+																		<span className="text-stats-title">—</span>
+																	)}
+																</div>
+																<div className="truncate">
+																	{c.tipologia ? (
+																		c.tipologia
+																	) : (
+																		<span className="text-stats-title">—</span>
+																	)}
+																</div>
+																<div
+																	className="flex min-w-0 items-center gap-2"
+																	title={formatAddress(c.address) || undefined}
+																>
+																	<span className="min-w-0 truncate">
+																		{formatAddress(c.address) || (
+																			<span className="text-stats-title">
+																				—
 																			</span>
 																		)}
-																	/>
-																	<Tooltip.Portal>
-																		<Tooltip.Positioner
-																			align="center"
-																			className="z-100"
-																			side="bottom"
-																			sideOffset={20}
-																		>
-																			<Tooltip.Popup
-																				aria-live="polite"
-																				className="relative flex w-[350px] flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset"
-																			>
-																				{/* "Attenzione" pill overlapping the top edge. */}
-																				<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
-																					<IconTriangleWarningFill18 size="14px" />
-																					Attenzione
-																				</span>
-																				{/* Content: icon + text, horizontal layout. */}
-																				<div className="flex items-center gap-3">
-																					<IconFrame69 size="40px" />
-
-																					<span className="min-w-0 flex-1 leading-none">
-																						<span className="text-geocoding-title text-md leading-none">
-																							Indirizzo errato o incompleto
-																						</span>
-																						<span className="mt-1 block text-balance font-normal text-geocoding-desc text-xs leading-none">
-																							Il cliente non verrà visualizzato
-																							sulla mappa.
-																						</span>
+																	</span>
+																	{/* Geocoding failed: show warning pill so user knows client won't appear on map.
+															    Tooltip uses portal (TooltipProvider) so it is not clipped by scroll-fade-y mask
+															    when hovering the last rows in the list. */}
+																	{c.address?.geocoding_failed && (
+																		<Tooltip.Root>
+																			<Tooltip.Trigger
+																				delay={0}
+																				render={(props) => (
+																					<span
+																						{...props}
+																						aria-label="Indirizzo errato / incompleto, il cliente non verrà visualizzato sulla mappa"
+																						className={cn(
+																							"inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-geocoding-trigger-bg px-2 py-1 text-geocoding-trigger-text",
+																							props.className
+																						)}
+																						role="img"
+																					>
+																						<IconEarthAlertFill18 size="18px" />
 																					</span>
-																				</div>
-																			</Tooltip.Popup>
-																		</Tooltip.Positioner>
-																	</Tooltip.Portal>
-																</Tooltip.Root>
-															)}
-														</div>
-														<div
-															className="flex items-center justify-start"
-															id={
-																virtualItem.index === 0
-																	? "tour-clienti-row-negotiation-action"
-																	: undefined
-															}
-														>
-															{hasNoNegotiations ? (
-																<button
-																	// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
-																	// invece di navigare a /trattative/aperte.
-																	// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-																	// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base); superfici da pill-surface-classes.
-																	// whitespace-nowrap keeps pill label on one line (especially with text size preference "grande").
-																	className={cn(
-																		"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
-																		SKY_CTA_PILL_LIGHT_CLASSES
-																	)}
-																	onClick={(event) => {
-																		event.stopPropagation();
-																		setClientIdForNewNegotiation(c.id);
-																	}}
-																	type="button"
-																>
-																	{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
-																	<IconCirclePlusFilled aria-hidden size={18} />
-																	<span>Aggiungi</span>
-																</button>
-															) : (
-																// Pill "Ha trattativa": Base UI tooltip + portal (not clipped by scroll-fade-y).
-																<Tooltip.Root>
-																	<Tooltip.Trigger
-																		delay={0}
-																		render={(props) => (
-																			<button
-																				{...props}
-																				// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
-																				// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
-																				// così che "Ha trattativa" appaia come uno stato concluso coerente.
-																				className={cn(
-																					"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
-																					GREEN_CTA_PILL_LIGHT_CLASSES,
-																					props.className
 																				)}
-																				onClick={(event) => {
-																					props.onClick?.(event);
-																					// Blocchiamo la propagazione: la riga non deve aprire il dettaglio cliente.
-																					event.stopPropagation();
-																					handleOpenClientNegotiation(c.id);
-																				}}
-																				title="Clicca per visualizzare la trattativa"
-																				type="button"
-																			>
-																				{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
-																				<IconEyeFill12 />
-																				{/* On mobile show short label to save space; full label on sm+. */}
-																				<span className="sm:hidden">
-																					Mostra
-																				</span>
-																				<span className="hidden sm:inline">
-																					Mostra trattativa
-																				</span>
-																			</button>
-																		)}
-																	/>
-																	<Tooltip.Portal>
-																		<Tooltip.Positioner
-																			align="center"
-																			className="z-100"
-																			side="top"
-																			sideOffset={6}
+																			/>
+																			<Tooltip.Portal>
+																				<Tooltip.Positioner
+																					align="center"
+																					className="z-100"
+																					side="bottom"
+																					sideOffset={20}
+																				>
+																					<Tooltip.Popup
+																						aria-live="polite"
+																						className="relative flex w-[350px] flex-col rounded-3xl bg-geocoding-tooltip-bg px-3.5 py-3.5 text-left shadow-lg ring-1 ring-geocoding-tooltip-ring/80 ring-inset"
+																					>
+																						{/* "Attenzione" pill overlapping the top edge. */}
+																						<span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-geocoding-attention-bg px-2 py-1 text-geocoding-attention-text text-xs">
+																							<IconTriangleWarningFill18 size="14px" />
+																							Attenzione
+																						</span>
+																						{/* Content: icon + text, horizontal layout. */}
+																						<div className="flex items-center gap-3">
+																							<IconFrame69 size="40px" />
+
+																							<span className="min-w-0 flex-1 leading-none">
+																								<span className="text-geocoding-title text-md leading-none">
+																									Indirizzo errato o incompleto
+																								</span>
+																								<span className="mt-1 block text-balance font-normal text-geocoding-desc text-xs leading-none">
+																									Il cliente non verrà
+																									visualizzato sulla mappa.
+																								</span>
+																							</span>
+																						</div>
+																					</Tooltip.Popup>
+																				</Tooltip.Positioner>
+																			</Tooltip.Portal>
+																		</Tooltip.Root>
+																	)}
+																</div>
+																<div
+																	className="flex items-center justify-start"
+																	id={
+																		virtualItem.index === 0
+																			? "tour-clienti-row-negotiation-action"
+																			: undefined
+																	}
+																>
+																	{hasNoNegotiations ? (
+																		<button
+																			// CTA: apri il dialog "Nuova trattativa" qui con il cliente già selezionato
+																			// invece di navigare a /trattative/aperte.
+																			// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+																			// (py-1.25, pr-3, pl-2.5, gap-2, font-medium, text-base); superfici da pill-surface-classes.
+																			// whitespace-nowrap keeps pill label on one line (especially with text size preference "grande").
+																			className={cn(
+																				"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+																				SKY_CTA_PILL_LIGHT_CLASSES
+																			)}
+																			onClick={(event) => {
+																				event.stopPropagation();
+																				setClientIdForNewNegotiation(c.id);
+																			}}
+																			type="button"
 																		>
-																			<Tooltip.Popup
-																				aria-live="polite"
-																				className="rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs"
-																			>
-																				Clicca per visualizzare la trattativa
-																			</Tooltip.Popup>
-																		</Tooltip.Positioner>
-																	</Tooltip.Portal>
-																</Tooltip.Root>
-															)}
+																			{/* Same plus icon as header "Aggiungi" and as trattative table (IconCirclePlusFilled). */}
+																			<IconCirclePlusFilled
+																				aria-hidden
+																				size={18}
+																			/>
+																			<span>Aggiungi</span>
+																		</button>
+																	) : (
+																		// Pill "Ha trattativa": Base UI tooltip + portal (not clipped by scroll-fade-y).
+																		<Tooltip.Root>
+																			<Tooltip.Trigger
+																				delay={0}
+																				render={(props) => (
+																					<button
+																						{...props}
+																						// Usa il verde delle pill "Conclusa" per indicare visivamente che esiste già almeno una trattativa collegata.
+																						// Padding, gap e tipografia allineati alle pill di stato della tabella trattative
+																						// così che "Ha trattativa" appaia come uno stato concluso coerente.
+																						className={cn(
+																							"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full py-1.25 pr-3 pl-2.5 font-medium text-base",
+																							GREEN_CTA_PILL_LIGHT_CLASSES,
+																							props.className
+																						)}
+																						onClick={(event) => {
+																							props.onClick?.(event);
+																							// Blocchiamo la propagazione: la riga non deve aprire il dettaglio cliente.
+																							event.stopPropagation();
+																							handleOpenClientNegotiation(c.id);
+																						}}
+																						title="Clicca per visualizzare la trattativa"
+																						type="button"
+																					>
+																						{/* Small "eye" icon to indicate that at least one trattativa can be viewed for this client. */}
+																						<IconEyeFill12 />
+																						{/* On mobile show short label to save space; full label on sm+. */}
+																						<span className="sm:hidden">
+																							Mostra
+																						</span>
+																						<span className="hidden sm:inline">
+																							Mostra trattativa
+																						</span>
+																					</button>
+																				)}
+																			/>
+																			<Tooltip.Portal>
+																				<Tooltip.Positioner
+																					align="center"
+																					className="z-100"
+																					side="top"
+																					sideOffset={6}
+																				>
+																					<Tooltip.Popup
+																						aria-live="polite"
+																						className="rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs"
+																					>
+																						Clicca per visualizzare la
+																						trattativa
+																					</Tooltip.Popup>
+																				</Tooltip.Positioner>
+																			</Tooltip.Portal>
+																		</Tooltip.Root>
+																	)}
+																</div>
+															</div>
 														</div>
 													</div>
-												</div>
-											</div>
-											);
-										})}
-									</div>
+												);
+											})}
+										</div>
 									)}
 								</div>
 							</div>

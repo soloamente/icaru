@@ -163,10 +163,7 @@ const getSpotlightStyle = (
 	const pointerPadding = step.pointerPadding ?? 30;
 	const pointerPadOffset = pointerPadding / 2;
 	const pointerRadius = step.pointerRadius ?? 28;
-	const left = Math.max(
-		VIEWPORT_MARGIN_PX,
-		targetRect.left - pointerPadOffset
-	);
+	const left = Math.max(VIEWPORT_MARGIN_PX, targetRect.left - pointerPadOffset);
 	const top = Math.max(VIEWPORT_MARGIN_PX, targetRect.top - pointerPadOffset);
 	const right = Math.min(
 		window.innerWidth - VIEWPORT_MARGIN_PX,
@@ -313,7 +310,11 @@ export function OnbordaTourCard({
 		);
 
 		setCardStyle({
-			left: clamp(left, VIEWPORT_MARGIN_PX, Math.max(VIEWPORT_MARGIN_PX, maxLeft)),
+			left: clamp(
+				left,
+				VIEWPORT_MARGIN_PX,
+				Math.max(VIEWPORT_MARGIN_PX, maxLeft)
+			),
 			top: clamp(top, VIEWPORT_MARGIN_PX, Math.max(VIEWPORT_MARGIN_PX, maxTop)),
 		});
 	}, [step?.selector, step?.side]);

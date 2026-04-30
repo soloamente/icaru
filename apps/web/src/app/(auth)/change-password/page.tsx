@@ -4,9 +4,9 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Spinner } from "@/components/ui/spinner";
 import { changePassword } from "@/lib/api/client";
 import { useAuth, useAuthOptional } from "@/lib/auth/auth-context";
-import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Forced first-login password change page.
@@ -42,7 +42,7 @@ export default function ChangePasswordPage() {
 		}
 	}, [auth?.isLoaded, auth?.user, mustChange, router]);
 
-	if (!auth?.isLoaded || !auth.user || !mustChange) return null;
+	if (!(auth?.isLoaded && auth.user && mustChange)) return null;
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -127,7 +127,8 @@ export default function ChangePasswordPage() {
 							Cambia password
 						</h1>
 						<p className="font-normal text-muted-foreground text-sm">
-							Per continuare devi impostare una nuova password per il tuo account.
+							Per continuare devi impostare una nuova password per il tuo
+							account.
 						</p>
 					</motion.header>
 
@@ -202,7 +203,12 @@ export default function ChangePasswordPage() {
 
 						<motion.button
 							className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-primary px-4 py-2.75 font-medium text-primary-foreground transition-opacity duration-300 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-							disabled={submitting || !currentPassword || !newPassword || !confirmPassword}
+							disabled={
+								submitting ||
+								!currentPassword ||
+								!newPassword ||
+								!confirmPassword
+							}
 							style={{ willChange: "transform" }}
 							transition={{ duration: 0.2 }}
 							type="submit"

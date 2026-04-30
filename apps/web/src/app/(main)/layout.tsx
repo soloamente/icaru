@@ -9,7 +9,11 @@ import { useAuthOptional } from "@/lib/auth/auth-context";
  * If the user has primo_accesso = true (first login), redirect to /change-password
  * and block access to all app pages until the password is changed.
  */
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
 	const auth = useAuthOptional();
 	const router = useRouter();
 

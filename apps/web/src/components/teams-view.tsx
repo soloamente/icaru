@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import { AnimateNumber } from "motion-plus/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { listMyTeams, listTeams } from "@/lib/api/client";
 import type { ApiTeam, ApiTeamMinimal } from "@/lib/api/types";
@@ -71,20 +71,29 @@ export function TeamsView() {
 	}, [fetchTeams]);
 
 	// Aggiorna sessionStorage usato dal tour per `nextRoute` verso `/team/:id` (primo team in elenco direttore).
-	useEffect(() => {
+	// useLayoutEffect: deve completarsi prima del paint con `data-tour-director-teams-ready="ready"`, altrimenti
+	// il loop RAF in Onborda può avviare il tour con sessione ancora vuota.
+	useLayoutEffect(() => {
 		if (typeof window === "undefined") {
 			return;
 		}
 		try {
-			if (isDirector && !loading) {
-				if (teams.length > 0) {
-					sessionStorage.setItem(
-						TOUR_FIRST_TEAM_SESSION_KEY,
-						String(teams[0].id)
-					);
-				} else {
-					sessionStorage.removeItem(TOUR_FIRST_TEAM_SESSION_KEY);
-				}
+			if (!isDirector) {
+				sessionStorage.removeItem(TOUR_FIRST_TEAM_SESSION_KEY);
+				window.dispatchEvent(new Event(TOUR_TEAMS_UPDATED_EVENT));
+				return;
+			}
+			// Durante il fetch non toccare la chiave: con `loading === true` il vecchio ramo `else` la rimuoveva
+			// sempre, così `prepareTourStepsForRuntime` vedeva `hasFirstTeam === false` e il tour topic Team
+			// restava a 3 passaggi senza navigazione al dettaglio (`requiresSessionKey` veniva filtrato).
+			if (loading) {
+				return;
+			}
+			if (teams.length > 0) {
+				sessionStorage.setItem(
+					TOUR_FIRST_TEAM_SESSION_KEY,
+					String(teams[0].id)
+				);
 			} else {
 				sessionStorage.removeItem(TOUR_FIRST_TEAM_SESSION_KEY);
 			}
@@ -282,6 +291,8 @@ export function TeamsView() {
 				"flex flex-1 flex-col gap-2.5 overflow-hidden rounded-3xl bg-card pt-6 font-medium sm:m-2.5",
 				isMobile ? "m-2 overflow-y-scroll px-4" : "m-3 overflow-y-hidden px-9"
 			)}
+			// Segnale per Onborda: avvia il tour topic Team solo dopo il fetch così sessionStorage e gli step filtrati sono allineati.
+			data-tour-director-teams-ready={loading ? "pending" : "ready"}
 			id="tour-team-shell"
 		>
 			{/* Header: same as clienti — on mobile stack/center title; on sm+ title left, actions right */}

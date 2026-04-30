@@ -316,7 +316,14 @@ export function ImportClientsDialog({
 		setImportedCount(result.data.imported_count);
 		setImportErrors(result.data.errors ?? []);
 		setStep("result");
-	}, [token, analysis, unmatchedMapping, fileToken, fileExtension, targetUserId]);
+	}, [
+		token,
+		analysis,
+		unmatchedMapping,
+		fileToken,
+		fileExtension,
+		targetUserId,
+	]);
 
 	const handleCloseAfterResult = useCallback(() => {
 		onSuccess?.();

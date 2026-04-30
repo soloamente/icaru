@@ -20,7 +20,9 @@ export const dispatchRedoTour = (): void => {
 	dispatchTourEvent(ONBORDA_TOUR_REDO_EVENT);
 };
 
-export const dispatchStartTour = (tourName: TourName = MAIN_TOUR_NAME): void => {
+export const dispatchStartTour = (
+	tourName: TourName = MAIN_TOUR_NAME
+): void => {
 	if (typeof window === "undefined") {
 		return;
 	}
