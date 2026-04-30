@@ -64,7 +64,9 @@ const sharedSteps: IcaruTourStep[] = [
 			"Qui trovi una panoramica rapida del lavoro e delle attività principali.",
 		selector: "#tour-dashboard-header",
 		side: "bottom",
-		nextRoute: "/dashboard",
+		// No nextRoute: Onborda waits for the *next* step's selector via MutationObserver
+		// after router.push. `#tour-sidebar-navigation` is already in the DOM on /dashboard,
+		// so no mutation fires and the tour never advances — see onborda Onborda.tsx nextStep.
 	}),
 	baseStep({
 		title: "Navigazione",

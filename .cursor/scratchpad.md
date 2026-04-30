@@ -395,6 +395,7 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 - Nei grafici mobile a colonne con etichetta valore assoluta sopra la barra, evitare `overflow-y-hidden` sul contenitore scrollabile orizzontale (`ul`): causa clipping del testo in alto sulle colonne più alte.
 - Per prompt/modali che possono aprirsi immediatamente dopo hydration (es. first-run tour), evitare librerie dialog che applicano `inert`/`aria-hidden` al resto dell'app prima che lo shell sia completamente idratato; preferire un overlay custom non mutante o ritardare esplicitamente l'apertura.
 - Nei tour Onborda, evitare come selector step elementi shell alti quanto la viewport quando la card è posizionata `top`/`bottom`: la card viene ancorata fuori dallo schermo. Usare target più piccoli e stabili (header, card grid, nav) per mantenere visibili highlight e card.
+- **Onborda `nextRoute` (v1.2.5):** dopo `router.push`, la libreria avanza allo step successivo solo quando un `MutationObserver` vede comparire `document.querySelector(nextStep.selector)`. Se il target **è già nel DOM** (stessa route, nessun re-mount), l’observer non scatta e il tour **non avanza**. Non usare `nextRoute` verso la pagina corrente quando il prossimo selettore esiste già; per la Panoramica completa è stato rimosso `nextRoute: "/dashboard"` dal primo step.
 
 ---
 
