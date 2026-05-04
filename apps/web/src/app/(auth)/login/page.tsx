@@ -22,8 +22,8 @@ const BACKGROUND_ITEMS = [
 const BACKGROUND_INTERVAL_MS = 5000;
 
 /**
- * Login page: full-bleed background, logo top-left, right panel with form.
- * Background cycles through images from public/images at full brightness.
+ * Login page: full-bleed background (carousel immagini in public/images). Loghi su mobile centrati
+ * in alto (`left-1/2 -translate-x-1/2`); da md in alto a sinistra. Pannello form a destra su md.
  * If already logged in, redirects to home.
  */
 export default function LoginPage() {
@@ -77,20 +77,28 @@ export default function LoginPage() {
 					);
 				})}
 			</div>
-			{/* Logo / brand at top left. isolate prevents background crossfade from affecting compositing on mobile. */}
+			{/* Loghi: mobile centrati in orizzontale (translate); desktop alto-sinistra. */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
-				className="absolute top-6 left-6 isolate z-10"
+				className="absolute isolate flex max-w-[calc(100vw-3rem)] flex-wrap items-center gap-4 max-md:pointer-events-none max-md:top-14 max-md:right-auto max-md:left-1/2 max-md:z-30 max-md:-translate-x-1/2 max-md:justify-center md:pointer-events-auto md:top-6 md:right-auto md:left-6 md:z-10 md:translate-x-0 md:justify-start md:gap-6"
 				initial={{ opacity: 0, y: -10 }}
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
 				<Image
 					alt="Logo Tracta Business"
-					className="h-16 w-auto object-contain md:h-20"
+					className="h-16 w-auto shrink-0 object-contain md:h-20"
 					height={160}
 					priority
 					src="/images/Logo_Tracta.png"
 					width={480}
+				/>
+				<Image
+					alt="Logo DataWeb Group"
+					className="h-16 w-auto shrink-0 object-contain md:h-20"
+					height={160}
+					priority
+					src="/images/logo_positivo.png"
+					width={300}
 				/>
 			</motion.div>
 
