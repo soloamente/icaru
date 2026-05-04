@@ -576,6 +576,18 @@ html:not(.dark)[data-color-scheme="rich"] {
 	--popover-foreground: var(--card-foreground);
 	--input: oklch(0.94 0.02 250);
 	--table-hover: oklch(0.92 0.03 250);
+	/* Canvas principale: stacca dal blu medio del logo (meno saturazione, L leggermente più alto). */
+	--background: oklch(0.52 0.104 255.2);
+	/* Sidebar / barra nav: azzurro-grigio leggibile (non “bianco gesso”); armonizzato col --background sopra. */
+	--sidebar: oklch(0.885 0.032 252);
+	--sidebar-accent: oklch(0.825 0.038 253);
+	--sidebar-border: oklch(0.765 0.034 252);
+	--sidebar-ring: oklch(0.52 0.12 258);
+	--sidebar-foreground: oklch(0.22 0.038 258);
+	--sidebar-primary: oklch(0.34 0.14 258);
+	--sidebar-primary-foreground: oklch(0.99 0.006 250);
+	--sidebar-secondary: oklch(0.42 0.042 260);
+	--sidebar-accent-foreground: oklch(0.22 0.038 258);
 }
 
 /* Dataweb dark: table-hover slightly lighter than table-header so row hover is visible on dark surfaces. */

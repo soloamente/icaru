@@ -5,17 +5,21 @@ export const TEAM_TOUR_NAME = "team" as const;
 export const STATS_TOUR_NAME = "statistiche" as const;
 export const MAIN_TOUR_VERSION = "2026-04-29" as const;
 
-/** sessionStorage: id numerico del primo team (lista direttore) per aprire il dettaglio nel tour */
-export const TOUR_FIRST_TEAM_SESSION_KEY = "icaru-tour:first-team-id" as const;
+/**
+ * sessionStorage: id numerico del primo team (lista direttore) per aprire il dettaglio nel tour.
+ * Chiave con prefisso `tractab-tour` per allineamento al brand Tracta B.
+ */
+export const TOUR_FIRST_TEAM_SESSION_KEY =
+	"tractab-tour:first-team-id" as const;
 
 /**
  * sessionStorage: sul dettaglio team ci sono membri nell’organigramma → step tour su «Dettagli venditore».
  */
 export const TOUR_TEAM_HAS_MEMBERS_SESSION_KEY =
-	"icaru-tour:team-detail-has-members" as const;
+	"tractab-tour:team-detail-has-members" as const;
 
 /** Evento window: la lista team nel client ha aggiornato la chiave sessione sopra */
-export const TOUR_TEAMS_UPDATED_EVENT = "icaru-tour-teams-updated" as const;
+export const TOUR_TEAMS_UPDATED_EVENT = "tractab-tour-teams-updated" as const;
 
 export type TourName =
 	| typeof MAIN_TOUR_NAME
@@ -34,12 +38,13 @@ interface TourStorageIdentity {
 const normalizeStoragePart = (value: string | null | undefined): string =>
 	(value?.trim().toLowerCase() || "anonymous").replaceAll(/\s+/g, "-");
 
+/** Chiave localStorage per stato tour principale; include slug prodotto `tractab` (Tracta B). */
 export const getTourStorageKey = ({
 	email,
 	role,
 }: TourStorageIdentity): string =>
 	[
-		"icaru",
+		"tractab",
 		"onborda",
 		MAIN_TOUR_NAME,
 		MAIN_TOUR_VERSION,

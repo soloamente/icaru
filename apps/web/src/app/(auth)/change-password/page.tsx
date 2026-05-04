@@ -100,12 +100,12 @@ export default function ChangePasswordPage() {
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
 				<Image
-					alt="Logo Icaru"
+					alt="Logo Tracta Business"
 					className="h-16 w-auto object-contain md:h-20"
-					height={80}
+					height={160}
 					priority
-					src="/images/logo_positivo.png"
-					width={300}
+					src="/images/Logo_Tracta.png"
+					width={480}
 				/>
 			</motion.div>
 

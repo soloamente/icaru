@@ -334,12 +334,12 @@ export default function Sidebar({
 						href="/dashboard"
 					>
 						<Image
-							alt="Logo Positivo"
+							alt="Logo Tracta Business"
 							className="h-8 w-auto object-contain"
-							height={32}
+							height={48}
 							priority
-							src="/images/logo_positivo.png"
-							width={120}
+							src="/images/Logo_Tracta.png"
+							width={200}
 						/>
 					</Link>
 					{/* User block (compact) + bottone Esci (OpenRectArrowOutIcon) */}
@@ -579,7 +579,7 @@ export default function Sidebar({
 		<aside
 			aria-label="Sidebar"
 			className={cn(
-				"h-full w-full min-w-60.5 flex-0 px-6.5 py-6 font-medium",
+				"h-full w-full min-w-60.5 flex-0 bg-sidebar px-6.5 py-6 font-medium text-sidebar-foreground",
 				variant === "sidebar-right" && "",
 				classNameProp
 			)}
@@ -594,12 +594,12 @@ export default function Sidebar({
 						onClick={(event) => handleAppNavClick(event, "/dashboard")}
 					>
 						<Image
-							alt="Logo Positivo"
+							alt="Logo Tracta Business"
 							className="h-12 w-auto object-contain"
-							height={48}
+							height={72}
 							priority
-							src="/images/logo_positivo.png"
-							width={187}
+							src="/images/Logo_Tracta.png"
+							width={300}
 						/>
 					</Link>
 					{sidebarOpen?.isMobile && sidebarOpen?.isOpen && (
@@ -618,9 +618,17 @@ export default function Sidebar({
 				    from painting over the footer on short viewports. */}
 				<div className="flex min-h-0 flex-1 flex-col gap-4 pt-2">
 					<div className="flex shrink-0 items-center gap-3.5 rounded-xl bg-sidebar-accent/80 px-2 py-1.5 pl-1.5">
-						<Avatar className="size-9 rounded-md! bg-background text-sidebar-primary">
+						<Avatar
+							className={cn(
+								"size-9 rounded-md! text-sidebar-primary",
+								isRichColors ? "bg-sidebar-accent" : "bg-background"
+							)}
+						>
 							<AvatarFallback
-								className="rounded-md! bg-background text-sidebar-primary"
+								className={cn(
+									"rounded-md! text-sidebar-primary",
+									isRichColors ? "bg-sidebar-accent" : "bg-background"
+								)}
 								placeholderSeed={mounted ? (user?.email ?? "User") : undefined}
 							/>
 						</Avatar>

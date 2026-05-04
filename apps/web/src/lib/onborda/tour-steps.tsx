@@ -19,7 +19,7 @@ export type TourSide = "top" | "bottom" | "left" | "right";
 /** Sostituisce nextRoute/prevRoute con `/team/{id}` usando sessionStorage (primo team in lista direttore). */
 export type TourSessionNavMode = "firstTeamDetail";
 
-export interface IcaruTourStep {
+export interface TractaBTourStep {
 	icon?: ReactNode;
 	title: string;
 	content: ReactNode;
@@ -39,9 +39,9 @@ export interface IcaruTourStep {
 	prevRouteSession?: TourSessionNavMode;
 }
 
-export interface IcaruTour {
+export interface TractaBTour {
 	tour: TourName;
-	steps: IcaruTourStep[];
+	steps: TractaBTourStep[];
 }
 
 const COMMERCIAL_ROLES = ["director", "seller"] as const;
@@ -50,14 +50,14 @@ const canSeeCommercialSections = (role: AppRole | null | undefined): boolean =>
 	role === "director" || role === "seller";
 
 // Centralizza le impostazioni visive comuni per mantenere coerenti tutti gli step.
-const baseStep = (step: IcaruTourStep): IcaruTourStep => ({
+const baseStep = (step: TractaBTourStep): TractaBTourStep => ({
 	showControls: true,
 	pointerPadding: 10,
 	pointerRadius: 18,
 	...step,
 });
 
-const sharedSteps: IcaruTourStep[] = [
+const sharedSteps: TractaBTourStep[] = [
 	baseStep({
 		title: "La tua dashboard",
 		content:
@@ -88,7 +88,7 @@ const sharedSteps: IcaruTourStep[] = [
 	}),
 ];
 
-const commercialSteps: IcaruTourStep[] = [
+const commercialSteps: TractaBTourStep[] = [
 	baseStep({
 		title: "Indicatori principali",
 		content:
@@ -355,7 +355,7 @@ const commercialSteps: IcaruTourStep[] = [
 	}),
 ];
 
-const clientTopicSteps: IcaruTourStep[] = [
+const clientTopicSteps: TractaBTourStep[] = [
 	baseStep({
 		title: "Clienti",
 		content: "Qui gestisci anagrafiche, contatti, sedi e trattative collegate.",
@@ -400,7 +400,7 @@ const clientTopicSteps: IcaruTourStep[] = [
 	}),
 ];
 
-const negotiationsTopicSteps: IcaruTourStep[] = [
+const negotiationsTopicSteps: TractaBTourStep[] = [
 	baseStep({
 		title: "Trattative",
 		content:
@@ -439,7 +439,7 @@ const negotiationsTopicSteps: IcaruTourStep[] = [
 	}),
 ];
 
-const teamTopicSteps: IcaruTourStep[] = [
+const teamTopicSteps: TractaBTourStep[] = [
 	baseStep({
 		title: "Team",
 		content:
@@ -547,7 +547,7 @@ const teamTopicSteps: IcaruTourStep[] = [
 	}),
 ];
 
-const statsTopicSteps: IcaruTourStep[] = [
+const statsTopicSteps: TractaBTourStep[] = [
 	baseStep({
 		title: "Statistiche",
 		content: "Qui analizzi andamento, mappa e distribuzione delle trattative.",
@@ -602,9 +602,9 @@ const statsTopicSteps: IcaruTourStep[] = [
 ];
 
 const filterStepsByRole = (
-	steps: IcaruTourStep[],
+	steps: TractaBTourStep[],
 	role: AppRole | null | undefined
-): IcaruTourStep[] =>
+): TractaBTourStep[] =>
 	steps.filter((step) => {
 		if (!(step.roles && step.roles.length > 0)) {
 			return true;
@@ -654,7 +654,7 @@ const readHasOrgMembersInSession = (): boolean => {
  * principale verso `/statistiche` o per chiudere il topic senza URL inventati.
  * Chiave `TOUR_TEAM_HAS_MEMBERS_SESSION_KEY`: solo se il dettaglio team ha membri nell’organigramma.
  */
-const filterSessionPresence = (steps: IcaruTourStep[]): IcaruTourStep[] => {
+const filterSessionPresence = (steps: TractaBTourStep[]): TractaBTourStep[] => {
 	const hasFirstTeam = readHasFirstTeamInSession();
 	const hasOrgMembers = readHasOrgMembersInSession();
 	return steps.filter((s) => {
@@ -674,7 +674,7 @@ const filterSessionPresence = (steps: IcaruTourStep[]): IcaruTourStep[] => {
 	});
 };
 
-const applySessionTeamNav = (steps: IcaruTourStep[]): IcaruTourStep[] => {
+const applySessionTeamNav = (steps: TractaBTourStep[]): TractaBTourStep[] => {
 	const id = readFirstTeamIdForTour();
 	const detailRoute = id != null ? `/team/${id}` : undefined;
 	return steps.map((s) => {
@@ -692,9 +692,9 @@ const applySessionTeamNav = (steps: IcaruTourStep[]): IcaruTourStep[] => {
 
 /** Applica filtri ruolo, sessione team e risoluzione route `/team/:id` prima di passare gli step a Onborda. */
 export function prepareTourStepsForRuntime(
-	steps: IcaruTourStep[],
+	steps: TractaBTourStep[],
 	role: AppRole | null | undefined
-): IcaruTourStep[] {
+): TractaBTourStep[] {
 	const byRole = filterStepsByRole(steps, role);
 	const bySession = filterSessionPresence(byRole);
 	return applySessionTeamNav(bySession);
@@ -702,14 +702,14 @@ export function prepareTourStepsForRuntime(
 
 export function prepareAllToursForRuntime(
 	role: AppRole | null | undefined
-): IcaruTour[] {
+): TractaBTour[] {
 	return buildMainTour(role).map((tour) => ({
 		...tour,
 		steps: prepareTourStepsForRuntime(tour.steps, role),
 	}));
 }
 
-const wrapUpStep = (role: AppRole | null | undefined): IcaruTourStep =>
+const wrapUpStep = (role: AppRole | null | undefined): TractaBTourStep =>
 	baseStep({
 		title: "Come funziona?",
 		content:
@@ -721,7 +721,7 @@ const wrapUpStep = (role: AppRole | null | undefined): IcaruTourStep =>
 
 export const buildMainTour = (
 	role: AppRole | null | undefined
-): IcaruTour[] => {
+): TractaBTour[] => {
 	const steps = canSeeCommercialSections(role)
 		? [...sharedSteps, ...commercialSteps, wrapUpStep(role)]
 		: [...sharedSteps, wrapUpStep(role)];

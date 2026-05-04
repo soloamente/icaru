@@ -85,12 +85,12 @@ export default function LoginPage() {
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
 				<Image
-					alt="Logo Icaru"
+					alt="Logo Tracta Business"
 					className="h-16 w-auto object-contain md:h-20"
-					height={80}
+					height={160}
 					priority
-					src="/images/logo_positivo.png"
-					width={300}
+					src="/images/Logo_Tracta.png"
+					width={480}
 				/>
 			</motion.div>
 
@@ -109,7 +109,7 @@ export default function LoginPage() {
 						transition={{ duration: 0.4, delay: 0.3 }}
 					>
 						<h1 className="font-semibold text-4xl leading-none">
-							Benvenuto su Icaru
+							Benvenuto su Tracta B
 						</h1>
 						<p className="font-normal text-muted-foreground text-sm">
 							Inserisci le tue credenziali per accedere al tuo account

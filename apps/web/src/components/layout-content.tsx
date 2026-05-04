@@ -12,6 +12,7 @@ import {
 	SidebarOpenProvider,
 	useSidebarOpen,
 } from "@/lib/sidebar/sidebar-open-context";
+import { cn } from "@/lib/utils";
 import GlobalSearchCommand from "./global-search-command";
 import Sidebar from "./sidebar";
 
@@ -66,8 +67,10 @@ function SidebarLeftAnimatedLayout({
 }) {
 	const sidebarOpen = useSidebarOpen();
 	const dialParams = useSidebarPanelDialKit();
-	const { fontSize } = usePreferences();
+	const { colorScheme, fontSize } = usePreferences();
 	const [hasMounted, setHasMounted] = useState(false);
+	/** Dataweb (schema colore “rich”): stesso tinta del pannello contenuto della sidebar per evitare alone diverso da `bg-transparent`. */
+	const isRichColors = colorScheme === "rich";
 
 	// Defer preference-based width until after mount to avoid hydration mismatch:
 	// fontSize comes from localStorage (via PreferencesProvider), which is only
@@ -133,14 +136,16 @@ function SidebarLeftAnimatedLayout({
 					variant="sidebar-left"
 				/>
 			</div>
-			{/* Content panel: transparent background; animates left to reveal (open) or cover (closed) the sidebar.
-			 * On mobile we keep full width and use translateX so content moves right without resizing. */}
+			{/* Content panel: in Dataweb light usa lo stesso `--sidebar` della colonna nav; altrimenti trasparente (comportamento legacy). */}
 			<motion.div
 				animate={{
 					left: contentPanelLeft,
 					x: contentPanelX,
 				}}
-				className="absolute top-0 right-0 bottom-0 z-10 flex h-full min-h-0 flex-col bg-transparent"
+				className={cn(
+					"absolute top-0 right-0 bottom-0 z-10 flex h-full min-h-0 flex-col",
+					isRichColors ? "bg-sidebar" : "bg-transparent"
+				)}
 				initial={false}
 				onClick={() => {
 					if (sidebarOpen.isMobile && isOpen) {
@@ -180,8 +185,10 @@ function SidebarRightAnimatedLayout({
 }) {
 	const sidebarOpen = useSidebarOpen();
 	const dialParams = useSidebarPanelDialKit();
-	const { fontSize } = usePreferences();
+	const { colorScheme, fontSize } = usePreferences();
 	const [hasMounted, setHasMounted] = useState(false);
+	/** Stesso criterio della sidebar sinistra: shell Dataweb allineata a `--sidebar`. */
+	const isRichColors = colorScheme === "rich";
 
 	useEffect(() => setHasMounted(true), []);
 
@@ -217,13 +224,16 @@ function SidebarRightAnimatedLayout({
 
 	return (
 		<div className="relative h-dvh overflow-hidden">
-			{/* Content panel: left side, animates to reveal or cover the right sidebar */}
+			{/* Content panel: stesso sfondo sidebar in Dataweb (`rich`), coerente con SidebarLeftAnimatedLayout. */}
 			<motion.div
 				animate={{
 					right: contentPanelRight,
 					x: contentPanelX,
 				}}
-				className="absolute top-0 bottom-0 left-0 z-10 flex h-full min-h-0 flex-col bg-transparent"
+				className={cn(
+					"absolute top-0 bottom-0 left-0 z-10 flex h-full min-h-0 flex-col",
+					isRichColors ? "bg-sidebar" : "bg-transparent"
+				)}
 				initial={false}
 				onClick={() => {
 					if (sidebarOpen.isMobile && isOpen) {

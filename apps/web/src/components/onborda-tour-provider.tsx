@@ -26,8 +26,8 @@ import {
 	ONBORDA_TOUR_START_EVENT,
 } from "@/lib/onborda/tour-events";
 import {
-	type IcaruTourStep,
 	prepareAllToursForRuntime,
+	type TractaBTourStep,
 } from "@/lib/onborda/tour-steps";
 import {
 	CLIENTS_TOUR_NAME,
@@ -82,7 +82,7 @@ const normalizeTours = (
 	tours.map((tour) => ({
 		tour: tour.tour,
 		steps: tour.steps.map(
-			(step: IcaruTourStep): Step => ({
+			(step: TractaBTourStep): Step => ({
 				icon: step.icon ?? null,
 				title: step.title,
 				content: step.content,

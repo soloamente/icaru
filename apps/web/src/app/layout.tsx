@@ -10,8 +10,8 @@ import Loader from "@/components/loader";
 import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
-	title: "ICARU",
-	description: "ICARU",
+	title: "Tracta B",
+	description: "Tracta B",
 	icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

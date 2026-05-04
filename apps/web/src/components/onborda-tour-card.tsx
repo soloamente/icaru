@@ -355,7 +355,7 @@ export function OnbordaTourCard({
 
 	const card = (
 		<aside
-			aria-label="Tour guidato ICARU"
+			aria-label="Tour guidato Tracta B"
 			className={cn(
 				"fixed w-[min(22rem,calc(100vw-2rem))] rounded-3xl bg-popover p-4 text-popover-foreground shadow-[0_18px_45px_rgba(15,23,42,0.22)] ring-1 ring-border/50 transition-[top,left] duration-200 ease-out motion-reduce:transition-none",
 				className
@@ -375,7 +375,7 @@ export function OnbordaTourCard({
 							Passo {displayStep} di {safeTotal}
 						</p>
 						<h2 className="mt-1 font-semibold text-card-foreground text-lg leading-tight">
-							{step?.title ?? "Tour ICARU"}
+							{step?.title ?? "Tour Tracta B"}
 						</h2>
 					</div>
 				</div>
