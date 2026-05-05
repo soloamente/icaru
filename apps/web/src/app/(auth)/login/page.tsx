@@ -77,16 +77,16 @@ export default function LoginPage() {
 					);
 				})}
 			</div>
-			{/* Loghi: mobile centrati in orizzontale (translate); desktop alto-sinistra. */}
+			{/* Loghi: su mobile piu piccoli e affiancati; desktop invariato in alto a sinistra. */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
-				className="absolute isolate flex max-w-[calc(100vw-3rem)] flex-wrap items-center gap-4 max-md:pointer-events-none max-md:top-14 max-md:right-auto max-md:left-1/2 max-md:z-30 max-md:-translate-x-1/2 max-md:justify-center md:pointer-events-auto md:top-6 md:right-auto md:left-6 md:z-10 md:translate-x-0 md:justify-start md:gap-6"
+				className="absolute isolate flex max-w-[calc(100vw-3rem)] flex-nowrap items-center gap-3 max-md:pointer-events-none max-md:top-14 max-md:right-auto max-md:left-1/2 max-md:z-30 max-md:-translate-x-1/2 max-md:justify-center md:pointer-events-auto md:top-6 md:right-auto md:left-6 md:z-10 md:translate-x-0 md:justify-start md:gap-6"
 				initial={{ opacity: 0, y: -10 }}
 				transition={{ duration: 0.4, ease: "easeOut" }}
 			>
 				<Image
 					alt="Logo Tracta Business"
-					className="h-16 w-auto shrink-0 object-contain md:h-20"
+					className="h-10 w-auto shrink-0 object-contain md:h-20"
 					height={160}
 					priority
 					src="/images/Logo_Tracta.png"
@@ -94,7 +94,7 @@ export default function LoginPage() {
 				/>
 				<Image
 					alt="Logo DataWeb Group"
-					className="h-16 w-auto shrink-0 object-contain md:h-20"
+					className="h-10 w-auto shrink-0 object-contain md:h-20"
 					height={160}
 					priority
 					src="/images/logo_positivo.png"
