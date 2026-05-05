@@ -247,6 +247,8 @@ Deploy: la build su Vercel per il monorepo (Bun + Turborepo + Next.js) rimane bl
 
 ## Executor's Feedback or Assistance Requests
 
+- **Page Feedback `/login` (logo sfondo nero):** aggiornato l'asset `apps/web/public/images/logo_positivo.png` rimuovendo i pixel neri/near-black del matte e convertendoli in trasparenza (`alpha=0`), così il logo non mostra più il box nero sul login. Richiesta verifica manuale su `/login` (mobile + desktop) per confermare che il bordo risulti pulito anche sopra immagini di sfondo diverse.
+
 - **Page Feedback `/login` (mobile loghi):** applicato il feedback UI "rendi i due loghi più piccoli da mobile e uno affianco all'altro" in `apps/web/src/app/(auth)/login/page.tsx`. Il contenitore loghi ora usa `flex-nowrap` su mobile per mantenere i due brand affiancati, con `gap` ridotto e dimensione logo mobile portata da `h-16` a `h-10` (desktop invariato a `md:h-20`). Richiesta verifica manuale su viewport mobile (es. 389×983) nella pagina `/login`.
 
 - **Onborda Website Tour — Task 1 completato in worktree `.worktrees/onborda-website-tour`:** aggiunta dipendenza `onborda` all'app web, aggiunte peer dependencies richieste (`framer-motion`, `@radix-ui/react-portal`), aggiornato `bun.lock`, e aggiunto `@source "../../../node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}";` in `globals.css` dopo il gruppo di `@import` per rispettare Biome. `bun --cwd apps/web build` passa nel worktree. Review spec: compliant. Review qualità: approved. Nota: resta un warning/lint preesistente in `globals.css` sulla specificity discendente, non introdotto dal task.
