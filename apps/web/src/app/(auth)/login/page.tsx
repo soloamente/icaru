@@ -97,7 +97,8 @@ export default function LoginPage() {
 					className="h-10 w-auto shrink-0 object-contain md:h-20"
 					height={160}
 					priority
-					src="/images/logo_positivo.png"
+					// Dedicated transparent asset to avoid black matte artifacts on mobile rendering/caching.
+					src="/images/logo_positivo_transparent.png"
 					width={300}
 				/>
 			</motion.div>
