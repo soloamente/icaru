@@ -70,8 +70,33 @@ const TOUR_START_CONFIG: Record<
 	},
 };
 
-const isLoginPath = (pathname: string | null): boolean =>
-	pathname === "/login" || pathname?.startsWith("/login/") === true;
+/**
+ * Pagine fuori dall’app principale (auth / onboarding account): niente prompt tour
+ * né avvio automatico, così login, cambio password e reset non vengono coperti dal layer del tour.
+ */
+const isTourSuppressedPath = (pathname: string | null): boolean => {
+	if (pathname == null || pathname === "") {
+		return false;
+	}
+	return (
+		pathname === "/login" ||
+		pathname.startsWith("/login/") ||
+		pathname === "/change-password" ||
+		pathname.startsWith("/change-password/") ||
+		pathname === "/reset-password" ||
+		pathname.startsWith("/reset-password/")
+	);
+};
+
+/**
+ * Stessa regola di `(main)/layout` e della pagina change-password: durante il primo accesso
+ * il login può passare da `/` (un frame) prima di `replace` verso `/change-password` —
+ * senza questo check il prompt del tour lampeggia nel mezzo.
+ */
+const userMustChangePassword = (
+	user: { primo_accesso?: boolean | number } | null | undefined
+): boolean =>
+	Boolean(user && (user.primo_accesso === true || user.primo_accesso === 1));
 
 type OnbordaTours = OnbordaProps["steps"];
 
@@ -168,6 +193,14 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 
 	const requestTourStart = useCallback(
 		(tourName: TourName = MAIN_TOUR_NAME) => {
+			// Non avviare né navigare verso il tour da schermate auth: evita overlay e redirect indesiderati.
+			if (
+				isTourSuppressedPath(pathname) ||
+				userMustChangePassword(auth?.user)
+			) {
+				return;
+			}
+
 			if (isMobile) {
 				// Mobile has no guided tour: avoid opening prompts or navigating the user
 				// into a tour flow from the sidebar/help events.
@@ -187,7 +220,15 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 				router.push(config.route);
 			}
 		},
-		[cancelPendingStart, closeOnborda, isMobile, pathname, router, storageKey]
+		[
+			auth?.user,
+			cancelPendingStart,
+			closeOnborda,
+			isMobile,
+			pathname,
+			router,
+			storageKey,
+		]
 	);
 
 	const handleStart = useCallback(() => {
@@ -211,7 +252,12 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 			return;
 		}
 
-		if (isMobile || !auth.user || isLoginPath(pathname)) {
+		if (
+			isMobile ||
+			!auth.user ||
+			isTourSuppressedPath(pathname) ||
+			userMustChangePassword(auth.user)
+		) {
 			setIsStartDialogOpen(false);
 			cancelPendingStart();
 			closeOnborda();
@@ -224,6 +270,7 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 	}, [
 		auth?.isLoaded,
 		auth?.user,
+		auth?.user?.primo_accesso,
 		cancelPendingStart,
 		closeOnborda,
 		handledPromptKey,
@@ -282,6 +329,13 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 
 	useEffect(() => {
 		if (!pendingStart) {
+			return;
+		}
+
+		// Se nel frattempo si arriva a login / cambio password, annulla l’avvio in coda senza lasciare overlay.
+		if (isTourSuppressedPath(pathname) || userMustChangePassword(auth?.user)) {
+			cancelPendingStart();
+			closeOnborda();
 			return;
 		}
 
@@ -354,6 +408,7 @@ function OnbordaTourController({ children }: { children: ReactNode }) {
 		};
 	}, [
 		auth?.role,
+		auth?.user,
 		cancelPendingStart,
 		closeOnborda,
 		isMobile,
