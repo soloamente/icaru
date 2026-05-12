@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd \\\"C:\\\\Users\\\\amaru\\\\Documents\\\\DATAWEB\\\\ICARU\\\" && git remote -v 2>&1\",\"description\":\"Check git remotes in root directory\"}",
+  "error": "Exit code 128\nfatal: not a git repository (or any of the parent directories): .git",
+  "timestamp": "2026-05-12T12:50:03.610Z",
+  "retry_count": 1
+}

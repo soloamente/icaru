@@ -148,33 +148,24 @@ export async function logout(accessToken: string): Promise<void> {
 // Struttura risposta: ogni cliente include sempre l'oggetto address.
 
 /**
- * Estrae l'array clienti dalla risposta GET /api/clients/me.
- * Accetta sia risposta come array diretto sia come oggetto { data: ApiClient[] }.
- */
-function parseClientsResponse(
-	json: ApiClient[] | { data?: ApiClient[]; message?: string }
-): ApiClient[] {
-	if (Array.isArray(json)) {
-		return json;
-	}
-	if (json && Array.isArray((json as { data?: ApiClient[] }).data)) {
-		return (json as { data: ApiClient[] }).data;
-	}
-	return [];
-}
-
-/**
  * GET /api/clients/me — List clients assigned to the logged-in user (Venditore/Direttore Vendite).
- * Tutti i clienti dell'utente, ordinati per ragione sociale. Query: ?search= opzionale.
+ * Tutti i clienti dell'utente, ordinati per ragione sociale. Query: ?search= e ?page= opzionali.
+ * Restituisce dati paginati con meta (current_page, last_page, total).
  */
 export async function listClientsMe(
 	accessToken: string,
-	params?: { search?: string }
-): Promise<{ data: ApiClient[] } | { error: string }> {
+	params?: { search?: string; page?: number }
+): Promise<
+	| { data: ApiClient[]; meta: { current_page: number; last_page: number; total: number } }
+	| { error: string }
+> {
 	try {
 		const searchParams = new URLSearchParams();
 		if (params?.search?.trim()) {
 			searchParams.set("search", params.search.trim());
+		}
+		if (params?.page != null) {
+			searchParams.set("page", String(params.page));
 		}
 		const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
 		const res = await fetch(`${BASE_URL}/clients/me${query}`, {
@@ -183,7 +174,7 @@ export async function listClientsMe(
 		});
 		const json = (await res.json()) as
 			| ApiClient[]
-			| { data?: ApiClient[]; message?: string };
+			| { data?: ApiClient[]; current_page?: number; last_page?: number; total?: number; message?: string };
 		if (!res.ok) {
 			const msg =
 				typeof (json as { message?: string }).message === "string"
@@ -191,7 +182,18 @@ export async function listClientsMe(
 					: "Errore nel caricamento dei clienti";
 			return { error: msg };
 		}
-		return { data: parseClientsResponse(json) };
+		if (Array.isArray(json)) {
+			return { data: json, meta: { current_page: 1, last_page: 1, total: json.length } };
+		}
+		const paged = json as { data?: ApiClient[]; current_page?: number; last_page?: number; total?: number };
+		return {
+			data: Array.isArray(paged.data) ? paged.data : [],
+			meta: {
+				current_page: paged.current_page ?? 1,
+				last_page: paged.last_page ?? 1,
+				total: paged.total ?? 0,
+			},
+		};
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
 		return { error: message };
@@ -233,8 +235,8 @@ export async function listClientsWithoutNegotiations(
  */
 export function listClients(
 	accessToken: string,
-	params?: { search?: string }
-): Promise<{ data: ApiClient[] } | { error: string }> {
+	params?: { search?: string; page?: number }
+): Promise<{ data: ApiClient[]; meta: { current_page: number; last_page: number; total: number } } | { error: string }> {
 	return listClientsMe(accessToken, params);
 }
 

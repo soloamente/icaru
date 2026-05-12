@@ -126,6 +126,10 @@ export default function ClientsTable() {
 	const [error, setError] = useState<string | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
+	const [totalFromApi, setTotalFromApi] = useState(0);
+	const [lastPage, setLastPage] = useState(1);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 	/* Opens dialog to add a single client. */
 	const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
@@ -178,6 +182,7 @@ export default function ClientsTable() {
 		setError(null);
 		const result = await listClientsMe(token, {
 			search: debouncedSearch || undefined,
+			page: 1,
 		});
 		setLoading(false);
 		if ("error" in result) {
@@ -186,7 +191,25 @@ export default function ClientsTable() {
 			return;
 		}
 		setClients(result.data);
+		setTotalFromApi(result.meta.total);
+		setLastPage(result.meta.last_page);
+		setCurrentPage(1);
 	}, [token, debouncedSearch]);
+
+	const fetchMoreClients = useCallback(async () => {
+		if (!token || isLoadingMore || currentPage >= lastPage) return;
+		setIsLoadingMore(true);
+		const nextPage = currentPage + 1;
+		const result = await listClientsMe(token, {
+			search: debouncedSearch || undefined,
+			page: nextPage,
+		});
+		setIsLoadingMore(false);
+		if ("error" in result) return;
+		setClients((prev) => [...prev, ...result.data]);
+		setCurrentPage(nextPage);
+		setLastPage(result.meta.last_page);
+	}, [token, isLoadingMore, currentPage, lastPage, debouncedSearch]);
 
 	/**
 	 * Load once the list of clients that have **no** negotiations yet. We keep
@@ -295,6 +318,18 @@ export default function ClientsTable() {
 		estimateSize: () => 73,
 		overscan: 8,
 	});
+
+	const hasNextPage = currentPage < lastPage;
+
+	useEffect(() => {
+		if (!hasNextPage || isLoadingMore) return;
+		const virtualItems = virtualizer.getVirtualItems();
+		const lastVirtualItem = virtualItems.at(-1);
+		if (!lastVirtualItem) return;
+		if (lastVirtualItem.index >= visibleClients.length - 1) {
+			fetchMoreClients();
+		}
+	}, [virtualizer.getVirtualItems(), hasNextPage, isLoadingMore, visibleClients.length, fetchMoreClients]);
 
 	/** Search pill width: only animate on sm+; on mobile undefined so flex-1 controls width */
 	let searchAnimateWidth: string | undefined;
@@ -491,7 +526,7 @@ export default function ClientsTable() {
 									</h3>
 									<div className="flex items-center justify-start">
 										<AnimateNumber className="text-base tabular-nums leading-none">
-											{visibleClients.length}
+											{debouncedSearch ? visibleClients.length : totalFromApi}
 										</AnimateNumber>
 									</div>
 								</div>
@@ -865,6 +900,11 @@ export default function ClientsTable() {
 													</div>
 												);
 											})}
+										</div>
+									)}
+									{isLoadingMore && (
+										<div className="flex justify-center py-4 text-sm text-muted-foreground">
+											Caricamento...
 										</div>
 									)}
 								</div>
