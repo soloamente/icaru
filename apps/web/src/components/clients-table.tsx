@@ -307,11 +307,13 @@ export default function ClientsTable() {
 	// Local, defensive filtering delegata a una funzione di supporto per mantenere il corpo del componente più lineare.
 	const visibleClients = getVisibleClientsForSearch(clients, debouncedSearch);
 
-	// Stats per le card: totale visibili, senza trattativa (in lista without-negotiations), con almeno una trattativa.
-	const clientsWithoutCount = visibleClients.filter((c) =>
-		clientsWithoutNegotiationsIds.has(c.id)
-	).length;
-	const clientsWithCount = visibleClients.length - clientsWithoutCount;
+	// Stats per le card: quando non si cerca usa i totali reali dall'API; durante la ricerca usa i risultati caricati.
+	const clientsWithoutCount = debouncedSearch
+		? visibleClients.filter((c) => clientsWithoutNegotiationsIds.has(c.id)).length
+		: clientsWithoutNegotiationsIds.size;
+	const clientsWithCount = debouncedSearch
+		? visibleClients.length - clientsWithoutCount
+		: totalFromApi - clientsWithoutCount;
 
 	const virtualizer = useVirtualizer({
 		count: visibleClients.length,
