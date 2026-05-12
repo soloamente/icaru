@@ -309,7 +309,8 @@ export default function ClientsTable() {
 
 	// Stats per le card: quando non si cerca usa i totali reali dall'API; durante la ricerca usa i risultati caricati.
 	const clientsWithoutCount = debouncedSearch
-		? visibleClients.filter((c) => clientsWithoutNegotiationsIds.has(c.id)).length
+		? visibleClients.filter((c) => clientsWithoutNegotiationsIds.has(c.id))
+				.length
 		: clientsWithoutNegotiationsIds.size;
 	const clientsWithCount = debouncedSearch
 		? visibleClients.length - clientsWithoutCount
@@ -332,7 +333,13 @@ export default function ClientsTable() {
 		if (lastVirtualItem.index >= visibleClients.length - 1) {
 			fetchMoreClients();
 		}
-	}, [virtualizer.getVirtualItems(), hasNextPage, isLoadingMore, visibleClients.length, fetchMoreClients]);
+	}, [
+		virtualizer.getVirtualItems(),
+		hasNextPage,
+		isLoadingMore,
+		visibleClients.length,
+		fetchMoreClients,
+	]);
 
 	/** Search pill width: only animate on sm+; on mobile undefined so flex-1 controls width */
 	let searchAnimateWidth: string | undefined;
@@ -906,7 +913,7 @@ export default function ClientsTable() {
 										</div>
 									)}
 									{isLoadingMore && (
-										<div className="flex justify-center py-4 text-sm text-muted-foreground">
+										<div className="flex justify-center py-4 text-muted-foreground text-sm">
 											Caricamento...
 										</div>
 									)}

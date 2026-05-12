@@ -156,7 +156,10 @@ export async function listClientsMe(
 	accessToken: string,
 	params?: { search?: string; page?: number }
 ): Promise<
-	| { data: ApiClient[]; meta: { current_page: number; last_page: number; total: number } }
+	| {
+			data: ApiClient[];
+			meta: { current_page: number; last_page: number; total: number };
+	  }
 	| { error: string }
 > {
 	try {
@@ -174,7 +177,13 @@ export async function listClientsMe(
 		});
 		const json = (await res.json()) as
 			| ApiClient[]
-			| { data?: ApiClient[]; current_page?: number; last_page?: number; total?: number; message?: string };
+			| {
+					data?: ApiClient[];
+					current_page?: number;
+					last_page?: number;
+					total?: number;
+					message?: string;
+			  };
 		if (!res.ok) {
 			const msg =
 				typeof (json as { message?: string }).message === "string"
@@ -183,9 +192,17 @@ export async function listClientsMe(
 			return { error: msg };
 		}
 		if (Array.isArray(json)) {
-			return { data: json, meta: { current_page: 1, last_page: 1, total: json.length } };
+			return {
+				data: json,
+				meta: { current_page: 1, last_page: 1, total: json.length },
+			};
 		}
-		const paged = json as { data?: ApiClient[]; current_page?: number; last_page?: number; total?: number };
+		const paged = json as {
+			data?: ApiClient[];
+			current_page?: number;
+			last_page?: number;
+			total?: number;
+		};
 		return {
 			data: Array.isArray(paged.data) ? paged.data : [],
 			meta: {
@@ -236,7 +253,13 @@ export async function listClientsWithoutNegotiations(
 export function listClients(
 	accessToken: string,
 	params?: { search?: string; page?: number }
-): Promise<{ data: ApiClient[]; meta: { current_page: number; last_page: number; total: number } } | { error: string }> {
+): Promise<
+	| {
+			data: ApiClient[];
+			meta: { current_page: number; last_page: number; total: number };
+	  }
+	| { error: string }
+> {
 	return listClientsMe(accessToken, params);
 }
 

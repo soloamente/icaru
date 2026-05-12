@@ -14,7 +14,7 @@ interface PreferencesDialogProps {
 /**
  * Preferences bottom sheet / dialog. Rebuilt to avoid grey overlay:
  * - Base UI Dialog only (no Vaul)
- * - CSS-only theme preview on mobile (no images = no layout shift)
+ * - CSS-only theme previews (no images = no decode/layout jank when opening, especially in prod)
  * - Explicit stacking, close button, content containment
  */
 export function PreferencesDialog({
@@ -91,7 +91,7 @@ export function PreferencesDialog({
 							<p className="sr-only" id="preferences-dialog-desc">
 								Personalizza tema, palette e stile del carattere.
 							</p>
-							<PreferencesContent isMobile={isMobile} />
+							<PreferencesContent />
 						</div>
 					</Dialog.Popup>
 				</div>

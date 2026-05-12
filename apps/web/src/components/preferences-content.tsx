@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
 	COLOR_SCHEME_OPTIONS,
@@ -10,25 +9,15 @@ import {
 } from "@/lib/preferences/preferences-context";
 import { cn } from "@/lib/utils";
 
-/** Theme option id -> image path for desktop preview. */
-const THEME_PREVIEW_IMAGES: Record<string, string> = {
-	light: "/images/lightmode.png",
-	dark: "/images/darkmode.png",
-	system: "/images/system.png",
-};
-
-interface PreferencesContentProps {
-	/** When true, theme picker uses CSS-only previews (no images) to avoid layout shift in bottom sheet. */
-	isMobile?: boolean;
-}
-
 /**
  * Preferences UI: theme, palette, font size, navigation position.
- * On mobile uses CSS-only theme previews to prevent image-load layout shifts.
+ *
+ * Theme tiles use CSS-only “mini previews” on every viewport: decoding several
+ * PNGs inside a modal was blocking the main thread in production (large INP /
+ * presentation delay) while the dialog stayed open; CSS avoids image decode
+ * and layout work on open.
  */
-export function PreferencesContent({
-	isMobile = false,
-}: PreferencesContentProps = {}) {
+export function PreferencesContent() {
 	const { theme, setTheme } = useTheme();
 	const {
 		colorScheme,
@@ -72,29 +61,17 @@ export function PreferencesContent({
 								onClick={() => setTheme(opt.id)}
 								type="button"
 							>
-								{/* Mobile: CSS-only preview (no image load). Desktop: image preview. */}
-								{isMobile ? (
-									<div
-										aria-hidden
-										className={cn(
-											"h-14 w-full shrink-0 rounded-lg",
-											opt.id === "light" && "bg-white ring-1 ring-black/10",
-											opt.id === "dark" && "bg-neutral-800",
-											opt.id === "system" &&
-												"bg-linear-to-r from-white via-neutral-400 to-neutral-800 ring-1 ring-black/10"
-										)}
-									/>
-								) : (
-									<div className="relative aspect-square w-full min-w-0 shrink-0 overflow-hidden rounded-lg">
-										<Image
-											alt={`Anteprima tema ${opt.label.toLowerCase()}`}
-											className="object-cover"
-											fill
-											sizes="8rem"
-											src={THEME_PREVIEW_IMAGES[opt.id] ?? ""}
-										/>
-									</div>
-								)}
+								{/* CSS-only preview: avoids Next/Image decode + relayout when the modal mounts (prod jank). */}
+								<div
+									aria-hidden
+									className={cn(
+										"h-14 w-full shrink-0 rounded-lg",
+										opt.id === "light" && "bg-white ring-1 ring-black/10",
+										opt.id === "dark" && "bg-neutral-800",
+										opt.id === "system" &&
+											"bg-linear-to-r from-white via-neutral-400 to-neutral-800 ring-1 ring-black/10"
+									)}
+								/>
 								<span className="font-medium text-card-foreground text-sm">
 									{opt.label}
 								</span>
