@@ -180,6 +180,7 @@ export default function ClientsTable() {
 		}
 		setLoading(true);
 		setError(null);
+		setClients([]);
 		const result = await listClientsMe(token, {
 			search: debouncedSearch || undefined,
 			page: 1,
