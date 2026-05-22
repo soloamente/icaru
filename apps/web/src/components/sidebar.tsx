@@ -126,6 +126,9 @@ export default function Sidebar({
 		setMounted(true);
 	}, []);
 
+	// colorScheme da localStorage dopo mount — classi Dataweb solo dopo mounted.
+	const showRichColors = mounted && isRichColors;
+
 	// Flat navigation items (single links)
 	const canSeeAdmin = auth?.role === "admin";
 
@@ -322,7 +325,7 @@ export default function Sidebar({
 					aria-label="Barra di navigazione"
 					className={cn(
 						"flex w-full shrink-0 items-center gap-6 overflow-x-auto overflow-y-hidden px-4 py-3 font-medium",
-						isRichColors
+						showRichColors
 							? "bg-sidebar text-sidebar-foreground"
 							: "bg-background"
 					)}
@@ -346,13 +349,13 @@ export default function Sidebar({
 					<div
 						className={cn(
 							"flex items-center gap-2 rounded-xl px-2 py-1.5 pl-1.5",
-							isRichColors ? "bg-sidebar-accent/80" : "bg-muted/50"
+							showRichColors ? "bg-sidebar-accent/80" : "bg-muted/50"
 						)}
 					>
 						<Avatar className="size-8 shrink-0 rounded-md!">
 							<AvatarFallback
 								className="rounded-md!"
-								placeholderSeed={mounted ? (user?.email ?? "User") : undefined}
+								placeholderSeed={mounted ? (user?.email ?? "User") : "User"}
 							/>
 						</Avatar>
 						{mounted && user && (
@@ -360,7 +363,9 @@ export default function Sidebar({
 								<span
 									className={cn(
 										"truncate text-xs",
-										isRichColors ? "text-sidebar-foreground" : "text-foreground"
+										showRichColors
+											? "text-sidebar-foreground"
+											: "text-foreground"
 									)}
 								>
 									{user.email}
@@ -368,7 +373,7 @@ export default function Sidebar({
 								<span
 									className={cn(
 										"truncate text-[10px]",
-										isRichColors
+										showRichColors
 											? "text-sidebar-secondary"
 											: "text-muted-foreground"
 									)}
@@ -381,7 +386,7 @@ export default function Sidebar({
 							aria-label="Esci"
 							className={cn(
 								"flex shrink-0 items-center justify-center rounded-lg p-1.5 focus:outline-none focus-visible:ring-2",
-								isRichColors
+								showRichColors
 									? "text-red-500 hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
 									: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
 							)}
@@ -412,11 +417,11 @@ export default function Sidebar({
 								<Link
 									className={cn(
 										"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
-										isRichColors
+										showRichColors
 											? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus-visible:ring-sidebar-ring"
 											: "text-muted-foreground hover:bg-muted hover:text-foreground",
 										isActiveItem(item.href) &&
-											(isRichColors
+											(showRichColors
 												? "bg-sidebar-accent text-sidebar-primary"
 												: "bg-muted text-foreground")
 									)}
@@ -434,11 +439,11 @@ export default function Sidebar({
 								<DropdownMenuTrigger
 									className={cn(
 										"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none focus:outline-none focus-visible:ring-2",
-										isRichColors
+										showRichColors
 											? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus-visible:ring-sidebar-ring"
 											: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring",
 										isTrattativePath &&
-											(isRichColors
+											(showRichColors
 												? "bg-sidebar-accent text-sidebar-primary"
 												: "bg-muted text-foreground")
 									)}
@@ -479,11 +484,11 @@ export default function Sidebar({
 							<Link
 								className={cn(
 									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
-									isRichColors
+									showRichColors
 										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus-visible:ring-sidebar-ring"
 										: "text-muted-foreground hover:bg-muted hover:text-foreground",
 									pathname === "/statistiche" &&
-										(isRichColors
+										(showRichColors
 											? "bg-sidebar-accent text-sidebar-primary"
 											: "bg-muted text-foreground")
 								)}
@@ -499,11 +504,11 @@ export default function Sidebar({
 							<Link
 								className={cn(
 									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
-									isRichColors
+									showRichColors
 										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
 										: "text-muted-foreground hover:bg-muted hover:text-foreground",
 									pathname === "/admin/utenti" &&
-										(isRichColors
+										(showRichColors
 											? "bg-sidebar-accent text-sidebar-primary"
 											: "bg-muted text-foreground")
 								)}
@@ -518,11 +523,11 @@ export default function Sidebar({
 							<Link
 								className={cn(
 									"flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-none",
-									isRichColors
+									showRichColors
 										? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary"
 										: "text-muted-foreground hover:bg-muted hover:text-foreground",
 									pathname === "/admin/aziende" &&
-										(isRichColors
+										(showRichColors
 											? "bg-sidebar-accent text-sidebar-primary"
 											: "bg-muted text-foreground")
 								)}
@@ -545,7 +550,7 @@ export default function Sidebar({
 									aria-label={item.label}
 									className={cn(
 										"flex items-center gap-2 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2",
-										isRichColors
+										showRichColors
 											? "text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
 											: "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring"
 									)}
@@ -621,15 +626,15 @@ export default function Sidebar({
 						<Avatar
 							className={cn(
 								"size-9 rounded-md! text-sidebar-primary",
-								isRichColors ? "bg-sidebar-accent" : "bg-background"
+								showRichColors ? "bg-sidebar-accent" : "bg-background"
 							)}
 						>
 							<AvatarFallback
 								className={cn(
 									"rounded-md! text-sidebar-primary",
-									isRichColors ? "bg-sidebar-accent" : "bg-background"
+									showRichColors ? "bg-sidebar-accent" : "bg-background"
 								)}
-								placeholderSeed={mounted ? (user?.email ?? "User") : undefined}
+								placeholderSeed={mounted ? (user?.email ?? "User") : "User"}
 							/>
 						</Avatar>
 						<div className="flex min-w-0 flex-1 flex-col gap-1 truncate">
@@ -662,9 +667,7 @@ export default function Sidebar({
 								"flex shrink-0 items-center justify-center rounded-lg p-1.5 text-sidebar-secondary hover:bg-sidebar-accent hover:text-sidebar-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
 								// Defer colorScheme-based class until mounted to avoid hydration mismatch
 								// (colorScheme is hydrated from localStorage in PreferencesProvider useEffect).
-								mounted && isRichColors
-									? "text-red-500"
-									: "text-muted-foreground"
+								showRichColors ? "text-red-500" : "text-muted-foreground"
 							)}
 							onClick={() => auth?.logout?.()}
 							type="button"

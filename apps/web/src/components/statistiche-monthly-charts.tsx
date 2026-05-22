@@ -578,7 +578,8 @@ export function StatisticheMonthlyCharts({
 		}
 		setIsPdfExporting(true);
 		const result = await downloadStatisticsExportPdf(accessToken, {
-			year: selectedYear === STORICO_VALUE ? undefined : selectedYear,
+			// "storico" non va in query API ma serve nel nome file export.
+			year: selectedYear === STORICO_VALUE ? "storico" : selectedYear,
 		});
 		setIsPdfExporting(false);
 		if ("error" in result) {

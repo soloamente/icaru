@@ -284,7 +284,8 @@ export function TeamDetailMonthlySection({
 				  };
 			if (kind === "pdf") {
 				result = await downloadTeamStatisticsExportPdf(accessToken, teamId, {
-					year: selectedYear === STORICO_VALUE ? undefined : selectedYear,
+					// "storico" non va in query API ma serve nel nome file export.
+					year: selectedYear === STORICO_VALUE ? "storico" : selectedYear,
 					user_id: userIdParam,
 				});
 			} else if (kind === "excel") {

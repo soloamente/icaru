@@ -4,6 +4,15 @@
  * Headers for protected routes: Authorization: Bearer <access_token>, Accept: application/json
  */
 
+import {
+	buildPersonalNegotiationsExcelFilename,
+	buildPersonalNegotiationsMapFilename,
+	buildPersonalStatisticsPdfFilename,
+	buildTeamNegotiationsExcelFilename,
+	buildTeamNegotiationsMapFilename,
+	buildTeamStatisticsPdfFilename,
+	resolveExportFilename,
+} from "@/lib/export-filename";
 import type {
 	AddTeamMembersBody,
 	ApiAvailableMember,
@@ -616,7 +625,8 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
 
 async function fetchAuthorizedBlob(
 	accessToken: string,
-	url: string
+	url: string,
+	options?: { fallbackFilename: string }
 ): Promise<{ blob: Blob; filename: string } | { error: string }> {
 	try {
 		const res = await fetch(url, {
@@ -640,8 +650,11 @@ async function fetchAuthorizedBlob(
 		}
 		const blob = await res.blob();
 		const headerName = res.headers.get("Content-Disposition");
-		const fallback = url.split("/").pop()?.split("?")[0] ?? "download";
-		const filename = filenameFromContentDisposition(headerName, fallback);
+		const urlSegmentFallback =
+			url.split("/").pop()?.split("?")[0] ?? "download";
+		const fallback = options?.fallbackFilename ?? urlSegmentFallback;
+		const fromHeader = filenameFromContentDisposition(headerName, fallback);
+		const filename = resolveExportFilename(fromHeader, fallback);
 		return { blob, filename };
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Errore di rete";
@@ -657,7 +670,8 @@ export async function downloadNegotiationsExportExcel(
 ): Promise<{ ok: true } | { error: string }> {
 	const result = await fetchAuthorizedBlob(
 		accessToken,
-		`${BASE_URL}/negotiations/export/excel`
+		`${BASE_URL}/negotiations/export/excel`,
+		{ fallbackFilename: buildPersonalNegotiationsExcelFilename() }
 	);
 	if ("error" in result) {
 		return { error: result.error };
@@ -676,7 +690,8 @@ export async function downloadNegotiationsExportMap(
 	const q = buildMapFiltersQuery(filters);
 	const result = await fetchAuthorizedBlob(
 		accessToken,
-		`${BASE_URL}/negotiations/export/map${q}`
+		`${BASE_URL}/negotiations/export/map${q}`,
+		{ fallbackFilename: buildPersonalNegotiationsMapFilename() }
 	);
 	if ("error" in result) {
 		return { error: result.error };
@@ -704,7 +719,10 @@ export async function downloadStatisticsExportPdf(
 	const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
 	const result = await fetchAuthorizedBlob(
 		accessToken,
-		`${BASE_URL}/statistics/export/pdf${q}`
+		`${BASE_URL}/statistics/export/pdf${q}`,
+		{
+			fallbackFilename: buildPersonalStatisticsPdfFilename(params?.year),
+		}
 	);
 	if ("error" in result) {
 		return { error: result.error };
@@ -1876,7 +1894,10 @@ export async function downloadTeamStatisticsExportPdf(
 	const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
 	const result = await fetchAuthorizedBlob(
 		accessToken,
-		`${BASE_URL}/teams/${teamId}/export/pdf${q}`
+		`${BASE_URL}/teams/${teamId}/export/pdf${q}`,
+		{
+			fallbackFilename: buildTeamStatisticsPdfFilename(params?.year),
+		}
 	);
 	if ("error" in result) {
 		return { error: result.error };
@@ -1900,7 +1921,8 @@ export async function downloadTeamNegotiationsExportExcel(
 	const q = searchParams.toString() ? `?${searchParams.toString()}` : "";
 	const result = await fetchAuthorizedBlob(
 		accessToken,
-		`${BASE_URL}/teams/${teamId}/export/excel${q}`
+		`${BASE_URL}/teams/${teamId}/export/excel${q}`,
+		{ fallbackFilename: buildTeamNegotiationsExcelFilename() }
 	);
 	if ("error" in result) {
 		return { error: result.error };
@@ -1923,7 +1945,8 @@ export async function downloadTeamNegotiationsExportMap(
 	});
 	const result = await fetchAuthorizedBlob(
 		accessToken,
-		`${BASE_URL}/teams/${teamId}/export/map${q}`
+		`${BASE_URL}/teams/${teamId}/export/map${q}`,
+		{ fallbackFilename: buildTeamNegotiationsMapFilename() }
 	);
 	if ("error" in result) {
 		return { error: result.error };

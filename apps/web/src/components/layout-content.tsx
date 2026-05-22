@@ -71,6 +71,8 @@ function SidebarLeftAnimatedLayout({
 	const [hasMounted, setHasMounted] = useState(false);
 	/** Dataweb (schema colore “rich”): stesso tinta del pannello contenuto della sidebar per evitare alone diverso da `bg-transparent`. */
 	const isRichColors = colorScheme === "rich";
+	// colorScheme è idratato da localStorage dopo mount — non usarlo in className finché hasMounted è false.
+	const showRichColors = hasMounted && isRichColors;
 
 	// Defer preference-based width until after mount to avoid hydration mismatch:
 	// fontSize comes from localStorage (via PreferencesProvider), which is only
@@ -144,7 +146,7 @@ function SidebarLeftAnimatedLayout({
 				}}
 				className={cn(
 					"absolute top-0 right-0 bottom-0 z-10 flex h-full min-h-0 flex-col",
-					isRichColors ? "bg-sidebar" : "bg-transparent"
+					showRichColors ? "bg-sidebar" : "bg-transparent"
 				)}
 				initial={false}
 				onClick={() => {
@@ -189,6 +191,7 @@ function SidebarRightAnimatedLayout({
 	const [hasMounted, setHasMounted] = useState(false);
 	/** Stesso criterio della sidebar sinistra: shell Dataweb allineata a `--sidebar`. */
 	const isRichColors = colorScheme === "rich";
+	const showRichColors = hasMounted && isRichColors;
 
 	useEffect(() => setHasMounted(true), []);
 
@@ -232,7 +235,7 @@ function SidebarRightAnimatedLayout({
 				}}
 				className={cn(
 					"absolute top-0 bottom-0 left-0 z-10 flex h-full min-h-0 flex-col",
-					isRichColors ? "bg-sidebar" : "bg-transparent"
+					showRichColors ? "bg-sidebar" : "bg-transparent"
 				)}
 				initial={false}
 				onClick={() => {

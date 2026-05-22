@@ -125,10 +125,10 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 ## Learned User Preferences
 
-- In dataweb light, card/panel surfaces use `text-card-foreground` and `hover:text-card-foreground` (not `text-foreground` / `hover:text-foreground`)
-- Dataweb light: form inputs on cards/panels use `bg-input` (not `bg-background`) so fields stay readable and distinct from the card/dialog surface
-- Dialog close buttons: use `bg-table-header`, `text-card-foreground`, `hover:bg-table-hover` to match input fields
-- Stat card values on `bg-card` and empty state headings: use `text-card-foreground` for contrast in dataweb light; empty state subtitles use `text-card-foreground/80`
+- In dataweb light, card/panel surfaces use `text-card-foreground` and `hover:text-card-foreground` (not `text-foreground` / `hover:text-foreground`); form inputs on cards/panels use `bg-input` (not `bg-background`) so fields stay readable and distinct from the card/dialog surface
+- Dataweb light: vertical sidebar and animated main content shell both use `bg-sidebar`; tune `--background` and `--sidebar` in `html:not(.dark)[data-color-scheme="rich"]` so the logo blue reads (sidebar distinct from page canvas—not transparent over `--background`, not near-white washout)
+- Preferences theme picker: CSS-only mini previews on all viewports (no Next/Image theme PNGs) to avoid main-thread jank when the dialog opens in production
+- Dataweb light on `bg-card`: dialog close buttons use `bg-table-header`, `text-card-foreground`, `hover:bg-table-hover`; stat values and empty-state headings use `text-card-foreground`; empty-state subtitles use `text-card-foreground/80`
 - "Aperta" status pill: use `bg-sky-200` when on azzurrino/table-header backgrounds in dataweb light
 - Pass only numeric values to AnimateNumber; formatted strings cause NaN
 - Team member map: zoom first, then click to open detail dialog (same as clients map)
@@ -145,11 +145,11 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 - Use fallback for `team.creator` when API may omit it (safeCreator pattern with `creator_id`)
 - framer-motion: do not use `motion/react`; use package-specific import paths
 - Dataweb dark theme: define `--popover`, `--muted`, `--accent`, `--accent-foreground` for dropdowns and avatar fallbacks to match theme
-- Onborda: highlights/cards use portals and live target geometry so responsive layouts do not shift targets off screen; desktop trattative steps target `#tour-trattative-filter-search-row` for filters/search and `#tour-trattative-add-desktop` for Add; `@neoconfetti/react` fullscreen confetti needs a fixed top-center anchor because its origin is its own node.
+- Frontend product name is **Tracta B** (replaced ICARU in user-facing copy/metadata); logo asset `/images/Logo_Tracta.png` (`alt` «Logo Tracta Business») on auth pages and sidebar
+- Export downloads: use descriptive dated filenames via `apps/web/src/lib/export-filename.ts`—`statistiche-*`, `trattative-*`, `mappa-*` with `YYYY-MM-DD` (not generic `map`/`pdf`/`excel` from URL segments); PDF exports append `-storico` when the selected year is storico
+- Onborda: highlights/cards use portals and live target geometry so responsive layouts do not shift targets off screen; tour storage/session keys use `tractab-tour` prefix (rebrand resets prior completion); desktop trattative steps target `#tour-trattative-filter-search-row` for filters/search and `#tour-trattative-add-desktop` for Add; `@neoconfetti/react` fullscreen confetti needs a fixed top-center anchor because its origin is its own node.
 - Recharts: `stackId` merges segments into one shape; for separate pill-shaped bars per month on mobile (gap shows card background), use a custom column layout (`flex`/`ul` per month) or split charts—not stack + spacer hacks; keep a fixed left Y-axis rail so scale labels stay visible while the month row scrolls horizontally
-- Statistiche page layout: negotiations map → monthly charts → SPANCO donut; below `md` (768px) the monthly block is four stacked single-series charts in order: importo aperte, importo chiuse, numero aperte, numero chiuse; at `md+` use the two dual-series chart grids
-- Dashboard and Statistiche: do not use a global “hero” `main-page-title` on the `h1`—use plain heading styling (inherits body scale). On mobile-heavy routes, root `main` often uses `px-5 sm:px-9` instead of uniform `px-9` (e.g. clienti/trattative detail, statistiche)
-- Negotiations map filter panel on statistiche: use `stat-card-bg` with `bg-stat-card` to match monthly stat cards (avoid relying on `bg-background` alone in dataweb light)
+- Statistiche/Dashboard layout: negotiations map → monthly charts → SPANCO donut; below `md` four stacked single-series charts, at `md+` dual-series grids; map filter panel uses `bg-stat-card`; no global `main-page-title` on `h1`; mobile-heavy routes often use `px-5 sm:px-9` on root `main`
 - Detail headers: inactive action groups should use `hidden` (not only `opacity-0`) so they do not reserve flex width; long titles need `w-full` and wrapping rather than `truncate` when mobile width is tight
 - `update-negotiation-form.tsx`: `SECTION_CARD_CLASSES` stacks each section title above its body (`flex flex-col`). On `md+`, section content uses two-column grids as implemented (Dati trattativa, Allegati list vs upload, Stato e avanzamento e.g. Spanco + Importo with full-width rows for slider/Abbandonata). Field rows still use `flex-col md:flex-row` for label/value pills; editable/read-only values in Dati trattativa use `text-start md:text-start`, and the **Note** label aligns to the top of the textarea. `update-client-form.tsx` mirrors this layout pattern for client details, with editable inputs left-aligned.
 
